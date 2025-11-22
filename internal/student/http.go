@@ -6,15 +6,20 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
 )
 
 type Handler struct {
-	service Service
+	service  Service
+	validate *validator.Validate
 }
 
 func NewHandler(service Service) *Handler {
-	return &Handler{service: service}
+	return &Handler{
+		service:  service,
+		validate: validator.New(),
+	}
 }
 
 func (h *Handler) RegisterRoutes(router *mux.Router) {
@@ -32,8 +37,13 @@ func (h *Handler) CreateStudent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := h.validate.Struct(&student); err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	if err := h.service.CreateStudent(r.Context(), &student); err != nil {
-		if errors.Is(err, ErrInvalidInput) || errors.Is(err, ErrInvalidEmail) {
+		if errors.Is(err, ErrInvalidInput) {
 			respondWithError(w, http.StatusBadRequest, err.Error())
 			return
 		}
@@ -90,12 +100,17 @@ func (h *Handler) UpdateStudent(w http.ResponseWriter, r *http.Request) {
 	}
 	student.ID = id
 
+	if err := h.validate.Struct(&student); err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	if err := h.service.UpdateStudent(r.Context(), &student); err != nil {
 		if errors.Is(err, ErrStudentNotFound) {
 			respondWithError(w, http.StatusNotFound, "Student not found")
 			return
 		}
-		if errors.Is(err, ErrInvalidInput) || errors.Is(err, ErrInvalidEmail) {
+		if errors.Is(err, ErrInvalidInput) {
 			respondWithError(w, http.StatusBadRequest, err.Error())
 			return
 		}
