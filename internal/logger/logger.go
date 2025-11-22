@@ -1,11 +1,20 @@
 package logger
 
 import (
+	"fmt"
 	"os"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
+
+func customLevelEncoder(l zapcore.Level, enc zapcore.PrimitiveArrayEncoder) {
+	if l == zapcore.ErrorLevel || l == zapcore.DPanicLevel || l == zapcore.PanicLevel || l == zapcore.FatalLevel {
+		enc.AppendString(fmt.Sprintf("\x1b[31m%s\x1b[0m", l.CapitalString()))
+	} else {
+		enc.AppendString(l.CapitalString())
+	}
+}
 
 func New() (*zap.Logger, error) {
 	env := os.Getenv("ENV")
@@ -14,12 +23,26 @@ func New() (*zap.Logger, error) {
 	if env == "production" {
 		config = zap.NewProductionConfig()
 	} else {
-		config = zap.NewDevelopmentConfig()
-		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		encoderConfig := zap.NewDevelopmentEncoderConfig()
+		encoderConfig.EncodeLevel = customLevelEncoder
+		encoderConfig.TimeKey = "timestamp"
+		encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+		encoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
+
+		config = zap.Config{
+			Level:            zap.NewAtomicLevelAt(zap.DebugLevel),
+			Development:      true,
+			Encoding:         "console",
+			EncoderConfig:    encoderConfig,
+			OutputPaths:      []string{"stdout"},
+			ErrorOutputPaths: []string{"stderr"},
+		}
 	}
 
-	config.EncoderConfig.TimeKey = "timestamp"
-	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	if env == "production" {
+		config.EncoderConfig.TimeKey = "timestamp"
+		config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	}
 
 	logger, err := config.Build(
 		zap.AddCaller(),
