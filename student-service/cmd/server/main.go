@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"time"
 
-	"grud/internal/app"
+	"student-service/internal/app"
 )
 
 func main() {
