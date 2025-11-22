@@ -8,6 +8,7 @@ REST API pro správu studentů univerzity s PostgreSQL databází a Bun ORM.
 - PostgreSQL 16
 - Bun ORM
 - Gorilla Mux (HTTP router)
+- Zap Logger (strukturované logování)
 - Docker & Docker Compose
 
 ## Architektura
@@ -27,10 +28,13 @@ grud/
 │   ├── db/
 │   │   └── db.go                # Databázové připojení a migrace
 │   │
+│   ├── logger/
+│   │   └── logger.go            # Zap logger konfigurace
+│   │
 │   ├── student/                 # STUDENT DOMÉNA
 │   │   ├── model.go             # Student entity
 │   │   ├── repository.go        # DB operace
-│   │   ├── service.go           # Business logika
+│   │   ├── service.go           # Business logika s logováním
 │   │   └── http.go              # HTTP handlers
 │   │
 │   └── app/
@@ -263,6 +267,7 @@ Aplikace používá proměnné prostředí pro konfiguraci:
 | DB_PASSWORD | postgres | Databázové heslo |
 | DB_NAME | university | Název databáze |
 | PORT | 8080 | Port API serveru |
+| ENV | development | Environment (development/production) |
 
 ## Domain Layers
 
@@ -281,6 +286,7 @@ Aplikace používá proměnné prostředí pro konfiguraci:
 - Validace vstupů
 - Error handling
 - Transformace repository errors na domain errors
+- **Strukturované logování** každé operace (Zap)
 
 ### HTTP (http.go)
 - REST handlers
@@ -357,6 +363,55 @@ VALUES ('Jan', 'Novák', 'jan@example.com', 'CS', 2);
 TRUNCATE TABLE students RESTART IDENTITY;
 ```
 
+## Logování
+
+Aplikace používá **Zap logger** od Uberu pro strukturované logování.
+
+### Konfigurace Loggeru
+
+- **Development mode** (výchozí): barevný výstup, debug úroveň, čitelný formát
+- **Production mode** (ENV=production): JSON formát, optimalizováno pro výkon
+
+### Co se loguje
+
+Service vrstva loguje každou operaci:
+
+- **Info**: úspěšné operace
+  - Vytvoření studenta s emailem a ID
+  - Načtení studentů (včetně počtu)
+  - Update a delete operace
+
+- **Warn**: validační chyby, neexistující záznamy
+  - Neplatné ID
+  - Student nebyl nalezen
+
+- **Error**: databázové chyby, validační selhání
+  - Chyby při komunikaci s DB
+  - Validační chyby při vytváření/updatu
+
+### Příklad logů
+
+```json
+{
+  "level": "info",
+  "timestamp": "2024-01-15T14:30:00.123Z",
+  "caller": "student/service.go:39",
+  "msg": "creating student",
+  "email": "jan.novak@university.cz",
+  "first_name": "Jan",
+  "last_name": "Novák"
+}
+
+{
+  "level": "info",
+  "timestamp": "2024-01-15T14:30:00.456Z",
+  "caller": "student/service.go:61",
+  "msg": "student created successfully",
+  "id": 1,
+  "email": "jan.novak@university.cz"
+}
+```
+
 ## Best Practices
 
 1. **Dependency Injection** - všechny dependencies jsou injectované přes konstruktory
@@ -365,3 +420,4 @@ TRUNCATE TABLE students RESTART IDENTITY;
 4. **Context propagation** - context.Context je předáván přes všechny vrstvy
 5. **Validation** - validace na service vrstvě, ne v handleru
 6. **Separation of concerns** - každá vrstva má svou zodpovědnost
+7. **Structured logging** - Zap logger pro strukturované a výkonné logování
