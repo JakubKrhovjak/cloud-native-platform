@@ -18,8 +18,25 @@ services:
       timeout: 5s
       retries: 5
 
-  api:
-    build: .
+  postgres_projects:
+    image: postgres:16-alpine
+    container_name: projects_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: projects
+    ports:
+      - "5440:5432"
+    volumes:
+      - postgres_projects_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  student_api:
+    build: ./student-service
     container_name: student_api
     environment:
       DB_HOST: postgres
@@ -34,5 +51,22 @@ services:
       postgres:
         condition: service_healthy
 
+  project_api:
+    build: ./project-service
+    container_name: project_api
+    environment:
+      DB_HOST: postgres_projects
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: projects
+      PORT: 8081
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres_projects:
+        condition: service_healthy
+
 volumes:
   postgres_data:
+  postgres_projects_data:

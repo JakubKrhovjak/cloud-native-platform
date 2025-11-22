@@ -39,15 +39,10 @@ func (h *Handler) CreateStudent(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
-	h.logger.Info("creating student", "email", student.Email)
 
+	h.logger.Info("creating student", "email", student.Email)
 	if err := h.service.CreateStudent(r.Context(), &student); err != nil {
-		h.logger.Error("failed to create student", "email", student.Email)
-		if errors.Is(err, ErrInvalidInput) {
-			respondWithError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		h.handleServiceError(w, err)
 		return
 	}
 
@@ -59,8 +54,7 @@ func (h *Handler) GetAllStudents(w http.ResponseWriter, r *http.Request) {
 
 	students, err := h.service.GetAllStudents(r.Context())
 	if err != nil {
-		h.logger.Error("failed to fetch students")
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		h.handleServiceError(w, err)
 		return
 	}
 
@@ -69,27 +63,12 @@ func (h *Handler) GetAllStudents(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) GetStudent(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid student ID")
-		return
-	}
+	id, _ := strconv.Atoi(vars["id"])
 
 	h.logger.Info("fetching student by ID")
-
 	student, err := h.service.GetStudentByID(r.Context(), id)
 	if err != nil {
-		if errors.Is(err, ErrStudentNotFound) {
-			h.logger.Info("student not found")
-			respondWithError(w, http.StatusNotFound, "Student not found")
-			return
-		}
-		if errors.Is(err, ErrInvalidInput) {
-			respondWithError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-		h.logger.Error("failed to fetch student")
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		h.handleServiceError(w, err)
 		return
 	}
 
@@ -98,11 +77,7 @@ func (h *Handler) GetStudent(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) UpdateStudent(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid student ID")
-		return
-	}
+	id, _ := strconv.Atoi(vars["id"])
 
 	var student Student
 	if err := json.NewDecoder(r.Body).Decode(&student); err != nil || h.validate.Struct(&student) != nil {
@@ -112,18 +87,8 @@ func (h *Handler) UpdateStudent(w http.ResponseWriter, r *http.Request) {
 	student.ID = id
 
 	h.logger.Info("updating student", "email", student.Email)
-
 	if err := h.service.UpdateStudent(r.Context(), &student); err != nil {
-		h.logger.Error("failed to update student", "email", student.Email)
-		if errors.Is(err, ErrStudentNotFound) {
-			respondWithError(w, http.StatusNotFound, "Student not found")
-			return
-		}
-		if errors.Is(err, ErrInvalidInput) {
-			respondWithError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		h.handleServiceError(w, err)
 		return
 	}
 
@@ -139,22 +104,27 @@ func (h *Handler) DeleteStudent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.logger.Info("deleting student")
-
 	if err := h.service.DeleteStudent(r.Context(), id); err != nil {
-		h.logger.Error("failed to delete student")
-		if errors.Is(err, ErrStudentNotFound) {
-			respondWithError(w, http.StatusNotFound, "Student not found")
-			return
-		}
-		if errors.Is(err, ErrInvalidInput) {
-			respondWithError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		h.handleServiceError(w, err)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) handleServiceError(w http.ResponseWriter, err error) {
+	if errors.Is(err, ErrStudentNotFound) {
+		h.logger.Info("student not found")
+		respondWithError(w, http.StatusNotFound, "Student not found")
+		return
+	}
+	if errors.Is(err, ErrInvalidInput) {
+		h.logger.Info("invalid input")
+		respondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	h.logger.Error("internal error")
+	respondWithError(w, http.StatusInternalServerError, err.Error())
 }
 
 func respondWithError(w http.ResponseWriter, code int, message string) {
