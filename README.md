@@ -1,25 +1,53 @@
 # Student Management REST API
 
-REST API pro správu studentů univerzity s PostgreSQL databází.
+REST API pro správu studentů univerzity s PostgreSQL databází a Bun ORM.
 
 ## Technologie
 
 - Go 1.25
 - PostgreSQL 16
-- Docker & Docker Compose
+- Bun ORM
 - Gorilla Mux (HTTP router)
+- Docker & Docker Compose
 
-## Struktura projektu
+## Architektura
+
+Projekt používá **Domain-Driven Design (DDD)** strukturu:
 
 ```
 grud/
-├── main.go              # Hlavní aplikační soubor s REST API
-├── go.mod               # Go module definice
-├── go.sum               # Go dependencies checksums
-├── Dockerfile           # Docker image pro API
-├── docker-compose.yml   # Docker Compose konfigurace
-└── README.md           # Dokumentace
+├── cmd/
+│   └── server/
+│       └── main.go              # Entry point s graceful shutdown
+│
+├── internal/
+│   ├── config/
+│   │   └── config.go            # Konfigurace aplikace
+│   │
+│   ├── db/
+│   │   └── db.go                # Databázové připojení a migrace
+│   │
+│   ├── student/                 # STUDENT DOMÉNA
+│   │   ├── model.go             # Student entity
+│   │   ├── repository.go        # DB operace
+│   │   ├── service.go           # Business logika
+│   │   └── http.go              # HTTP handlers
+│   │
+│   └── app/
+│       └── app.go               # Bootstrap aplikace
+│
+├── go.mod
+├── Dockerfile
+└── docker-compose.yml
 ```
+
+### Výhody této architektury:
+
+- **Separation of Concerns** - každá vrstva má svou zodpovědnost
+- **Testovatelnost** - snadné mockování interfaces
+- **Škálovatelnost** - snadné přidávání nových domén
+- **Maintainability** - čistý a přehledný kód
+- **Professional** - standard pro enterprise projekty
 
 ## Student Model
 
@@ -79,6 +107,14 @@ Content-Type: application/json
 DELETE /api/students/{id}
 ```
 
+## Validace
+
+Service vrstva obsahuje validaci:
+- First name a last name jsou povinné
+- Email musí být validní formát
+- Year musí být mezi 0-10
+- Email musí být unikátní (DB constraint)
+
 ## Instalace a spuštění
 
 ### Předpoklady
@@ -86,10 +122,6 @@ DELETE /api/students/{id}
 - Docker Compose
 
 ### Spuštění s Docker Compose
-
-1. Naklonujte nebo stáhněte projekt
-2. Přejděte do projektového adresáře
-3. Spusťte Docker Compose:
 
 ```bash
 docker-compose up -d
@@ -99,7 +131,7 @@ Tento příkaz:
 - Stáhne PostgreSQL 16 Alpine image
 - Vytvoří databázi `university` na portu 5439
 - Sestaví a spustí Go API na portu 8080
-- Automaticky vytvoří tabulku `students`
+- Automaticky provede migrace (vytvoří tabulku `students`)
 
 ### Kontrola běžících služeb
 
@@ -141,9 +173,7 @@ docker-compose down -v
 ### Instalace závislostí
 
 ```bash
-go mod init grud
-go get github.com/gorilla/mux
-go get github.com/lib/pq
+go mod download
 ```
 
 ### Nastavení proměnných prostředí
@@ -166,7 +196,14 @@ docker run --name postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=universi
 ### Spuštění aplikace
 
 ```bash
-go run main.go
+go run cmd/server/main.go
+```
+
+### Build
+
+```bash
+go build -o server cmd/server/main.go
+./server
 ```
 
 ## Testování API
@@ -214,25 +251,6 @@ curl -X PUT http://localhost:8080/api/students/1 \
 curl -X DELETE http://localhost:8080/api/students/1
 ```
 
-### Pomocí HTTPie
-
-```bash
-# Vytvořit studenta
-http POST localhost:8080/api/students first_name=Jan last_name=Novák email=jan.novak@university.cz major="Computer Science" year:=2
-
-# Získat všechny studenty
-http localhost:8080/api/students
-
-# Získat studenta
-http localhost:8080/api/students/1
-
-# Aktualizovat studenta
-http PUT localhost:8080/api/students/1 first_name=Jan last_name=Novák email=jan.novak@university.cz major="Software Engineering" year:=3
-
-# Smazat studenta
-http DELETE localhost:8080/api/students/1
-```
-
 ## Konfigurace
 
 Aplikace používá proměnné prostředí pro konfiguraci:
@@ -246,31 +264,68 @@ Aplikace používá proměnné prostředí pro konfiguraci:
 | DB_NAME | university | Název databáze |
 | PORT | 8080 | Port API serveru |
 
-## Databázová struktura
+## Domain Layers
 
-### Tabulka: students
+### Model (model.go)
+- Definice entity Student
+- Bun tagy pro ORM mapping
+- JSON tagy pro API response
 
-| Sloupec | Typ | Popis |
-|---------|-----|-------|
-| id | SERIAL | Primární klíč (auto-increment) |
-| first_name | VARCHAR(100) | Křestní jméno |
-| last_name | VARCHAR(100) | Příjmení |
-| email | VARCHAR(255) | Email (unikátní) |
-| major | VARCHAR(100) | Studijní obor |
-| year | INTEGER | Ročník |
+### Repository (repository.go)
+- Interface pro DB operace
+- CRUD metody s Bun ORM
+- Vrací Go errors (sql.ErrNoRows)
+
+### Service (service.go)
+- Business logika
+- Validace vstupů
+- Error handling
+- Transformace repository errors na domain errors
+
+### HTTP (http.go)
+- REST handlers
+- Request/Response mapping
+- HTTP status codes
+- Error responses
+
+## Error Handling
+
+Aplikace používá vrstvené error handling:
+- **Repository**: vrací database errors
+- **Service**: transformuje na domain errors (ErrStudentNotFound, ErrInvalidInput)
+- **HTTP**: mapuje na HTTP status codes (404, 400, 500)
+
+## Graceful Shutdown
+
+Aplikace podporuje graceful shutdown:
+- Catch SIGINT/SIGTERM signály
+- 10 sekundový timeout pro dokončení požadavků
+- Bezpečné uzavření databázového spojení
+
+## Přidání nové domény
+
+Pro přidání nové domény (např. `book`):
+
+1. Vytvoř adresář `internal/book/`
+2. Vytvoř soubory:
+   - `model.go` - definice entity
+   - `repository.go` - DB operace
+   - `service.go` - business logika
+   - `http.go` - HTTP handlers
+3. Zaregistruj v `internal/app/app.go`
+4. Přidej migrace do `db.RunMigrations()`
 
 ## Troubleshooting
 
 ### Problém s připojením k databázi
 
-Zkontrolujte, že PostgreSQL běží:
 ```bash
 docker-compose logs postgres
 ```
 
 ### Port již používán
 
-Pokud je port 5439 nebo 8080 již používán, změňte port v `docker-compose.yml`:
+Změň port v `docker-compose.yml`:
 ```yaml
 ports:
   - "5440:5432"  # Pro PostgreSQL
@@ -279,7 +334,6 @@ ports:
 
 ### Rebuild Docker image
 
-Pokud jste změnili kód:
 ```bash
 docker-compose up -d --build
 ```
@@ -302,3 +356,12 @@ VALUES ('Jan', 'Novák', 'jan@example.com', 'CS', 2);
 -- Smazat všechny studenty
 TRUNCATE TABLE students RESTART IDENTITY;
 ```
+
+## Best Practices
+
+1. **Dependency Injection** - všechny dependencies jsou injectované přes konstruktory
+2. **Interface segregation** - každá vrstva definuje své interface
+3. **Error wrapping** - použití `fmt.Errorf` s `%w` pro error wrapping
+4. **Context propagation** - context.Context je předáván přes všechny vrstvy
+5. **Validation** - validace na service vrstvě, ne v handleru
+6. **Separation of concerns** - každá vrstva má svou zodpovědnost
