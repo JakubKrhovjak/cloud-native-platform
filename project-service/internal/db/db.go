@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 
-	"grud/internal/config"
+	"project-service/internal/config"
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"

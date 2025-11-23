@@ -7,10 +7,10 @@ import (
 	"log/slog"
 	"net/http"
 
-	"grud/internal/config"
-	"grud/internal/db"
-	"grud/internal/logger"
-	"grud/internal/student"
+	"student-service/internal/config"
+	"student-service/internal/db"
+	"student-service/internal/logger"
+	"student-service/internal/student"
 
 	"github.com/gorilla/mux"
 )
