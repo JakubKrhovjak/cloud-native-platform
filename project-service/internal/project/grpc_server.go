@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	pb "project-service/pkg/gen/project/v1"
+	pb "grud/api/gen/project/v1"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 )

@@ -12,10 +12,6 @@
 # Output of the go coverage tool
 *.out
 
-# Go workspace file
-go.work
-go.work.sum
-
 # Dependency directories
 vendor/
 
@@ -37,7 +33,5 @@ Thumbs.db
 # Claude
 .claude/
 
-# Generated protobuf files
+# Generated protobuf files (old locations - can be removed after cleanup)
 */pkg/gen/
-**/proto/*.pb.go
-**/proto/*_grpc.pb.go

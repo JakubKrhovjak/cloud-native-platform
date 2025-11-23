@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	pb "student-service/pkg/gen/project/v1"
+	pb "grud/api/gen/project/v1"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

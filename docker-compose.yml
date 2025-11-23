@@ -36,7 +36,9 @@ services:
       retries: 5
 
   student_api:
-    build: ./student-service
+    build:
+      context: .
+      dockerfile: ./student-service/Dockerfile
     container_name: student_api
     environment:
       APP_ENV: qa
@@ -47,7 +49,9 @@ services:
         condition: service_healthy
 
   project_api:
-    build: ./project-service
+    build:
+      context: .
+      dockerfile: ./project-service/Dockerfile
     container_name: project_api
     environment:
       APP_ENV: qa

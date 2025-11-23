@@ -12,7 +12,8 @@ import (
 	"project-service/internal/db"
 	"project-service/internal/logger"
 	"project-service/internal/project"
-	pb "project-service/pkg/gen/project/v1"
+
+	pb "grud/api/gen/project/v1"
 
 	"github.com/gorilla/mux"
 	"google.golang.org/grpc"
