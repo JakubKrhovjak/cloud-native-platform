@@ -3,20 +3,23 @@ package projectclient
 import (
 	"encoding/json"
 	"log/slog"
+	"math/rand"
 	"net/http"
 
 	"github.com/gorilla/mux"
 )
 
 type Handler struct {
-	client *Client
-	logger *slog.Logger
+	httpClient *Client
+	grpcClient *GrpcClient
+	logger     *slog.Logger
 }
 
-func NewHandler(client *Client, logger *slog.Logger) *Handler {
+func NewHandler(httpClient *Client, grpcClient *GrpcClient, logger *slog.Logger) *Handler {
 	return &Handler{
-		client: client,
-		logger: logger,
+		httpClient: httpClient,
+		grpcClient: grpcClient,
+		logger:     logger,
 	}
 }
 
@@ -25,13 +28,28 @@ func (h *Handler) RegisterRoutes(router *mux.Router) {
 }
 
 func (h *Handler) GetAllProjects(w http.ResponseWriter, r *http.Request) {
-	h.logger.Info("fetching all projects from project-service")
+	// Randomly choose between HTTP and gRPC (50/50 chance)
+	useGrpc := rand.Intn(2) == 0
 
-	projects, err := h.client.GetAllProjects(r.Context())
-	if err != nil {
-		h.logger.Error("failed to fetch projects", "error", err)
-		respondWithError(w, http.StatusInternalServerError, "Failed to fetch projects")
-		return
+	var projects []Project
+	var err error
+
+	if useGrpc && h.grpcClient != nil {
+		h.logger.Info("fetching all projects from project-service via gRPC")
+		projects, err = h.grpcClient.GetAllProjects(r.Context())
+		if err != nil {
+			h.logger.Error("failed to fetch projects via gRPC", "error", err)
+			respondWithError(w, http.StatusInternalServerError, "Failed to fetch projects via gRPC")
+			return
+		}
+	} else {
+		h.logger.Info("fetching all projects from project-service via HTTP")
+		projects, err = h.httpClient.GetAllProjects(r.Context())
+		if err != nil {
+			h.logger.Error("failed to fetch projects via HTTP", "error", err)
+			respondWithError(w, http.StatusInternalServerError, "Failed to fetch projects via HTTP")
+			return
+		}
 	}
 
 	respondWithJSON(w, http.StatusOK, projects)

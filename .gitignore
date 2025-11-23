@@ -36,3 +36,8 @@ Thumbs.db
 
 # Claude
 .claude/
+
+# Generated protobuf files
+*/pkg/gen/
+**/proto/*.pb.go
+**/proto/*_grpc.pb.go

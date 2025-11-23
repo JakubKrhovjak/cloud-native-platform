@@ -48,9 +48,17 @@ func New() *App {
 	studentHandler := student.NewHandler(studentService, slogLogger)
 	studentHandler.RegisterRoutes(app.router)
 
-	// Initialize project client
-	projectClient := projectclient.NewClient(cfg.ProjectService.BaseURL)
-	projectHandler := projectclient.NewHandler(projectClient, slogLogger)
+	httpClient := projectclient.NewClient(cfg.ProjectService.BaseURL)
+
+	grpcClient, err := projectclient.NewGrpcClient(cfg.ProjectService.GrpcAddress)
+	if err != nil {
+		slogLogger.Warn("failed to initialize gRPC client", "error", err)
+		grpcClient = nil
+	} else {
+		slogLogger.Info("gRPC client initialized successfully")
+	}
+
+	projectHandler := projectclient.NewHandler(httpClient, grpcClient, slogLogger)
 	projectHandler.RegisterRoutes(app.router)
 
 	slogLogger.Info("application initialized successfully")

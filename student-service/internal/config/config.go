@@ -13,7 +13,8 @@ type ServerConfig struct {
 }
 
 type ProjectServiceConfig struct {
-	BaseURL string
+	BaseURL     string
+	GrpcAddress string
 }
 
 type DatabaseConfig struct {
@@ -37,7 +38,8 @@ func Load() *Config {
 			DBName:   getEnv("DB_NAME", "university"),
 		},
 		ProjectService: ProjectServiceConfig{
-			BaseURL: getEnv("PROJECT_SERVICE_URL", "http://localhost:8081"),
+			BaseURL:     getEnv("PROJECT_SERVICE_URL", "http://localhost:8081"),
+			GrpcAddress: getEnv("PROJECT_SERVICE_GRPC", "localhost:9090"),
 		},
 	}
 }
