@@ -5,61 +5,36 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"student-service/internal/db"
+	"grud/testing/testdb"
 	"student-service/internal/logger"
 	"student-service/internal/student"
 
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/modules/postgres"
-	"github.com/testcontainers/testcontainers-go/wait"
-	"github.com/uptrace/bun"
 )
 
 type testEnv struct {
-	container *postgres.PostgresContainer
-	db        *bun.DB
-	router    *mux.Router
-	handler   *student.Handler
+	pgContainer *testdb.PostgresContainer
+	router      *mux.Router
+	handler     *student.Handler
 }
 
 func setupTest(t *testing.T) *testEnv {
-	ctx := context.Background()
+	t.Helper()
 
-	// Start PostgreSQL container
-	pgContainer, err := postgres.Run(ctx,
-		"postgres:16-alpine",
-		postgres.WithDatabase("testdb"),
-		postgres.WithUsername("postgres"),
-		postgres.WithPassword("postgres"),
-		testcontainers.WithWaitStrategy(
-			wait.ForLog("database system is ready to accept connections").
-				WithOccurrence(2),
-		),
-	)
-	require.NoError(t, err)
-
-	// Get connection string
-	connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
-	require.NoError(t, err)
-
-	// Connect to database
-	database := db.NewWithDSN(connStr)
-	require.NotNil(t, database)
+	// Setup PostgreSQL testcontainer
+	pgContainer := testdb.SetupPostgres(t)
 
 	// Run migrations
-	err = db.RunMigrations(ctx, database, (*student.Student)(nil))
-	require.NoError(t, err)
+	pgContainer.RunMigrations(t, (*student.Student)(nil))
 
 	// Setup service and handler
-	repo := student.NewRepository(database)
+	repo := student.NewRepository(pgContainer.DB)
 	service := student.NewService(repo)
 	handler := student.NewHandler(service, logger.New())
 
@@ -68,23 +43,15 @@ func setupTest(t *testing.T) *testEnv {
 	handler.RegisterRoutes(router)
 
 	return &testEnv{
-		container: pgContainer,
-		db:        database,
-		router:    router,
-		handler:   handler,
+		pgContainer: pgContainer,
+		router:      router,
+		handler:     handler,
 	}
 }
 
 func (env *testEnv) cleanup(t *testing.T) {
-	ctx := context.Background()
-	if env.db != nil {
-		env.db.Close()
-	}
-	if env.container != nil {
-		if err := env.container.Terminate(ctx); err != nil {
-			log.Printf("failed to terminate container: %s", err)
-		}
-	}
+	t.Helper()
+	env.pgContainer.Cleanup(t)
 }
 
 func TestCreateStudent(t *testing.T) {
@@ -145,7 +112,7 @@ func TestGetStudent(t *testing.T) {
 		Major:     "Mathematics",
 		Year:      3,
 	}
-	_, err := env.db.NewInsert().Model(testStudent).Exec(ctx)
+	_, err := env.pgContainer.DB.NewInsert().Model(testStudent).Exec(ctx)
 	require.NoError(t, err)
 
 	// Get the student
@@ -193,7 +160,7 @@ func TestGetAllStudents(t *testing.T) {
 	}
 
 	for _, s := range students {
-		_, err := env.db.NewInsert().Model(s).Exec(ctx)
+		_, err := env.pgContainer.DB.NewInsert().Model(s).Exec(ctx)
 		require.NoError(t, err)
 	}
 
@@ -248,7 +215,7 @@ func TestUpdateStudent(t *testing.T) {
 		Major:     "Engineering",
 		Year:      1,
 	}
-	_, err := env.db.NewInsert().Model(testStudent).Exec(ctx)
+	_, err := env.pgContainer.DB.NewInsert().Model(testStudent).Exec(ctx)
 	require.NoError(t, err)
 
 	// Update the student
@@ -316,7 +283,7 @@ func TestDeleteStudent(t *testing.T) {
 		Major:     "History",
 		Year:      2,
 	}
-	_, err := env.db.NewInsert().Model(testStudent).Exec(ctx)
+	_, err := env.pgContainer.DB.NewInsert().Model(testStudent).Exec(ctx)
 	require.NoError(t, err)
 
 	// Delete the student
@@ -329,7 +296,7 @@ func TestDeleteStudent(t *testing.T) {
 
 	// Verify deletion
 	var count int
-	count, err = env.db.NewSelect().Model((*student.Student)(nil)).Where("id = ?", testStudent.ID).Count(ctx)
+	count, err = env.pgContainer.DB.NewSelect().Model((*student.Student)(nil)).Where("id = ?", testStudent.ID).Count(ctx)
 	require.NoError(t, err)
 	assert.Equal(t, 0, count)
 }

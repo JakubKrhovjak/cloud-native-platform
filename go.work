@@ -4,4 +4,5 @@ use (
 	./api
 	./project-service
 	./student-service
+	./testing
 )

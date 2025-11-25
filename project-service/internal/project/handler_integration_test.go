@@ -5,61 +5,37 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"project-service/internal/db"
+	"grud/testing/testdb"
 	"project-service/internal/logger"
 	"project-service/internal/project"
 
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/modules/postgres"
-	"github.com/testcontainers/testcontainers-go/wait"
-	"github.com/uptrace/bun"
 )
 
 type testEnv struct {
-	container *postgres.PostgresContainer
-	db        *bun.DB
-	router    *mux.Router
-	handler   *project.Handler
+	pgContainer *testdb.PostgresContainer
+	router      *mux.Router
+	handler     *project.Handler
 }
 
 func setupTest(t *testing.T) *testEnv {
-	ctx := context.Background()
+	t.Helper()
 
-	// Start PostgreSQL container
-	pgContainer, err := postgres.Run(ctx,
-		"postgres:16-alpine",
-		postgres.WithDatabase("testdb"),
-		postgres.WithUsername("postgres"),
-		postgres.WithPassword("postgres"),
-		testcontainers.WithWaitStrategy(
-			wait.ForLog("database system is ready to accept connections").
-				WithOccurrence(2),
-		),
-	)
-	require.NoError(t, err)
-
-	// Get connection string
-	connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
-	require.NoError(t, err)
-
-	// Connect to database
-	database := db.NewWithDSN(connStr)
-	require.NotNil(t, database)
+	// Setup PostgreSQL testcontainer
+	pgContainer := testdb.SetupPostgres(t)
 
 	// Run migrations
-	err = db.RunMigrations(ctx, database, (*project.Project)(nil))
-	require.NoError(t, err)
+	pgContainer.RunMigrations(t, (*project.Project)(nil))
+	pgContainer.CreateUpdateTrigger(t, "projects")
 
 	// Setup service and handler
-	repo := project.NewRepository(database)
+	repo := project.NewRepository(pgContainer.DB)
 	service := project.NewService(repo)
 	handler := project.NewHandler(service, logger.New())
 
@@ -68,23 +44,15 @@ func setupTest(t *testing.T) *testEnv {
 	handler.RegisterRoutes(router)
 
 	return &testEnv{
-		container: pgContainer,
-		db:        database,
-		router:    router,
-		handler:   handler,
+		pgContainer: pgContainer,
+		router:      router,
+		handler:     handler,
 	}
 }
 
 func (env *testEnv) cleanup(t *testing.T) {
-	ctx := context.Background()
-	if env.db != nil {
-		env.db.Close()
-	}
-	if env.container != nil {
-		if err := env.container.Terminate(ctx); err != nil {
-			log.Printf("failed to terminate container: %s", err)
-		}
-	}
+	t.Helper()
+	env.pgContainer.Cleanup(t)
 }
 
 func TestCreateProject(t *testing.T) {
@@ -128,7 +96,7 @@ func TestGetProject(t *testing.T) {
 
 	// Create a project first
 	ctx := context.Background()
-	repo := project.NewRepository(env.db)
+	repo := project.NewRepository(env.pgContainer.DB)
 	testProject := &project.Project{
 		Name: "Sample Project",
 	}
@@ -183,7 +151,7 @@ func TestGetAllProjects(t *testing.T) {
 
 	// Create test projects
 	ctx := context.Background()
-	repo := project.NewRepository(env.db)
+	repo := project.NewRepository(env.pgContainer.DB)
 	projects := []*project.Project{
 		{Name: "Project One"},
 		{Name: "Project Two"},
@@ -252,7 +220,7 @@ func TestUpdateProject(t *testing.T) {
 
 	// Create a project first using repository to ensure timestamps are set
 	ctx := context.Background()
-	repo := project.NewRepository(env.db)
+	repo := project.NewRepository(env.pgContainer.DB)
 	testProject := &project.Project{
 		Name: "Original Name",
 	}
@@ -319,7 +287,7 @@ func TestDeleteProject(t *testing.T) {
 
 	// Create a project first
 	ctx := context.Background()
-	repo := project.NewRepository(env.db)
+	repo := project.NewRepository(env.pgContainer.DB)
 	testProject := &project.Project{
 		Name: "To Delete",
 	}
@@ -336,7 +304,7 @@ func TestDeleteProject(t *testing.T) {
 
 	// Verify deletion
 	var count int
-	count, err = env.db.NewSelect().Model((*project.Project)(nil)).Where("id = ?", testProject.ID).Count(ctx)
+	count, err = env.pgContainer.DB.NewSelect().Model((*project.Project)(nil)).Where("id = ?", testProject.ID).Count(ctx)
 	require.NoError(t, err)
 	assert.Equal(t, 0, count)
 }
