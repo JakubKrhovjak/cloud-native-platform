@@ -4,6 +4,4 @@
 .DS_Store
 .env
 .claude
-go.work
-go.work.sum
 server

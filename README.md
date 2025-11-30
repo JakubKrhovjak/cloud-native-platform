@@ -2,6 +2,21 @@
 
 Microservice architecture for university management with PostgreSQL databases and Bun ORM.
 
+## Quick Start
+
+### Run Tests
+```bash
+make test              # Fast tests (shared container, ~5s)
+./scripts/test-all.sh  # Alternative bash script
+```
+
+### Run Services
+```bash
+docker-compose up -d   # Start all services
+```
+
+See [TESTING.md](TESTING.md) for complete testing guide.
+
 ## Architecture
 
 The project consists of two independent microservices:
@@ -372,3 +387,69 @@ docker-compose up -d --build
 docker-compose down -v
 docker-compose up -d
 ```
+
+## Testing
+
+### Quick Commands
+
+```bash
+# Run all tests (default, fast)
+make test                    # ~5s for 20 tests
+
+# Test individual services
+make test-student           # Student service only
+make test-project           # Project service only
+
+# Integration tests (isolated containers)
+make test-integration       # ~40s (complete isolation)
+
+# With coverage
+make test-coverage          # Coverage report
+
+# Help
+make help                   # Show all commands
+```
+
+### Manual Testing
+
+```bash
+# All tests in monorepo
+go test ./student-service/... ./project-service/...
+
+# Specific service
+go test ./student-service/...
+
+# With verbose output
+go test -v ./student-service/... ./project-service/...
+
+# Integration tests
+go test -tags=integration ./student-service/...
+```
+
+### Performance
+
+**Shared Container Tests:**
+```
+Student Service:  2.6s  (10 tests)
+Project Service:  2.4s  (10 tests)
+Total:           ~5.0s  ✅ Fast!
+```
+
+**Integration Tests:**
+```
+Student Service:  20s   (10 tests)
+Project Service:  18s   (10 tests)
+Total:           ~40s   ⚠️  Slower but isolated
+```
+
+**Speedup: 8× faster with shared container!** 🚀
+
+See [TESTING.md](TESTING.md) for complete guide.
+
+## Documentation
+
+- [TESTING.md](TESTING.md) - Complete testing guide
+- [testing/TESTING_CONVENTIONS.md](testing/TESTING_CONVENTIONS.md) - Test naming conventions
+- [testing/INDUSTRY_PATTERNS.md](testing/INDUSTRY_PATTERNS.md) - Industry testing patterns
+- [testing/SPRING_VS_GO_TESTING.md](testing/SPRING_VS_GO_TESTING.md) - Spring vs Go comparison
+- [testing/SHARED_POSTGRES_MIGRATION.md](testing/SHARED_POSTGRES_MIGRATION.md) - Migration guide

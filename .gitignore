@@ -12,10 +12,6 @@
 # Output of the go coverage tool
 *.out
 
-# Go workspace file
-go.work
-go.work.sum
-
 # Dependency directories
 vendor/
 
@@ -30,9 +26,12 @@ vendor/
 .DS_Store
 Thumbs.db
 
-# Environment
+# Environment (keep .env.local and .env.qa committed for easy switching)
 .env
-.env.local
+*.env.prod
 
 # Claude
 .claude/
+
+# Generated protobuf files (old locations - can be removed after cleanup)
+*/pkg/gen/

@@ -23,6 +23,11 @@ func New(cfg config.DatabaseConfig) *bun.DB {
 		cfg.DBName,
 	)
 
+	return NewWithDSN(dsn)
+}
+
+// NewWithDSN creates a new database connection with a custom DSN (useful for testing)
+func NewWithDSN(dsn string) *bun.DB {
 	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
 	db := bun.NewDB(sqldb, pgdialect.New())
 

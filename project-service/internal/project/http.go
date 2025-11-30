@@ -63,7 +63,11 @@ func (h *Handler) GetAllProjects(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) GetProject(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	id, _ := strconv.Atoi(vars["id"])
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid project ID")
+		return
+	}
 
 	h.logger.Info("fetching project by ID")
 	project, err := h.service.GetProjectByID(r.Context(), id)
@@ -77,7 +81,11 @@ func (h *Handler) GetProject(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) UpdateProject(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	id, _ := strconv.Atoi(vars["id"])
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid project ID")
+		return
+	}
 
 	var project Project
 	if err := json.NewDecoder(r.Body).Decode(&project); err != nil || h.validate.Struct(&project) != nil {
@@ -92,7 +100,14 @@ func (h *Handler) UpdateProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, project)
+	// Fetch updated project from DB to get all fields including timestamps
+	updatedProject, err := h.service.GetProjectByID(r.Context(), id)
+	if err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, updatedProject)
 }
 
 func (h *Handler) DeleteProject(w http.ResponseWriter, r *http.Request) {

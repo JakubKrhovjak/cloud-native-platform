@@ -63,7 +63,11 @@ func (h *Handler) GetAllStudents(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) GetStudent(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	id, _ := strconv.Atoi(vars["id"])
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid student ID")
+		return
+	}
 
 	h.logger.Info("fetching student by ID")
 	student, err := h.service.GetStudentByID(r.Context(), id)

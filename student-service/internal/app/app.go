@@ -10,6 +10,7 @@ import (
 	"student-service/internal/config"
 	"student-service/internal/db"
 	"student-service/internal/logger"
+	"student-service/internal/projectclient"
 	"student-service/internal/student"
 
 	"github.com/gorilla/mux"
@@ -27,7 +28,11 @@ func New() *App {
 
 	slogLogger.Info("initializing application")
 
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("failed to load config: %v", err)
+	}
+	slogLogger.Info("config loaded", "env", cfg.Env)
 
 	app := &App{
 		config: cfg,
@@ -46,6 +51,19 @@ func New() *App {
 	studentService := student.NewService(studentRepo)
 	studentHandler := student.NewHandler(studentService, slogLogger)
 	studentHandler.RegisterRoutes(app.router)
+
+	httpClient := projectclient.NewClient(cfg.ProjectService.BaseURL)
+
+	grpcClient, err := projectclient.NewGrpcClient(cfg.ProjectService.GrpcAddress)
+	if err != nil {
+		slogLogger.Warn("failed to initialize gRPC client", "error", err)
+		grpcClient = nil
+	} else {
+		slogLogger.Info("gRPC client initialized successfully")
+	}
+
+	projectHandler := projectclient.NewHandler(httpClient, grpcClient, slogLogger)
+	projectHandler.RegisterRoutes(app.router)
 
 	slogLogger.Info("application initialized successfully")
 
