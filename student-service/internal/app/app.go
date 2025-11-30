@@ -9,6 +9,7 @@ import (
 
 	"student-service/internal/config"
 	"student-service/internal/db"
+	"student-service/internal/health"
 	"student-service/internal/logger"
 	"student-service/internal/projectclient"
 	"student-service/internal/student"
@@ -46,6 +47,10 @@ func New() *App {
 	if err := db.RunMigrations(ctx, database, (*student.Student)(nil)); err != nil {
 		log.Fatal("failed to run migrations:", err)
 	}
+
+	// Health endpoints
+	healthHandler := health.NewHandler()
+	healthHandler.RegisterRoutes(app.router)
 
 	studentRepo := student.NewRepository(database)
 	studentService := student.NewService(studentRepo)

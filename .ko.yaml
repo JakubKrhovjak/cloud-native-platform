@@ -1,0 +1,33 @@
+# Ko configuration for building Go applications without Docker
+# Ko builds Go binaries and creates container images directly
+# Usage: ko build ./student-service/cmd/server
+
+# Base image for Go applications
+defaultBaseImage: cgr.dev/chainguard/static:latest
+
+# Build configuration
+builds:
+  - id: student-service
+    main: ./student-service/cmd/server
+    env:
+      - CGO_ENABLED=0
+      - GOOS=linux
+      - GOARCH=amd64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+
+  - id: project-service
+    main: ./project-service/cmd/server
+    env:
+      - CGO_ENABLED=0
+      - GOOS=linux
+      - GOARCH=amd64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+
+# Push images to local Kind registry
+# When using Kind, ko can push directly to the cluster

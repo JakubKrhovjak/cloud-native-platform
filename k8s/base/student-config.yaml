@@ -1,0 +1,23 @@
+# Student Service Config File
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: student-service-file-config
+  namespace: grud
+data:
+  config.local.yaml: |
+    env: local
+
+    server:
+      port: "8080"
+
+    database:
+      host: student-db.grud.svc.cluster.local
+      port: "5432"
+      user: app
+      password: changeme123
+      name: university
+
+    project_service:
+      url: http://project-service:8081
+      grpc: project-service:9090

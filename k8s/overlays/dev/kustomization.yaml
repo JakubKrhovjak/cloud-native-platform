@@ -1,0 +1,23 @@
+# Development overlay for local Kind cluster
+# Reduces resource usage for local development
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+# Development-specific patches
+patches:
+  # Reduce replicas for all deployments
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+
+commonLabels:
+  environment: development
+
+commonAnnotations:
+  grud.io/environment: "development"

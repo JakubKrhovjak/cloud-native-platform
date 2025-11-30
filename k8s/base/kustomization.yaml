@@ -1,0 +1,15 @@
+# Base kustomization for GRUD deployment
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: grud
+
+resources:
+  - namespace.yaml
+  - secrets.yaml
+  - student-config.yaml
+  - project-config.yaml
+  - student-service.yaml
+  - project-service.yaml
+  - student-db.yaml
+  - project-db.yaml

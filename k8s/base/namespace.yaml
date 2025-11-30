@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: grud
+  labels:
+    name: grud
+    app.kubernetes.io/name: grud
+    app.kubernetes.io/part-of: grud-system
