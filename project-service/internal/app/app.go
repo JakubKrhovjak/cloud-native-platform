@@ -10,6 +10,7 @@ import (
 
 	"project-service/internal/config"
 	"project-service/internal/db"
+	"project-service/internal/health"
 	"project-service/internal/logger"
 	"project-service/internal/project"
 
@@ -53,6 +54,10 @@ func New() *App {
 
 	projectRepo := project.NewRepository(database)
 	projectService := project.NewService(projectRepo)
+
+	// Health endpoints
+	healthHandler := health.NewHandler()
+	healthHandler.RegisterRoutes(app.router)
 
 	// HTTP Handler
 	projectHandler := project.NewHandler(projectService, slogLogger)

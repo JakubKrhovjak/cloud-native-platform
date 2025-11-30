@@ -1,0 +1,19 @@
+# Project Service Config File
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: project-service-file-config
+  namespace: grud
+data:
+  config.local.yaml: |
+    env: local
+
+    server:
+      port: "8081"
+
+    database:
+      host: project-db.grud.svc.cluster.local
+      port: "5432"
+      user: app
+      password: changeme456
+      name: projects
