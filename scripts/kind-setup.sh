@@ -40,7 +40,16 @@ fi
 
 # Create Kind cluster
 echo -e "${BLUE}📦 Creating Kind cluster with 3 worker nodes...${NC}"
-kind create cluster --config k8s/kind-config.yaml
+# Determine the correct path to kind-config.yaml
+if [ -f "k8s/kind-config.yaml" ]; then
+    CONFIG_PATH="k8s/kind-config.yaml"
+elif [ -f "kind-config.yaml" ]; then
+    CONFIG_PATH="kind-config.yaml"
+else
+    echo -e "${RED}❌ Cannot find kind-config.yaml${NC}"
+    exit 1
+fi
+kind create cluster --config "$CONFIG_PATH"
 
 # Wait for cluster to be ready
 echo -e "${BLUE}⏳ Waiting for cluster to be ready...${NC}"
@@ -59,6 +68,5 @@ kubectl get nodes -o custom-columns=NAME:.metadata.name,LABELS:.metadata.labels,
 echo ""
 echo -e "${GREEN}✅ Kind cluster setup complete!${NC}"
 echo -e "${BLUE}Next steps:${NC}"
-echo "  1. Install CloudNativePG operator: ./scripts/install-cnpg.sh"
 echo "  2. Deploy databases: ./scripts/deploy-databases.sh"
 echo "  3. Build and deploy services: ./scripts/deploy-services.sh"
