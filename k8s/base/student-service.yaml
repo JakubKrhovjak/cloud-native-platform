@@ -5,6 +5,7 @@ metadata:
   name: student-service-config
   namespace: grud
 data:
+  ENV: "prod"
   LOG_LEVEL: "info"
   LOG_FORMAT: "json"
   DB_MAX_OPEN_CONNS: "25"

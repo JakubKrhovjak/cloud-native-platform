@@ -10,9 +10,10 @@ import (
 	"student-service/internal/config"
 	"student-service/internal/db"
 	"student-service/internal/health"
-	"student-service/internal/logger"
 	"student-service/internal/projectclient"
 	"student-service/internal/student"
+
+	"grud/common/logger"
 
 	"github.com/gorilla/mux"
 )
@@ -25,7 +26,10 @@ type App struct {
 }
 
 func New() *App {
-	slogLogger := logger.New()
+	slogLogger := logger.NewWithServiceContext("student-service", "1.0.0")
+
+	// Set as default logger so slog.Info() uses JSON format
+	slog.SetDefault(slogLogger)
 
 	slogLogger.Info("initializing application")
 
