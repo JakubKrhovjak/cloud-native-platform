@@ -1,0 +1,89 @@
+# PostgreSQL cluster for project-service using CloudNativePG operator
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: project-db
+  namespace: grud
+  labels:
+    app: project-db
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: grud-system
+spec:
+  # Number of PostgreSQL instances (1 primary + 2 replicas for HA)
+  instances: 3
+
+  # PostgreSQL version
+  imageName: ghcr.io/cloudnative-pg/postgresql:16
+
+  # Storage configuration
+  storage:
+    size: 10Gi
+    storageClass: standard
+
+  # Node affinity - schedule on db nodes only
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: node-type
+                operator: In
+                values:
+                  - db
+
+    # Pod anti-affinity - spread across nodes
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                postgresql: project-db
+            topologyKey: kubernetes.io/hostname
+
+  # Toleration for db node taint
+  tolerations:
+    - key: "workload"
+      operator: "Equal"
+      value: "db"
+      effect: "NoSchedule"
+
+  # PostgreSQL configuration
+  postgresql:
+    parameters:
+      shared_buffers: "256MB"
+      max_connections: "100"
+      work_mem: "4MB"
+      maintenance_work_mem: "64MB"
+      effective_cache_size: "512MB"
+      # Logging
+      log_destination: "stderr"
+      logging_collector: "on"
+      log_min_duration_statement: "1000"
+
+  # Bootstrap configuration
+  bootstrap:
+    initdb:
+      database: projects
+      owner: app
+      secret:
+        name: project-db-app
+
+  # Resource limits
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+
+  # Monitoring
+  monitoring:
+    enabled: true
+    podMonitorEnabled: false
+    customQueriesConfigMap:
+      - name: project-db-monitoring
+        key: queries
+

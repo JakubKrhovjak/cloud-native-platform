@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: project-service-config
+  namespace: grud
+  labels:
+    app: project-service
+data:
+  # Application configuration
+  LOG_LEVEL: "info"
+  LOG_FORMAT: "json"
+
+  # Database connection pool settings
+  DB_MAX_OPEN_CONNS: "25"
+  DB_MAX_IDLE_CONNS: "10"
+  DB_CONN_MAX_LIFETIME: "5m"

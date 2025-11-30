@@ -1,0 +1,30 @@
+# Kustomize configuration for deploying all resources
+# Usage: kubectl apply -k k8s/
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: grud
+
+resources:
+  # Namespace
+  - namespace.yaml
+
+  # PostgreSQL
+  - postgres/secrets.yaml
+  - postgres/student-db.yaml
+  - postgres/project-db.yaml
+
+  # Student Service
+  - student-service/configmap.yaml
+  - student-service/deployment.yaml
+  - student-service/service.yaml
+
+  # Project Service
+  - project-service/configmap.yaml
+  - project-service/deployment.yaml
+  - project-service/service.yaml
+
+# Common labels applied to all resources
+commonLabels:
+  app.kubernetes.io/part-of: grud-system
+  managed-by: kustomize

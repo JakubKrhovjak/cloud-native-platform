@@ -1,0 +1,74 @@
+# Kind cluster configuration for grud project
+# 3 nodes with different taints:
+#   - app node: for application workloads
+#   - infra node: for infrastructure services (monitoring, logging, etc.)
+#   - db node: for database workloads
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: grud-cluster
+nodes:
+  # Control plane node
+  - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+    extraPortMappings:
+      - containerPort: 80
+        hostPort: 80
+        protocol: TCP
+      - containerPort: 443
+        hostPort: 443
+        protocol: TCP
+      # Student service
+      - containerPort: 30080
+        hostPort: 8080
+        protocol: TCP
+      # Project service
+      - containerPort: 30081
+        hostPort: 8081
+        protocol: TCP
+
+  # Worker node 1: Application workloads
+  - role: worker
+    kubeadmConfigPatches:
+      - |
+        kind: JoinConfiguration
+        nodeRegistration:
+          name: grud-app-node
+          kubeletExtraArgs:
+            node-labels: "node-type=app"
+          taints:
+            - key: "workload"
+              value: "app"
+              effect: "NoSchedule"
+
+  # Worker node 2: Infrastructure services
+  - role: worker
+    kubeadmConfigPatches:
+      - |
+        kind: JoinConfiguration
+        nodeRegistration:
+          name: grud-infra-node
+          kubeletExtraArgs:
+            node-labels: "node-type=infra"
+          taints:
+            - key: "workload"
+              value: "infra"
+              effect: "NoSchedule"
+
+  # Worker node 3: Database workloads
+  - role: worker
+    kubeadmConfigPatches:
+      - |
+        kind: JoinConfiguration
+        nodeRegistration:
+          name: grud-db-node
+          kubeletExtraArgs:
+            node-labels: "node-type=db"
+          taints:
+            - key: "workload"
+              value: "db"
+              effect: "NoSchedule"
