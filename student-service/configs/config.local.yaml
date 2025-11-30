@@ -1,0 +1,16 @@
+# Student Service - Local Development (IDE)
+env: local
+
+server:
+  port: "8080"
+
+database:
+  host: localhost
+  port: "5439"
+  user: postgres
+  password: postgres
+  name: university
+
+project_service:
+  url: http://localhost:8081
+  grpc: localhost:9090

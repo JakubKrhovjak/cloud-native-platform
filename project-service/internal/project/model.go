@@ -11,6 +11,6 @@ type Project struct {
 
 	ID        int       `bun:"id,pk,autoincrement" json:"id"`
 	Name      string    `bun:"name,notnull" json:"name" validate:"required"`
-	CreatedAt time.Time `bun:"created_at,nullzero,notnull,default:current_timestamp" json:"createdAt"`
-	UpdatedAt time.Time `bun:"updated_at,nullzero,notnull,default:current_timestamp" json:"updatedAt"`
+	CreatedAt time.Time `bun:"created_at,notnull,default:current_timestamp" json:"createdAt"`
+	UpdatedAt time.Time `bun:"updated_at,notnull,default:current_timestamp" json:"updatedAt"`
 }

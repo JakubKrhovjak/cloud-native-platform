@@ -20,9 +20,14 @@ func New(cfg config.DatabaseConfig) *bun.DB {
 		cfg.Password,
 		cfg.Host,
 		cfg.Port,
-		cfg.DBName,
+		cfg.Name,
 	)
 
+	return NewWithDSN(dsn)
+}
+
+// NewWithDSN creates a new database connection with a custom DSN (useful for testing)
+func NewWithDSN(dsn string) *bun.DB {
 	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
 	db := bun.NewDB(sqldb, pgdialect.New())
 
@@ -50,6 +55,33 @@ func RunMigrations(ctx context.Context, db *bun.DB, models ...interface{}) error
 			return fmt.Errorf("failed to create table for model: %w", err)
 		}
 	}
+
+	// Create trigger function for updated_at if it doesn't exist
+	_, err := db.ExecContext(ctx, `
+		CREATE OR REPLACE FUNCTION update_updated_at_column()
+		RETURNS TRIGGER AS $$
+		BEGIN
+			NEW.updated_at = CURRENT_TIMESTAMP;
+			RETURN NEW;
+		END;
+		$$ language 'plpgsql';
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create trigger function: %w", err)
+	}
+
+	// Create trigger for projects table
+	_, err = db.ExecContext(ctx, `
+		DROP TRIGGER IF EXISTS update_projects_updated_at ON projects;
+		CREATE TRIGGER update_projects_updated_at
+			BEFORE UPDATE ON projects
+			FOR EACH ROW
+			EXECUTE FUNCTION update_updated_at_column();
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create trigger: %w", err)
+	}
+
 	log.Println("Database migrations completed successfully")
 	return nil
 }

@@ -1,0 +1,15 @@
+# Project Service - QA Environment (Docker)
+env: qa
+
+server:
+  port: "8081"
+
+database:
+  host: postgres_projects
+  port: "5432"
+  user: postgres
+  password: postgres
+  name: projects
+
+grpc:
+  port: "9090"

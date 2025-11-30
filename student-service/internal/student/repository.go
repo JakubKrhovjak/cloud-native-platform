@@ -2,6 +2,7 @@ package student
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/uptrace/bun"
 )
@@ -36,16 +37,42 @@ func (r *repository) GetAll(ctx context.Context) ([]Student, error) {
 func (r *repository) GetByID(ctx context.Context, id int) (*Student, error) {
 	student := new(Student)
 	err := r.db.NewSelect().Model(student).Where("id = ?", id).Scan(ctx)
-	return student, err
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrStudentNotFound
+		}
+		return nil, err
+	}
+	return student, nil
 }
 
 func (r *repository) Update(ctx context.Context, student *Student) error {
-	_, err := r.db.NewUpdate().Model(student).WherePK().Exec(ctx)
-	return err
+	result, err := r.db.NewUpdate().Model(student).WherePK().Exec(ctx)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrStudentNotFound
+	}
+	return nil
 }
 
 func (r *repository) Delete(ctx context.Context, id int) error {
 	student := &Student{ID: id}
-	_, err := r.db.NewDelete().Model(student).WherePK().Exec(ctx)
-	return err
+	result, err := r.db.NewDelete().Model(student).WherePK().Exec(ctx)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrStudentNotFound
+	}
+	return nil
 }

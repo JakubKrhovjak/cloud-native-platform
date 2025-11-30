@@ -2,7 +2,7 @@ package project
 
 import (
 	"context"
-	"time"
+	"database/sql"
 
 	"github.com/uptrace/bun"
 )
@@ -24,10 +24,12 @@ func NewRepository(db *bun.DB) Repository {
 }
 
 func (r *repository) Create(ctx context.Context, project *Project) error {
-	project.CreatedAt = time.Now()
-	project.UpdatedAt = time.Now()
 	_, err := r.db.NewInsert().Model(project).Exec(ctx)
-	return err
+	if err != nil {
+		return err
+	}
+	// Reload to get DB-generated timestamps
+	return r.db.NewSelect().Model(project).WherePK().Scan(ctx)
 }
 
 func (r *repository) GetAll(ctx context.Context) ([]Project, error) {
@@ -39,17 +41,46 @@ func (r *repository) GetAll(ctx context.Context) ([]Project, error) {
 func (r *repository) GetByID(ctx context.Context, id int) (*Project, error) {
 	project := new(Project)
 	err := r.db.NewSelect().Model(project).Where("id = ?", id).Scan(ctx)
-	return project, err
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrProjectNotFound
+		}
+		return nil, err
+	}
+	return project, nil
 }
 
 func (r *repository) Update(ctx context.Context, project *Project) error {
-	project.UpdatedAt = time.Now()
-	_, err := r.db.NewUpdate().Model(project).WherePK().Exec(ctx)
-	return err
+	result, err := r.db.NewUpdate().
+		Model(project).
+		Column("name").
+		WherePK().
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrProjectNotFound
+	}
+	return nil
 }
 
 func (r *repository) Delete(ctx context.Context, id int) error {
 	project := &Project{ID: id}
-	_, err := r.db.NewDelete().Model(project).WherePK().Exec(ctx)
-	return err
+	result, err := r.db.NewDelete().Model(project).WherePK().Exec(ctx)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrProjectNotFound
+	}
+	return nil
 }
