@@ -5,11 +5,13 @@ metadata:
   name: student-service-config
   namespace: grud
 data:
+  ENV: "prod"
   LOG_LEVEL: "info"
   LOG_FORMAT: "json"
   DB_MAX_OPEN_CONNS: "25"
   DB_MAX_IDLE_CONNS: "10"
   DB_CONN_MAX_LIFETIME: "5m"
+  JWT_SECRET: "production-secret-change-this-in-real-deployment"
 ---
 apiVersion: v1
 kind: Service

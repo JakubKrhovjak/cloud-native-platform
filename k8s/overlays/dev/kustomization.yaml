@@ -16,8 +16,16 @@ patches:
         path: /spec/replicas
         value: 1
 
+  # Set ENV to development
+  - target:
+      kind: ConfigMap
+    patch: |-
+      - op: replace
+        path: /data/ENV
+        value: dev
+
 commonLabels:
-  environment: development
+  environment: dev
 
 commonAnnotations:
-  grud.io/environment: "development"
+  grud.io/environment: "dev"

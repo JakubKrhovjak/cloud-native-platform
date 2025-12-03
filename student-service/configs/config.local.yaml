@@ -2,13 +2,13 @@
 env: local
 
 server:
-  port: "8080"
+  port: "9080"
 
 database:
   host: localhost
-  port: "5439"
-  user: postgres
-  password: postgres
+  port: "5432"
+  user: app
+  password: changeme123
   name: university
 
 project_service:

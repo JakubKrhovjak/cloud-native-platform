@@ -8,9 +8,10 @@ import (
 )
 
 type Repository interface {
-	Create(ctx context.Context, student *Student) error
+	Create(ctx context.Context, student *Student) (*Student, error)
 	GetAll(ctx context.Context) ([]Student, error)
 	GetByID(ctx context.Context, id int) (*Student, error)
+	GetByEmail(ctx context.Context, email string) (*Student, error)
 	Update(ctx context.Context, student *Student) error
 	Delete(ctx context.Context, id int) error
 }
@@ -23,9 +24,12 @@ func NewRepository(db *bun.DB) Repository {
 	return &repository{db: db}
 }
 
-func (r *repository) Create(ctx context.Context, student *Student) error {
-	_, err := r.db.NewInsert().Model(student).Exec(ctx)
-	return err
+func (r *repository) Create(ctx context.Context, student *Student) (*Student, error) {
+	_, err := r.db.NewInsert().Model(student).Returning("*").Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return student, nil
 }
 
 func (r *repository) GetAll(ctx context.Context) ([]Student, error) {
@@ -75,4 +79,16 @@ func (r *repository) Delete(ctx context.Context, id int) error {
 		return ErrStudentNotFound
 	}
 	return nil
+}
+
+func (r *repository) GetByEmail(ctx context.Context, email string) (*Student, error) {
+	student := new(Student)
+	err := r.db.NewSelect().Model(student).Where("email = ?", email).Scan(ctx)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrStudentNotFound
+		}
+		return nil, err
+	}
+	return student, nil
 }

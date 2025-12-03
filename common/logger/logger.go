@@ -9,23 +9,48 @@ import (
 )
 
 // New creates a new slog.Logger
-// Development mode: TextHandler with colored ERROR level
-// Production mode: JSONHandler
+// Kubernetes/Production: JSONHandler (structured logging for log aggregation)
+// Local development: TextHandler with colored output
 func New() *slog.Logger {
+	// Auto-detect Kubernetes environment
+	_, inK8s := os.LookupEnv("KUBERNETES_SERVICE_HOST")
+
+	// Or check ENV variable
 	env := os.Getenv("ENV")
+	useJSON := inK8s || env == "prod"
 
 	var handler slog.Handler
-	if env == "production" {
+	if useJSON {
+		// JSON format for Kubernetes - structured logging
+		// Benefits:
+		// - Easy parsing by log aggregators (Loki, ELK, CloudWatch)
+		// - Queryable fields (level, service, timestamp)
+		// - Better performance than regex parsing
 		handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-			Level: slog.LevelInfo,
+			Level:     slog.LevelInfo,
+			AddSource: true, // Include source file:line for debugging
 		})
 	} else {
+		// Human-readable format for local development
 		handler = newColorTextHandler(os.Stdout, &slog.HandlerOptions{
 			Level: slog.LevelDebug,
 		})
 	}
 
 	return slog.New(handler)
+}
+
+// NewWithServiceContext creates a logger with service metadata
+// Adds service, version, and environment fields to all log entries
+func NewWithServiceContext(serviceName, version string) *slog.Logger {
+	logger := New()
+
+	// Add service context to all logs
+	return logger.With(
+		slog.String("service", serviceName),
+		slog.String("version", version),
+		slog.String("environment", os.Getenv("ENV")),
+	)
 }
 
 // colorTextHandler wraps TextHandler to add red color to ERROR level
