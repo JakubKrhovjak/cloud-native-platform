@@ -11,8 +11,9 @@ import (
 	"project-service/internal/config"
 	"project-service/internal/db"
 	"project-service/internal/health"
-	"project-service/internal/logger"
 	"project-service/internal/project"
+
+	"grud/common/logger"
 
 	pb "grud/api/gen/project/v1"
 
@@ -29,7 +30,10 @@ type App struct {
 }
 
 func New() *App {
-	slogLogger := logger.New()
+	slogLogger := logger.NewWithServiceContext("project-service", "1.0.0")
+
+	// Set as default logger so slog.Info() uses JSON format
+	slog.SetDefault(slogLogger)
 
 	slogLogger.Info("initializing application")
 

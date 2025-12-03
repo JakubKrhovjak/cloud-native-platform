@@ -26,11 +26,11 @@ func NewHandler(service Service, logger *slog.Logger) *Handler {
 }
 
 func (h *Handler) RegisterRoutes(router *mux.Router) {
-	router.HandleFunc("/api/students", h.CreateStudent).Methods("POST")
-	router.HandleFunc("/api/students", h.GetAllStudents).Methods("GET")
-	router.HandleFunc("/api/students/{id}", h.GetStudent).Methods("GET")
-	router.HandleFunc("/api/students/{id}", h.UpdateStudent).Methods("PUT")
-	router.HandleFunc("/api/students/{id}", h.DeleteStudent).Methods("DELETE")
+	router.HandleFunc("/students", h.CreateStudent).Methods("POST")
+	router.HandleFunc("/students", h.GetAllStudents).Methods("GET")
+	router.HandleFunc("/students/{id}", h.GetStudent).Methods("GET")
+	router.HandleFunc("/students/{id}", h.UpdateStudent).Methods("PUT")
+	router.HandleFunc("/students/{id}", h.DeleteStudent).Methods("DELETE")
 }
 
 func (h *Handler) CreateStudent(w http.ResponseWriter, r *http.Request) {
@@ -41,12 +41,13 @@ func (h *Handler) CreateStudent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.logger.Info("creating student", "email", student.Email)
-	if err := h.service.CreateStudent(r.Context(), &student); err != nil {
+	createdStudent, err := h.service.CreateStudent(r.Context(), &student)
+	if err != nil {
 		h.handleServiceError(w, err)
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, student)
+	respondWithJSON(w, http.StatusCreated, createdStudent)
 }
 
 func (h *Handler) GetAllStudents(w http.ResponseWriter, r *http.Request) {

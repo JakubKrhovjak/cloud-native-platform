@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"log/slog"
 
 	"project-service/internal/config"
 
@@ -32,10 +33,10 @@ func NewWithDSN(dsn string) *bun.DB {
 	db := bun.NewDB(sqldb, pgdialect.New())
 
 	if err := db.Ping(); err != nil {
-		log.Fatal("Error pinging database:", err)
+		log.Fatal("Error pinging database:", err) // Fatal is OK here - can't run without DB
 	}
 
-	log.Println("Database connected successfully")
+	slog.Info("database connected successfully")
 	return db
 }
 
@@ -82,6 +83,6 @@ func RunMigrations(ctx context.Context, db *bun.DB, models ...interface{}) error
 		return fmt.Errorf("failed to create trigger: %w", err)
 	}
 
-	log.Println("Database migrations completed successfully")
+	slog.Info("database migrations completed successfully")
 	return nil
 }

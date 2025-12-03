@@ -11,7 +11,7 @@ var (
 )
 
 type Service interface {
-	CreateStudent(ctx context.Context, student *Student) error
+	CreateStudent(ctx context.Context, student *Student) (*Student, error)
 	GetAllStudents(ctx context.Context) ([]Student, error)
 	GetStudentByID(ctx context.Context, id int) (*Student, error)
 	UpdateStudent(ctx context.Context, student *Student) error
@@ -28,7 +28,7 @@ func NewService(repo Repository) Service {
 	}
 }
 
-func (s *service) CreateStudent(ctx context.Context, student *Student) error {
+func (s *service) CreateStudent(ctx context.Context, student *Student) (*Student, error) {
 	return s.repo.Create(ctx, student)
 }
 

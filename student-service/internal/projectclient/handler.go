@@ -24,7 +24,7 @@ func NewHandler(httpClient *Client, grpcClient *GrpcClient, logger *slog.Logger)
 }
 
 func (h *Handler) RegisterRoutes(router *mux.Router) {
-	router.HandleFunc("/api/projects", h.GetAllProjects).Methods("GET")
+	router.HandleFunc("/projects", h.GetAllProjects).Methods("GET")
 }
 
 func (h *Handler) GetAllProjects(w http.ResponseWriter, r *http.Request) {
