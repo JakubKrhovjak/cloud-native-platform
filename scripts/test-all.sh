@@ -19,7 +19,7 @@ failed=0
 # Test each service
 for service in "${services[@]}"; do
     echo -e "${BLUE}📦 Testing $service...${NC}"
-    if go test ./$service/...; then
+    if go test ./services/$service/...; then
         echo -e "${GREEN}✅ $service tests passed${NC}"
     else
         echo -e "${RED}❌ $service tests failed${NC}"

@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"grud/testing/testdb"
-	"student-service/internal/logger"
 	"student-service/internal/student"
 
 	"github.com/gorilla/mux"
@@ -26,7 +27,8 @@ func TestStudentService_Shared(t *testing.T) {
 	// Create handler ONCE and reuse across all subtests
 	repo := student.NewRepository(pgContainer.DB)
 	service := student.NewService(repo)
-	handler := student.NewHandler(service, logger.New())
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	handler := student.NewHandler(service, logger)
 	router := mux.NewRouter()
 	handler.RegisterRoutes(router)
 
@@ -43,7 +45,7 @@ func TestStudentService_Shared(t *testing.T) {
 		}
 		body, _ := json.Marshal(payload)
 
-		req := httptest.NewRequest(http.MethodPost, "/api/students", bytes.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/students", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -74,7 +76,7 @@ func TestStudentService_Shared(t *testing.T) {
 		require.NoError(t, err)
 
 		// Get the student
-		req := httptest.NewRequest(http.MethodGet, "/api/students/1", nil)
+		req := httptest.NewRequest(http.MethodGet, "/students/1", nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -112,7 +114,7 @@ func TestStudentService_Shared(t *testing.T) {
 		}
 
 		// Get all students
-		req := httptest.NewRequest(http.MethodGet, "/api/students", nil)
+		req := httptest.NewRequest(http.MethodGet, "/students", nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -145,7 +147,7 @@ func TestStudentService_Shared(t *testing.T) {
 	t.Run("GetStudentNotFound", func(t *testing.T) {
 		testdb.CleanupTables(t, pgContainer.DB, "students")
 
-		req := httptest.NewRequest(http.MethodGet, "/api/students/99999", nil)
+		req := httptest.NewRequest(http.MethodGet, "/students/99999", nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -178,7 +180,7 @@ func TestStudentService_Shared(t *testing.T) {
 		}
 		body, _ := json.Marshal(payload)
 
-		req := httptest.NewRequest(http.MethodPut, "/api/students/1", bytes.NewReader(body))
+		req := httptest.NewRequest(http.MethodPut, "/students/1", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -207,7 +209,7 @@ func TestStudentService_Shared(t *testing.T) {
 		}
 		body, _ := json.Marshal(payload)
 
-		req := httptest.NewRequest(http.MethodPut, "/api/students/99999", bytes.NewReader(body))
+		req := httptest.NewRequest(http.MethodPut, "/students/99999", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -232,7 +234,7 @@ func TestStudentService_Shared(t *testing.T) {
 		require.NoError(t, err)
 
 		// Delete the student
-		req := httptest.NewRequest(http.MethodDelete, "/api/students/1", nil)
+		req := httptest.NewRequest(http.MethodDelete, "/students/1", nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -249,7 +251,7 @@ func TestStudentService_Shared(t *testing.T) {
 	t.Run("DeleteStudentNotFound", func(t *testing.T) {
 		testdb.CleanupTables(t, pgContainer.DB, "students")
 
-		req := httptest.NewRequest(http.MethodDelete, "/api/students/99999", nil)
+		req := httptest.NewRequest(http.MethodDelete, "/students/99999", nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -260,7 +262,7 @@ func TestStudentService_Shared(t *testing.T) {
 	t.Run("InvalidJSON", func(t *testing.T) {
 		testdb.CleanupTables(t, pgContainer.DB, "students")
 
-		req := httptest.NewRequest(http.MethodPost, "/api/students", bytes.NewReader([]byte("invalid json")))
+		req := httptest.NewRequest(http.MethodPost, "/students", bytes.NewReader([]byte("invalid json")))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -272,7 +274,7 @@ func TestStudentService_Shared(t *testing.T) {
 	t.Run("InvalidStudentID", func(t *testing.T) {
 		testdb.CleanupTables(t, pgContainer.DB, "students")
 
-		req := httptest.NewRequest(http.MethodGet, "/api/students/invalid", nil)
+		req := httptest.NewRequest(http.MethodGet, "/students/invalid", nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)

@@ -38,7 +38,7 @@ services:
   student_api:
     build:
       context: .
-      dockerfile: ./student-service/Dockerfile
+      dockerfile: ./services/student-service/Dockerfile
     container_name: student_api
     environment:
       APP_ENV: qa
@@ -51,7 +51,7 @@ services:
   project_api:
     build:
       context: .
-      dockerfile: ./project-service/Dockerfile
+      dockerfile: ./services/project-service/Dockerfile
     container_name: project_api
     environment:
       APP_ENV: qa

@@ -83,7 +83,10 @@ func (r *repository) Delete(ctx context.Context, id int) error {
 
 func (r *repository) GetByEmail(ctx context.Context, email string) (*Student, error) {
 	student := new(Student)
-	err := r.db.NewSelect().Model(student).Where("email = ?", email).Scan(ctx)
+	err := r.db.NewSelect().
+		Model(student).
+		Where("email = ?", email).
+		Scan(ctx)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrStudentNotFound

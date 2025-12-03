@@ -3,7 +3,7 @@ go 1.25.4
 use (
 	./api
 	./common
-	./project-service
-	./student-service
+	./services/project-service
+	./services/student-service
 	./testing
 )

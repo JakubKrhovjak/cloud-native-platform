@@ -3,42 +3,42 @@
 # Default: Run all tests (shared container, fast)
 test:
 	@echo "🧪 Running all tests (shared container)..."
-	@go test ./student-service/... ./project-service/...
+	@go test ./services/student-service/... ./services/project-service/...
 
 # Test individual services
 test-student:
 	@echo "🧪 Testing student-service..."
-	@go test ./student-service/...
+	@go test ./services/student-service/...
 
 test-project:
 	@echo "🧪 Testing project-service..."
-	@go test ./project-service/...
+	@go test ./services/project-service/...
 
 # Integration tests (isolated containers, slower)
 test-integration:
 	@echo "🧪 Running integration tests (isolated containers)..."
-	@go test -tags=integration ./student-service/... ./project-service/...
+	@go test -tags=integration ./services/student-service/... ./services/project-service/...
 
 # All tests (shared + integration)
 test-all:
 	@echo "🧪 Running ALL tests (shared + integration)..."
-	@go test ./student-service/... ./project-service/...
-	@go test -tags=integration ./student-service/... ./project-service/...
+	@go test ./services/student-service/... ./services/project-service/...
+	@go test -tags=integration ./services/student-service/... ./services/project-service/...
 
 # Tests with coverage
 test-coverage:
 	@echo "📊 Running tests with coverage..."
-	@go test -cover ./student-service/... ./project-service/...
+	@go test -cover ./services/student-service/... ./services/project-service/...
 
 # Verbose test output
 test-verbose:
 	@echo "🔍 Running tests (verbose)..."
-	@go test -v ./student-service/... ./project-service/...
+	@go test -v ./services/student-service/... ./services/project-service/...
 
 # Test with race detector
 test-race:
 	@echo "🏁 Running tests with race detector..."
-	@go test -race ./student-service/... ./project-service/...
+	@go test -race ./services/student-service/... ./services/project-service/...
 
 # Clean test cache
 clean:
@@ -53,7 +53,7 @@ test-watch:
 # Pretty test output with formatting
 test-pretty:
 	@echo "✨ Running tests with pretty output..."
-	@go test -json ./student-service/... ./project-service/... | go run github.com/kyoh86/richgo/cmd/richgo@latest testfilter
+	@go test -json ./services/student-service/... ./services/project-service/... | go run github.com/kyoh86/richgo/cmd/richgo@latest testfilter
 
 # Help
 help:

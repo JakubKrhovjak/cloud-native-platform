@@ -5,12 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"grud/testing/testdb"
-	"project-service/internal/logger"
 	"project-service/internal/project"
 
 	"github.com/gorilla/mux"
@@ -27,7 +28,8 @@ func TestProjectService_Shared(t *testing.T) {
 
 	repo := project.NewRepository(pgContainer.DB)
 	service := project.NewService(repo)
-	handler := project.NewHandler(service, logger.New())
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	handler := project.NewHandler(service, logger)
 	router := mux.NewRouter()
 	handler.RegisterRoutes(router)
 

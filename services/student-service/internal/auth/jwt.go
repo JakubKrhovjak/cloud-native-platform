@@ -12,8 +12,9 @@ import (
 )
 
 var (
-	ErrInvalidToken = errors.New("invalid token")
-	ErrExpiredToken = errors.New("token expired")
+	ErrInvalidToken  = errors.New("invalid token")
+	ErrExpiredToken  = errors.New("token expired")
+	ErrMissingSecret = errors.New("JWT_SECRET environment variable not set")
 )
 
 // Claims represents JWT claims
@@ -25,7 +26,10 @@ type Claims struct {
 
 // GenerateAccessToken creates a new JWT access token (15 minutes)
 func GenerateAccessToken(studentID int, email string) (string, error) {
-	secret := getJWTSecret()
+	secret, err := getJWTSecret()
+	if err != nil {
+		return "", err
+	}
 
 	claims := Claims{
 		StudentID: studentID,
@@ -52,7 +56,10 @@ func GenerateRefreshToken() (string, error) {
 
 // ValidateAccessToken validates JWT token and returns claims
 func ValidateAccessToken(tokenString string) (*Claims, error) {
-	secret := getJWTSecret()
+	secret, err := getJWTSecret()
+	if err != nil {
+		return nil, err
+	}
 
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		// Validate signing method
@@ -78,6 +85,10 @@ func ValidateAccessToken(tokenString string) (*Claims, error) {
 }
 
 // getJWTSecret retrieves JWT secret from environment
-func getJWTSecret() string {
-	return os.Getenv("JWT_SECRET")
+func getJWTSecret() (string, error) {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		return "", ErrMissingSecret
+	}
+	return secret, nil
 }

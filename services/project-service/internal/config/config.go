@@ -8,19 +8,14 @@ import (
 )
 
 type Config struct {
-	Env            string               `mapstructure:"env"`
-	Server         ServerConfig         `mapstructure:"server"`
-	Database       DatabaseConfig       `mapstructure:"database"`
-	ProjectService ProjectServiceConfig `mapstructure:"project_service"`
+	Env      string         `mapstructure:"env"`
+	Server   ServerConfig   `mapstructure:"server"`
+	Database DatabaseConfig `mapstructure:"database"`
+	Grpc     GrpcConfig     `mapstructure:"grpc"`
 }
 
 type ServerConfig struct {
 	Port string `mapstructure:"port"`
-}
-
-type ProjectServiceConfig struct {
-	BaseURL     string `mapstructure:"url"`
-	GrpcAddress string `mapstructure:"grpc"`
 }
 
 type DatabaseConfig struct {
@@ -28,7 +23,11 @@ type DatabaseConfig struct {
 	Port     string `mapstructure:"port"`
 	User     string `mapstructure:"user"`
 	Password string `mapstructure:"password"`
-	DBName   string `mapstructure:"name"`
+	Name     string `mapstructure:"name"`
+}
+
+type GrpcConfig struct {
+	Port string `mapstructure:"port"`
 }
 
 func Load() (*Config, error) {
@@ -41,10 +40,11 @@ func Load() (*Config, error) {
 	// Set up Viper
 	viper.SetConfigName(fmt.Sprintf("config.%s", env))
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./configs")                 // Docker runtime
-	viper.AddConfigPath("./student-service/configs") // IDE from root
-	viper.AddConfigPath("../configs")                // IDE from cmd/server
-	viper.AddConfigPath("../../configs")             // IDE from other locations
+	viper.AddConfigPath("./configs")                          // Docker runtime
+	viper.AddConfigPath("./services/project-service/configs") // IDE from root
+	viper.AddConfigPath("./project-service/configs")          // Legacy path
+	viper.AddConfigPath("../configs")                         // IDE from cmd/server
+	viper.AddConfigPath("../../configs")                      // IDE from other locations
 
 	// Read config file
 	if err := viper.ReadInConfig(); err != nil {
