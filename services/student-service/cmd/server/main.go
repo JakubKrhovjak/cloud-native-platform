@@ -9,9 +9,14 @@ import (
 	"time"
 
 	"student-service/internal/app"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	// Load .env file if it exists (ignore error if file doesn't exist)
+	_ = godotenv.Load()
+
 	application := app.New()
 
 	go func() {

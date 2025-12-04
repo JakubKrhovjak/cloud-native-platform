@@ -32,7 +32,7 @@ export const authApi = {
 
 export const studentApi = {
   getAllStudents: async (): Promise<Student[]> => {
-    const response = await apiClient.get<Student[]>('/students');
+    const response = await apiClient.get<Student[]>('/api/students');
     return response.data;
   },
 };
