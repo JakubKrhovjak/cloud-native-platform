@@ -27,6 +27,15 @@ func (r *Repository) CreateRefreshToken(ctx context.Context, studentID int, toke
 	return err
 }
 
+func (r *Repository) cleanTokens(ctx context.Context, id int) error {
+	_, err := r.db.NewDelete().
+		Model(&RefreshToken{}).
+		Where("student_id = ?", id).
+		Exec(ctx)
+
+	return err
+}
+
 // GetRefreshToken retrieves a refresh token by token string
 func (r *Repository) GetRefreshToken(ctx context.Context, token string) (*RefreshToken, error) {
 	refreshToken := &RefreshToken{}

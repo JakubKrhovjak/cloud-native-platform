@@ -1,4 +1,4 @@
-.PHONY: test test-student test-project test-integration test-all test-coverage test-verbose clean
+.PHONY: test test-student test-project test-integration test-all test-coverage test-verbose clean admin-dev admin-build admin-install
 
 # Default: Run all tests (shared container, fast)
 test:
@@ -55,6 +55,19 @@ test-pretty:
 	@echo "✨ Running tests with pretty output..."
 	@go test -json ./services/student-service/... ./services/project-service/... | go run github.com/kyoh86/richgo/cmd/richgo@latest testfilter
 
+# Admin panel commands
+admin-install:
+	@echo "📦 Installing admin panel dependencies..."
+	@cd services/admin && npm install
+
+admin-dev:
+	@echo "🚀 Starting admin panel dev server..."
+	@cd services/admin && npm run dev
+
+admin-build:
+	@echo "🏗️  Building admin panel..."
+	@cd services/admin && npm run build
+
 # Help
 help:
 	@echo "Available commands:"
@@ -68,4 +81,10 @@ help:
 	@echo "  make test-race         - Run tests with race detector"
 	@echo "  make clean             - Clean test cache"
 	@echo "  make test-watch        - Watch and auto-run tests on change"
+	@echo ""
+	@echo "Admin Panel:"
+	@echo "  make admin-install     - Install admin panel dependencies"
+	@echo "  make admin-dev         - Start admin panel dev server"
+	@echo "  make admin-build       - Build admin panel for production"
+	@echo ""
 	@echo "  make help              - Show this help message"
