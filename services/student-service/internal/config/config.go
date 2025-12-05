@@ -12,6 +12,7 @@ type Config struct {
 	Server         ServerConfig         `mapstructure:"server"`
 	Database       DatabaseConfig       `mapstructure:"database"`
 	ProjectService ProjectServiceConfig `mapstructure:"project_service"`
+	Kafka          KafkaConfig          `mapstructure:"kafka"`
 }
 
 type ServerConfig struct {
@@ -29,6 +30,11 @@ type DatabaseConfig struct {
 	User     string `mapstructure:"user"`
 	Password string `mapstructure:"password"`
 	DBName   string `mapstructure:"name"`
+}
+
+type KafkaConfig struct {
+	Brokers []string `mapstructure:"brokers"`
+	Topic   string   `mapstructure:"topic"`
 }
 
 func Load() (*Config, error) {

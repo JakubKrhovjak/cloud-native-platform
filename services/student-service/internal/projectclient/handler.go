@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"net/http"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi/v5"
 )
 
 type Handler struct {
@@ -23,8 +23,8 @@ func NewHandler(httpClient *Client, grpcClient *GrpcClient, logger *slog.Logger)
 	}
 }
 
-func (h *Handler) RegisterRoutes(router *mux.Router) {
-	router.HandleFunc("/projects", h.GetAllProjects).Methods("GET")
+func (h *Handler) RegisterRoutes(router chi.Router) {
+	router.Get("/projects", h.GetAllProjects)
 }
 
 func (h *Handler) GetAllProjects(w http.ResponseWriter, r *http.Request) {

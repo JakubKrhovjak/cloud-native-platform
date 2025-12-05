@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi/v5"
 )
 
 type Handler struct{}
@@ -13,9 +13,9 @@ func NewHandler() *Handler {
 	return &Handler{}
 }
 
-func (h *Handler) RegisterRoutes(router *mux.Router) {
-	router.HandleFunc("/health", h.Health).Methods("GET")
-	router.HandleFunc("/ready", h.Ready).Methods("GET")
+func (h *Handler) RegisterRoutes(router chi.Router) {
+	router.Get("/health", h.Health)
+	router.Get("/ready", h.Ready)
 }
 
 type HealthResponse struct {

@@ -14,7 +14,7 @@ import (
 	"student-service/internal/auth"
 	"student-service/internal/student"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
@@ -37,7 +37,7 @@ func TestAuthService_Shared(t *testing.T) {
 	authService := auth.NewService(authRepo, studentRepo)
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	authHandler := auth.NewHandler(authService, logger)
-	router := mux.NewRouter()
+	router := chi.NewRouter()
 	authHandler.RegisterRoutes(router)
 
 	t.Run("Register_Success", func(t *testing.T) {
