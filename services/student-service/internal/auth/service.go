@@ -113,13 +113,15 @@ func (s *Service) generateTokenPair(ctx context.Context, stud *student.Student) 
 		return nil, err
 	}
 
-	// Generate refresh token (random, 7 days)
 	refreshToken, err := GenerateRefreshToken()
 	if err != nil {
 		return nil, err
 	}
 
-	// Store refresh token in database
+	if err := s.authRepo.cleanTokens(ctx, stud.ID); err != nil {
+		return nil, err
+	}
+
 	expiresAt := time.Now().Add(7 * 24 * time.Hour)
 	if err := s.authRepo.CreateRefreshToken(ctx, stud.ID, refreshToken, expiresAt); err != nil {
 		return nil, err
