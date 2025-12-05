@@ -13,3 +13,4 @@ resources:
   - project-service.yaml
   - student-db.yaml
   - project-db.yaml
+  - admin-panel.yaml
