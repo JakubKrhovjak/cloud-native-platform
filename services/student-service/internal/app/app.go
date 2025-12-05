@@ -110,22 +110,6 @@ func New() *App {
 		}
 	})
 
-	// Kafka producer setup
-	kafkaProducer, err := kafka.NewProducer(cfg.Kafka.Brokers, cfg.Kafka.Topic, slogLogger)
-	if err != nil {
-		slogLogger.Warn("failed to initialize kafka producer", "error", err)
-		kafkaProducer = nil
-	} else {
-		slogLogger.Info("kafka producer initialized successfully")
-	}
-
-	// Message handler (only if Kafka is available)
-	if kafkaProducer != nil {
-		messageService := message.NewService(kafkaProducer, slogLogger)
-		messageHandler := message.NewHandler(messageService, slogLogger)
-		messageHandler.RegisterRoutes(protectedRouter)
-	}
-
 	slogLogger.Info("application initialized successfully")
 
 	return app

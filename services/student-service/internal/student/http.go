@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"grud/common/httputil"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 )
@@ -36,7 +38,7 @@ func (h *Handler) RegisterRoutes(router chi.Router) {
 func (h *Handler) CreateStudent(w http.ResponseWriter, r *http.Request) {
 	var student Student
 	if err := json.NewDecoder(r.Body).Decode(&student); err != nil || h.validate.Struct(&student) != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid request")
+		httputil.RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 
@@ -47,7 +49,7 @@ func (h *Handler) CreateStudent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, createdStudent)
+	httputil.RespondWithJSON(w, http.StatusCreated, createdStudent)
 }
 
 func (h *Handler) GetAllStudents(w http.ResponseWriter, r *http.Request) {
@@ -59,13 +61,13 @@ func (h *Handler) GetAllStudents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, students)
+	httputil.RespondWithJSON(w, http.StatusOK, students)
 }
 
 func (h *Handler) GetStudent(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid student ID")
+		httputil.RespondWithError(w, http.StatusBadRequest, "Invalid student ID")
 		return
 	}
 
@@ -76,7 +78,7 @@ func (h *Handler) GetStudent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, student)
+	httputil.RespondWithJSON(w, http.StatusOK, student)
 }
 
 func (h *Handler) UpdateStudent(w http.ResponseWriter, r *http.Request) {
@@ -84,7 +86,7 @@ func (h *Handler) UpdateStudent(w http.ResponseWriter, r *http.Request) {
 
 	var student Student
 	if err := json.NewDecoder(r.Body).Decode(&student); err != nil || h.validate.Struct(&student) != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid request")
+		httputil.RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 	student.ID = id
@@ -95,13 +97,13 @@ func (h *Handler) UpdateStudent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, student)
+	httputil.RespondWithJSON(w, http.StatusOK, student)
 }
 
 func (h *Handler) DeleteStudent(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid student ID")
+		httputil.RespondWithError(w, http.StatusBadRequest, "Invalid student ID")
 		return
 	}
 
@@ -117,25 +119,14 @@ func (h *Handler) DeleteStudent(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) handleServiceError(w http.ResponseWriter, err error) {
 	if errors.Is(err, ErrStudentNotFound) {
 		h.logger.Info("student not found")
-		respondWithError(w, http.StatusNotFound, "Student not found")
+		httputil.RespondWithError(w, http.StatusNotFound, "Student not found")
 		return
 	}
 	if errors.Is(err, ErrInvalidInput) {
 		h.logger.Info("invalid input")
-		respondWithError(w, http.StatusBadRequest, err.Error())
+		httputil.RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	h.logger.Error("internal error")
-	respondWithError(w, http.StatusInternalServerError, err.Error())
-}
-
-func respondWithError(w http.ResponseWriter, code int, message string) {
-	respondWithJSON(w, code, map[string]string{"error": message})
-}
-
-func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
-	response, _ := json.Marshal(payload)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	w.Write(response)
+	httputil.RespondWithError(w, http.StatusInternalServerError, err.Error())
 }

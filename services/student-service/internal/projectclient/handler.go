@@ -1,10 +1,11 @@
 package projectclient
 
 import (
-	"encoding/json"
 	"log/slog"
 	"math/rand"
 	"net/http"
+
+	"grud/common/httputil"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -39,7 +40,7 @@ func (h *Handler) GetAllProjects(w http.ResponseWriter, r *http.Request) {
 		projects, err = h.grpcClient.GetAllProjects(r.Context())
 		if err != nil {
 			h.logger.Error("failed to fetch projects via gRPC", "error", err)
-			respondWithError(w, http.StatusInternalServerError, "Failed to fetch projects via gRPC")
+			httputil.RespondWithError(w, http.StatusInternalServerError, "Failed to fetch projects via gRPC")
 			return
 		}
 	} else {
@@ -47,12 +48,12 @@ func (h *Handler) GetAllProjects(w http.ResponseWriter, r *http.Request) {
 		projects, err = h.httpClient.GetAllProjects(r.Context())
 		if err != nil {
 			h.logger.Error("failed to fetch projects via HTTP", "error", err)
-			respondWithError(w, http.StatusInternalServerError, "Failed to fetch projects via HTTP")
+			httputil.RespondWithError(w, http.StatusInternalServerError, "Failed to fetch projects via HTTP")
 			return
 		}
 	}
 
-	respondWithJSON(w, http.StatusOK, projects)
+	httputil.RespondWithJSON(w, http.StatusOK, projects)
 }
 
 func respondWithError(w http.ResponseWriter, code int, message string) {
