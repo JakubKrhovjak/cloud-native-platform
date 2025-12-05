@@ -13,7 +13,7 @@ import (
 	"grud/testing/testdb"
 	"student-service/internal/student"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -29,7 +29,7 @@ func TestStudentService_Shared(t *testing.T) {
 	service := student.NewService(repo)
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	handler := student.NewHandler(service, logger)
-	router := mux.NewRouter()
+	router := chi.NewRouter()
 	handler.RegisterRoutes(router)
 
 	t.Run("CreateStudent", func(t *testing.T) {

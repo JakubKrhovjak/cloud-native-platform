@@ -14,3 +14,8 @@ database:
 project_service:
   url: http://project_api:8081
   grpc: project_api:9090
+
+kafka:
+  brokers:
+    - kafka:9092
+  topic: student-messages

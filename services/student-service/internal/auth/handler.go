@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
-	"github.com/gorilla/mux"
 )
 
 type Handler struct {
@@ -24,11 +24,11 @@ func NewHandler(service *Service, logger *slog.Logger) *Handler {
 	}
 }
 
-func (h *Handler) RegisterRoutes(router *mux.Router) {
-	router.HandleFunc("/auth/register", h.Register).Methods("POST")
-	router.HandleFunc("/auth/login", h.Login).Methods("POST")
-	router.HandleFunc("/auth/refresh", h.Refresh).Methods("POST")
-	router.HandleFunc("/auth/logout", h.Logout).Methods("POST")
+func (h *Handler) RegisterRoutes(router chi.Router) {
+	router.Post("/auth/register", h.Register)
+	router.Post("/auth/login", h.Login)
+	router.Post("/auth/refresh", h.Refresh)
+	router.Post("/auth/logout", h.Logout)
 }
 
 // Register creates a new student account

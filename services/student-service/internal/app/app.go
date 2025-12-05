@@ -11,18 +11,20 @@ import (
 	"student-service/internal/config"
 	"student-service/internal/db"
 	"student-service/internal/health"
+	"student-service/internal/kafka"
+	"student-service/internal/message"
 	"student-service/internal/middleware"
 	"student-service/internal/projectclient"
 	"student-service/internal/student"
 
 	"grud/common/logger"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi/v5"
 )
 
 type App struct {
 	config *config.Config
-	router *mux.Router
+	router chi.Router
 	server *http.Server
 	logger *slog.Logger
 }
@@ -43,7 +45,7 @@ func New() *App {
 
 	app := &App{
 		config: cfg,
-		router: mux.NewRouter(),
+		router: chi.NewRouter(),
 		logger: slogLogger,
 	}
 
@@ -53,6 +55,9 @@ func New() *App {
 	if err := db.RunMigrations(ctx, database, (*student.Student)(nil), (*auth.RefreshToken)(nil)); err != nil {
 		log.Fatal("failed to run migrations:", err)
 	}
+
+	// Apply CORS middleware globally
+	app.router.Use(middleware.CORS)
 
 	// Health endpoints (no auth required)
 	healthHandler := health.NewHandler()
@@ -69,11 +74,6 @@ func New() *App {
 	studentService := student.NewService(studentRepo)
 	studentHandler := student.NewHandler(studentService, slogLogger)
 
-	// Create protected subrouter for student endpoints
-	protectedRouter := app.router.PathPrefix("/api").Subrouter()
-	protectedRouter.Use(auth.AuthMiddleware(slogLogger))
-	studentHandler.RegisterRoutes(protectedRouter)
-
 	// Project client endpoints (auth required)
 	httpClient := projectclient.NewClient(cfg.ProjectService.BaseURL)
 
@@ -86,7 +86,29 @@ func New() *App {
 	}
 
 	projectHandler := projectclient.NewHandler(httpClient, grpcClient, slogLogger)
-	projectHandler.RegisterRoutes(protectedRouter)
+
+	// Kafka producer setup
+	kafkaProducer, err := kafka.NewProducer(cfg.Kafka.Brokers, cfg.Kafka.Topic, slogLogger)
+	if err != nil {
+		slogLogger.Warn("failed to initialize kafka producer", "error", err)
+		kafkaProducer = nil
+	} else {
+		slogLogger.Info("kafka producer initialized successfully")
+	}
+
+	// Create protected routes group for /api endpoints
+	app.router.Route("/api", func(r chi.Router) {
+		r.Use(auth.AuthMiddleware(slogLogger))
+		studentHandler.RegisterRoutes(r)
+		projectHandler.RegisterRoutes(r)
+
+		// Message handler (only if Kafka is available)
+		if kafkaProducer != nil {
+			messageService := message.NewService(kafkaProducer, slogLogger)
+			messageHandler := message.NewHandler(messageService, slogLogger)
+			messageHandler.RegisterRoutes(r)
+		}
+	})
 
 	slogLogger.Info("application initialized successfully")
 
@@ -94,12 +116,9 @@ func New() *App {
 }
 
 func (a *App) Run() error {
-	// Apply CORS middleware
-	handler := middleware.CORS(a.router)
-
 	a.server = &http.Server{
 		Addr:    fmt.Sprintf(":%s", a.config.Server.Port),
-		Handler: handler,
+		Handler: a.router,
 	}
 
 	a.logger.Info("server starting", "port", a.config.Server.Port)

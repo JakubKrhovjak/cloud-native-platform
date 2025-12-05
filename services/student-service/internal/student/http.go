@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
-	"github.com/gorilla/mux"
 )
 
 type Handler struct {
@@ -25,12 +25,12 @@ func NewHandler(service Service, logger *slog.Logger) *Handler {
 	}
 }
 
-func (h *Handler) RegisterRoutes(router *mux.Router) {
-	router.HandleFunc("/students", h.CreateStudent).Methods("POST")
-	router.HandleFunc("/students", h.GetAllStudents).Methods("GET")
-	router.HandleFunc("/students/{id}", h.GetStudent).Methods("GET")
-	router.HandleFunc("/students/{id}", h.UpdateStudent).Methods("PUT")
-	router.HandleFunc("/students/{id}", h.DeleteStudent).Methods("DELETE")
+func (h *Handler) RegisterRoutes(router chi.Router) {
+	router.Post("/students", h.CreateStudent)
+	router.Get("/students", h.GetAllStudents)
+	router.Get("/students/{id}", h.GetStudent)
+	router.Put("/students/{id}", h.UpdateStudent)
+	router.Delete("/students/{id}", h.DeleteStudent)
 }
 
 func (h *Handler) CreateStudent(w http.ResponseWriter, r *http.Request) {
@@ -63,8 +63,7 @@ func (h *Handler) GetAllStudents(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetStudent(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "Invalid student ID")
 		return
@@ -81,8 +80,7 @@ func (h *Handler) GetStudent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateStudent(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, _ := strconv.Atoi(vars["id"])
+	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
 
 	var student Student
 	if err := json.NewDecoder(r.Body).Decode(&student); err != nil || h.validate.Struct(&student) != nil {
@@ -101,8 +99,7 @@ func (h *Handler) UpdateStudent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DeleteStudent(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "Invalid student ID")
 		return
