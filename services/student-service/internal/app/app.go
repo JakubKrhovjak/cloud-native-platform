@@ -11,6 +11,7 @@ import (
 	"student-service/internal/config"
 	"student-service/internal/db"
 	"student-service/internal/health"
+	"student-service/internal/middleware"
 	"student-service/internal/projectclient"
 	"student-service/internal/student"
 
@@ -93,9 +94,12 @@ func New() *App {
 }
 
 func (a *App) Run() error {
+	// Apply CORS middleware
+	handler := middleware.CORS(a.router)
+
 	a.server = &http.Server{
 		Addr:    fmt.Sprintf(":%s", a.config.Server.Port),
-		Handler: a.router,
+		Handler: handler,
 	}
 
 	a.logger.Info("server starting", "port", a.config.Server.Port)
