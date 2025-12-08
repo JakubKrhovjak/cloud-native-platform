@@ -21,3 +21,8 @@ data:
     project_service:
       url: http://project-service:8081
       grpc: project-service:9090
+
+    kafka:
+      brokers:
+        - kafka.grud.svc.cluster.local:9092
+      topic: student-messages

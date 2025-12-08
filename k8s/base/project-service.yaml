@@ -84,6 +84,10 @@ spec:
                 secretKeyRef:
                   name: project-db-app
                   key: password
+            - name: KAFKA_BROKERS
+              value: "kafka.grud.svc.cluster.local:9092"
+            - name: KAFKA_TOPIC
+              value: "student-messages"
           envFrom:
             - configMapRef:
                 name: project-service-config
