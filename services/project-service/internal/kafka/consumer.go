@@ -37,9 +37,9 @@ func NewConsumer(brokers []string, topic string, repository message.Repository, 
 }
 
 func (c *Consumer) Start(ctx context.Context) error {
-	handler := &consumerGroupHandler{
-		repository: c.repository,
-		logger:     c.logger,
+	handler := &ConsumerGroupHandler{
+		Repository: c.repository,
+		Logger:     c.logger,
 	}
 
 	for {
@@ -59,22 +59,23 @@ func (c *Consumer) Close() error {
 	return c.consumer.Close()
 }
 
-type consumerGroupHandler struct {
-	repository message.Repository
-	logger     *slog.Logger
+// ConsumerGroupHandler implements sarama.ConsumerGroupHandler interface
+type ConsumerGroupHandler struct {
+	Repository message.Repository
+	Logger     *slog.Logger
 }
 
-func (h *consumerGroupHandler) Setup(sarama.ConsumerGroupSession) error {
+func (h *ConsumerGroupHandler) Setup(sarama.ConsumerGroupSession) error {
 	return nil
 }
 
-func (h *consumerGroupHandler) Cleanup(sarama.ConsumerGroupSession) error {
+func (h *ConsumerGroupHandler) Cleanup(sarama.ConsumerGroupSession) error {
 	return nil
 }
 
-func (h *consumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+func (h *ConsumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for msg := range claim.Messages() {
-		h.logger.Info("received message from Kafka",
+		h.Logger.Info("received message from Kafka",
 			"topic", msg.Topic,
 			"partition", msg.Partition,
 			"offset", msg.Offset,
@@ -82,7 +83,7 @@ func (h *consumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession,
 
 		var event message.MessageEvent
 		if err := json.Unmarshal(msg.Value, &event); err != nil {
-			h.logger.Error("failed to unmarshal message", "error", err)
+			h.Logger.Error("failed to unmarshal message", "error", err)
 			session.MarkMessage(msg, "")
 			continue
 		}
@@ -93,14 +94,14 @@ func (h *consumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession,
 			Message: event.Message,
 		}
 
-		if err := h.repository.Create(context.Background(), dbMessage); err != nil {
-			h.logger.Error("failed to save message to database", "error", err)
+		if err := h.Repository.Create(context.Background(), dbMessage); err != nil {
+			h.Logger.Error("failed to save message to database", "error", err)
 			// Still mark as consumed to avoid reprocessing
 			session.MarkMessage(msg, "")
 			continue
 		}
 
-		h.logger.Info("message saved to database",
+		h.Logger.Info("message saved to database",
 			"email", event.Email,
 			"message", event.Message,
 			"id", dbMessage.ID,
