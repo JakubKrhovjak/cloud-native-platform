@@ -39,10 +39,7 @@ func TestConsumer(t *testing.T) {
 	t.Run("ConsumeClaim_Success_SavesToDB", func(t *testing.T) {
 		testdb.CleanupTables(t, pgContainer.DB, "messages")
 
-		// Create mock Sarama session
-		session := &mockConsumerGroupSession{
-			markedMessages: make(map[string]bool),
-		}
+		session := newMockSession()
 
 		// Create mock claim with one message
 		messageEvent := message.MessageEvent{
@@ -69,7 +66,7 @@ func TestConsumer(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify message was marked
-		assert.True(t, session.markedMessages["0:0"])
+		assert.True(t, session.MarkedMessages["0:0"])
 
 		// Verify message was saved to database
 		ctx := context.Background()
@@ -90,9 +87,7 @@ func TestConsumer(t *testing.T) {
 	t.Run("ConsumeClaim_MultipleMessages", func(t *testing.T) {
 		testdb.CleanupTables(t, pgContainer.DB, "messages")
 
-		session := &mockConsumerGroupSession{
-			markedMessages: make(map[string]bool),
-		}
+		session := newMockSession()
 
 		// Create multiple messages
 		msg1 := message.MessageEvent{Email: "user1@example.com", Message: "Message 1"}
@@ -116,7 +111,7 @@ func TestConsumer(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify all messages were marked
-		assert.Len(t, session.markedMessages, 3)
+		assert.Len(t, session.MarkedMessages, 3)
 
 		// Verify all messages were saved to database
 		ctx := context.Background()
@@ -139,9 +134,7 @@ func TestConsumer(t *testing.T) {
 	t.Run("ConsumeClaim_InvalidJSON_MarksAndContinues", func(t *testing.T) {
 		testdb.CleanupTables(t, pgContainer.DB, "messages")
 
-		session := &mockConsumerGroupSession{
-			markedMessages: make(map[string]bool),
-		}
+		session := newMockSession()
 
 		// Invalid JSON + Valid message
 		validMsg := message.MessageEvent{Email: "valid@example.com", Message: "Valid message"}
@@ -159,7 +152,7 @@ func TestConsumer(t *testing.T) {
 		require.NoError(t, err)
 
 		// Both should be marked (invalid one marked to avoid reprocessing)
-		assert.Len(t, session.markedMessages, 2)
+		assert.Len(t, session.MarkedMessages, 2)
 
 		// Only valid message should be in DB
 		ctx := context.Background()
@@ -178,9 +171,7 @@ func TestConsumer(t *testing.T) {
 	t.Run("ConsumeClaim_EmptyMessages", func(t *testing.T) {
 		testdb.CleanupTables(t, pgContainer.DB, "messages")
 
-		session := &mockConsumerGroupSession{
-			markedMessages: make(map[string]bool),
-		}
+		session := newMockSession()
 
 		// Empty claim
 		claim := &mockConsumerGroupClaim{
@@ -192,7 +183,7 @@ func TestConsumer(t *testing.T) {
 		require.NoError(t, err)
 
 		// No messages marked
-		assert.Len(t, session.markedMessages, 0)
+		assert.Len(t, session.MarkedMessages, 0)
 
 		// No messages in DB
 		ctx := context.Background()
@@ -206,8 +197,14 @@ func TestConsumer(t *testing.T) {
 
 // Mock implementations
 
+func newMockSession() *mockConsumerGroupSession {
+	return &mockConsumerGroupSession{
+		MarkedMessages: make(map[string]bool),
+	}
+}
+
 type mockConsumerGroupSession struct {
-	markedMessages map[string]bool
+	MarkedMessages map[string]bool
 }
 
 func (m *mockConsumerGroupSession) Claims() map[string][]int32 {
@@ -222,17 +219,17 @@ func (m *mockConsumerGroupSession) GenerationID() int32 {
 	return 1
 }
 
-func (m *mockConsumerGroupSession) MarkOffset(topic string, partition int32, offset int64, metadata string) {
+func (m *mockConsumerGroupSession) MarkOffset(_ string, _ int32, _ int64, _ string) {
 	// Not used
 }
 
-func (m *mockConsumerGroupSession) ResetOffset(topic string, partition int32, offset int64, metadata string) {
+func (m *mockConsumerGroupSession) ResetOffset(_ string, _ int32, _ int64, _ string) {
 	// Not used
 }
 
-func (m *mockConsumerGroupSession) MarkMessage(msg *sarama.ConsumerMessage, metadata string) {
+func (m *mockConsumerGroupSession) MarkMessage(msg *sarama.ConsumerMessage, _ string) {
 	key := fmt.Sprintf("%d:%d", msg.Partition, msg.Offset)
-	m.markedMessages[key] = true
+	m.MarkedMessages[key] = true
 }
 
 func (m *mockConsumerGroupSession) Commit() {
