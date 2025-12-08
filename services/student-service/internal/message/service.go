@@ -1,24 +1,34 @@
 package message
 
 import (
-	"context"
 	"log/slog"
 	"student-service/internal/kafka"
 )
 
+// Producer interface for Kafka producer (for testing)
+type Producer interface {
+	SendMessage(key string, value interface{}) error
+	Close() error
+}
+
 type Service struct {
-	producer *kafka.Producer
+	producer Producer
 	logger   *slog.Logger
 }
 
-func NewService(producer *kafka.Producer, logger *slog.Logger) *Service {
+func NewService(producer Producer, logger *slog.Logger) *Service {
 	return &Service{
 		producer: producer,
 		logger:   logger,
 	}
 }
 
-func (s *Service) SendMessage(ctx context.Context, email string, message string) error {
+// NewServiceWithKafka creates a service with kafka.Producer
+func NewServiceWithKafka(producer *kafka.Producer, logger *slog.Logger) *Service {
+	return NewService(producer, logger)
+}
+
+func (s *Service) SendMessage(email string, message string) error {
 	event := MessageEvent{
 		Email:   email,
 		Message: message,

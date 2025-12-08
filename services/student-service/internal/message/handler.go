@@ -57,7 +57,7 @@ func (h *Handler) SendMessage(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info("sending message", "email", email, "message", req.Message)
 
 	// Send message via service
-	if err := h.service.SendMessage(r.Context(), email, req.Message); err != nil {
+	if err := h.service.SendMessage(email, req.Message); err != nil {
 		httputil.RespondWithError(w, http.StatusInternalServerError, "failed to send message")
 		return
 	}

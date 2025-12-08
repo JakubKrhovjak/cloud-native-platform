@@ -13,3 +13,8 @@ database:
 
 grpc:
   port: "9090"
+
+kafka:
+  brokers:
+    - kafka:29092
+  topic: student-messages
