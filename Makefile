@@ -46,11 +46,6 @@ test-watch:
 	@echo "👀 Watching for changes..."
 	@find . -name '*.go' | entr -c make test
 
-# Pretty test output with formatting
-test-pretty:
-	@echo "✨ Running tests with pretty output..."
-	@go test -json ./services/student-service/... ./services/project-service/... | go run github.com/kyoh86/richgo/cmd/richgo@latest testfilter
-
 # Admin panel commands
 admin-install:
 	@echo "📦 Installing admin panel dependencies..."
