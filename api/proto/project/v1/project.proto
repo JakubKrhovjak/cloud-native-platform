@@ -14,14 +14,6 @@ message Project {
   google.protobuf.Timestamp updated_at = 4;
 }
 
-// Message represents a message entity
-message Message {
-  int32 id = 1;
-  string email = 2;
-  string message = 3;
-  google.protobuf.Timestamp created_at = 4;
-}
-
 // GetAllProjectsRequest is the request message for GetAllProjects RPC
 message GetAllProjectsRequest {}
 
@@ -30,19 +22,8 @@ message GetAllProjectsResponse {
   repeated Project projects = 1;
 }
 
-// GetAllMessagesRequest is the request message for GetAllMessages RPC
-message GetAllMessagesRequest {}
-
-// GetAllMessagesResponse is the response message for GetAllMessages RPC
-message GetAllMessagesResponse {
-  repeated Message messages = 1;
-}
-
 // ProjectService provides operations on projects
 service ProjectService {
   // GetAllProjects returns all projects
   rpc GetAllProjects(GetAllProjectsRequest) returns (GetAllProjectsResponse);
-
-  // GetAllMessages returns all messages
-  rpc GetAllMessages(GetAllMessagesRequest) returns (GetAllMessagesResponse);
 }

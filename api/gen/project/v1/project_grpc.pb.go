@@ -20,7 +20,6 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	ProjectService_GetAllProjects_FullMethodName = "/project.v1.ProjectService/GetAllProjects"
-	ProjectService_GetAllMessages_FullMethodName = "/project.v1.ProjectService/GetAllMessages"
 )
 
 // ProjectServiceClient is the client API for ProjectService service.
@@ -31,8 +30,6 @@ const (
 type ProjectServiceClient interface {
 	// GetAllProjects returns all projects
 	GetAllProjects(ctx context.Context, in *GetAllProjectsRequest, opts ...grpc.CallOption) (*GetAllProjectsResponse, error)
-	// GetAllMessages returns all messages
-	GetAllMessages(ctx context.Context, in *GetAllMessagesRequest, opts ...grpc.CallOption) (*GetAllMessagesResponse, error)
 }
 
 type projectServiceClient struct {
@@ -53,16 +50,6 @@ func (c *projectServiceClient) GetAllProjects(ctx context.Context, in *GetAllPro
 	return out, nil
 }
 
-func (c *projectServiceClient) GetAllMessages(ctx context.Context, in *GetAllMessagesRequest, opts ...grpc.CallOption) (*GetAllMessagesResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetAllMessagesResponse)
-	err := c.cc.Invoke(ctx, ProjectService_GetAllMessages_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // ProjectServiceServer is the server API for ProjectService service.
 // All implementations must embed UnimplementedProjectServiceServer
 // for forward compatibility.
@@ -71,8 +58,6 @@ func (c *projectServiceClient) GetAllMessages(ctx context.Context, in *GetAllMes
 type ProjectServiceServer interface {
 	// GetAllProjects returns all projects
 	GetAllProjects(context.Context, *GetAllProjectsRequest) (*GetAllProjectsResponse, error)
-	// GetAllMessages returns all messages
-	GetAllMessages(context.Context, *GetAllMessagesRequest) (*GetAllMessagesResponse, error)
 	mustEmbedUnimplementedProjectServiceServer()
 }
 
@@ -85,9 +70,6 @@ type UnimplementedProjectServiceServer struct{}
 
 func (UnimplementedProjectServiceServer) GetAllProjects(context.Context, *GetAllProjectsRequest) (*GetAllProjectsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAllProjects not implemented")
-}
-func (UnimplementedProjectServiceServer) GetAllMessages(context.Context, *GetAllMessagesRequest) (*GetAllMessagesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetAllMessages not implemented")
 }
 func (UnimplementedProjectServiceServer) mustEmbedUnimplementedProjectServiceServer() {}
 func (UnimplementedProjectServiceServer) testEmbeddedByValue()                        {}
@@ -128,24 +110,6 @@ func _ProjectService_GetAllProjects_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ProjectService_GetAllMessages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetAllMessagesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ProjectServiceServer).GetAllMessages(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ProjectService_GetAllMessages_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ProjectServiceServer).GetAllMessages(ctx, req.(*GetAllMessagesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // ProjectService_ServiceDesc is the grpc.ServiceDesc for ProjectService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -156,10 +120,6 @@ var ProjectService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetAllProjects",
 			Handler:    _ProjectService_GetAllProjects_Handler,
-		},
-		{
-			MethodName: "GetAllMessages",
-			Handler:    _ProjectService_GetAllMessages_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

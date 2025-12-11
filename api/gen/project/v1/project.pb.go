@@ -91,75 +91,6 @@ func (x *Project) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
-// Message represents a message entity
-type Message struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            int32                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	Message       string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Message) Reset() {
-	*x = Message{}
-	mi := &file_project_v1_project_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Message) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Message) ProtoMessage() {}
-
-func (x *Message) ProtoReflect() protoreflect.Message {
-	mi := &file_project_v1_project_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Message.ProtoReflect.Descriptor instead.
-func (*Message) Descriptor() ([]byte, []int) {
-	return file_project_v1_project_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *Message) GetId() int32 {
-	if x != nil {
-		return x.Id
-	}
-	return 0
-}
-
-func (x *Message) GetEmail() string {
-	if x != nil {
-		return x.Email
-	}
-	return ""
-}
-
-func (x *Message) GetMessage() string {
-	if x != nil {
-		return x.Message
-	}
-	return ""
-}
-
-func (x *Message) GetCreatedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.CreatedAt
-	}
-	return nil
-}
-
 // GetAllProjectsRequest is the request message for GetAllProjects RPC
 type GetAllProjectsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -169,7 +100,7 @@ type GetAllProjectsRequest struct {
 
 func (x *GetAllProjectsRequest) Reset() {
 	*x = GetAllProjectsRequest{}
-	mi := &file_project_v1_project_proto_msgTypes[2]
+	mi := &file_project_v1_project_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -181,7 +112,7 @@ func (x *GetAllProjectsRequest) String() string {
 func (*GetAllProjectsRequest) ProtoMessage() {}
 
 func (x *GetAllProjectsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_project_v1_project_proto_msgTypes[2]
+	mi := &file_project_v1_project_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -194,7 +125,7 @@ func (x *GetAllProjectsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAllProjectsRequest.ProtoReflect.Descriptor instead.
 func (*GetAllProjectsRequest) Descriptor() ([]byte, []int) {
-	return file_project_v1_project_proto_rawDescGZIP(), []int{2}
+	return file_project_v1_project_proto_rawDescGZIP(), []int{1}
 }
 
 // GetAllProjectsResponse is the response message for GetAllProjects RPC
@@ -207,7 +138,7 @@ type GetAllProjectsResponse struct {
 
 func (x *GetAllProjectsResponse) Reset() {
 	*x = GetAllProjectsResponse{}
-	mi := &file_project_v1_project_proto_msgTypes[3]
+	mi := &file_project_v1_project_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -219,7 +150,7 @@ func (x *GetAllProjectsResponse) String() string {
 func (*GetAllProjectsResponse) ProtoMessage() {}
 
 func (x *GetAllProjectsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_project_v1_project_proto_msgTypes[3]
+	mi := &file_project_v1_project_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -232,94 +163,12 @@ func (x *GetAllProjectsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAllProjectsResponse.ProtoReflect.Descriptor instead.
 func (*GetAllProjectsResponse) Descriptor() ([]byte, []int) {
-	return file_project_v1_project_proto_rawDescGZIP(), []int{3}
+	return file_project_v1_project_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *GetAllProjectsResponse) GetProjects() []*Project {
 	if x != nil {
 		return x.Projects
-	}
-	return nil
-}
-
-// GetAllMessagesRequest is the request message for GetAllMessages RPC
-type GetAllMessagesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetAllMessagesRequest) Reset() {
-	*x = GetAllMessagesRequest{}
-	mi := &file_project_v1_project_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetAllMessagesRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetAllMessagesRequest) ProtoMessage() {}
-
-func (x *GetAllMessagesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_project_v1_project_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetAllMessagesRequest.ProtoReflect.Descriptor instead.
-func (*GetAllMessagesRequest) Descriptor() ([]byte, []int) {
-	return file_project_v1_project_proto_rawDescGZIP(), []int{4}
-}
-
-// GetAllMessagesResponse is the response message for GetAllMessages RPC
-type GetAllMessagesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Messages      []*Message             `protobuf:"bytes,1,rep,name=messages,proto3" json:"messages,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetAllMessagesResponse) Reset() {
-	*x = GetAllMessagesResponse{}
-	mi := &file_project_v1_project_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetAllMessagesResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetAllMessagesResponse) ProtoMessage() {}
-
-func (x *GetAllMessagesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_project_v1_project_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetAllMessagesResponse.ProtoReflect.Descriptor instead.
-func (*GetAllMessagesResponse) Descriptor() ([]byte, []int) {
-	return file_project_v1_project_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *GetAllMessagesResponse) GetMessages() []*Message {
-	if x != nil {
-		return x.Messages
 	}
 	return nil
 }
@@ -336,22 +185,12 @@ const file_project_v1_project_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\x84\x01\n" +
-	"\aMessage\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x05R\x02id\x12\x14\n" +
-	"\x05email\x18\x02 \x01(\tR\x05email\x12\x18\n" +
-	"\amessage\x18\x03 \x01(\tR\amessage\x129\n" +
-	"\n" +
-	"created_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\x17\n" +
+	"updated_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\x17\n" +
 	"\x15GetAllProjectsRequest\"I\n" +
 	"\x16GetAllProjectsResponse\x12/\n" +
-	"\bprojects\x18\x01 \x03(\v2\x13.project.v1.ProjectR\bprojects\"\x17\n" +
-	"\x15GetAllMessagesRequest\"I\n" +
-	"\x16GetAllMessagesResponse\x12/\n" +
-	"\bmessages\x18\x01 \x03(\v2\x13.project.v1.MessageR\bmessages2\xc2\x01\n" +
+	"\bprojects\x18\x01 \x03(\v2\x13.project.v1.ProjectR\bprojects2i\n" +
 	"\x0eProjectService\x12W\n" +
-	"\x0eGetAllProjects\x12!.project.v1.GetAllProjectsRequest\x1a\".project.v1.GetAllProjectsResponse\x12W\n" +
-	"\x0eGetAllMessages\x12!.project.v1.GetAllMessagesRequest\x1a\".project.v1.GetAllMessagesResponseB#Z!grud/api/gen/project/v1;projectv1b\x06proto3"
+	"\x0eGetAllProjects\x12!.project.v1.GetAllProjectsRequest\x1a\".project.v1.GetAllProjectsResponseB#Z!grud/api/gen/project/v1;projectv1b\x06proto3"
 
 var (
 	file_project_v1_project_proto_rawDescOnce sync.Once
@@ -365,31 +204,24 @@ func file_project_v1_project_proto_rawDescGZIP() []byte {
 	return file_project_v1_project_proto_rawDescData
 }
 
-var file_project_v1_project_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_project_v1_project_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_project_v1_project_proto_goTypes = []any{
 	(*Project)(nil),                // 0: project.v1.Project
-	(*Message)(nil),                // 1: project.v1.Message
-	(*GetAllProjectsRequest)(nil),  // 2: project.v1.GetAllProjectsRequest
-	(*GetAllProjectsResponse)(nil), // 3: project.v1.GetAllProjectsResponse
-	(*GetAllMessagesRequest)(nil),  // 4: project.v1.GetAllMessagesRequest
-	(*GetAllMessagesResponse)(nil), // 5: project.v1.GetAllMessagesResponse
-	(*timestamppb.Timestamp)(nil),  // 6: google.protobuf.Timestamp
+	(*GetAllProjectsRequest)(nil),  // 1: project.v1.GetAllProjectsRequest
+	(*GetAllProjectsResponse)(nil), // 2: project.v1.GetAllProjectsResponse
+	(*timestamppb.Timestamp)(nil),  // 3: google.protobuf.Timestamp
 }
 var file_project_v1_project_proto_depIdxs = []int32{
-	6, // 0: project.v1.Project.created_at:type_name -> google.protobuf.Timestamp
-	6, // 1: project.v1.Project.updated_at:type_name -> google.protobuf.Timestamp
-	6, // 2: project.v1.Message.created_at:type_name -> google.protobuf.Timestamp
-	0, // 3: project.v1.GetAllProjectsResponse.projects:type_name -> project.v1.Project
-	1, // 4: project.v1.GetAllMessagesResponse.messages:type_name -> project.v1.Message
-	2, // 5: project.v1.ProjectService.GetAllProjects:input_type -> project.v1.GetAllProjectsRequest
-	4, // 6: project.v1.ProjectService.GetAllMessages:input_type -> project.v1.GetAllMessagesRequest
-	3, // 7: project.v1.ProjectService.GetAllProjects:output_type -> project.v1.GetAllProjectsResponse
-	5, // 8: project.v1.ProjectService.GetAllMessages:output_type -> project.v1.GetAllMessagesResponse
-	7, // [7:9] is the sub-list for method output_type
-	5, // [5:7] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	3, // 0: project.v1.Project.created_at:type_name -> google.protobuf.Timestamp
+	3, // 1: project.v1.Project.updated_at:type_name -> google.protobuf.Timestamp
+	0, // 2: project.v1.GetAllProjectsResponse.projects:type_name -> project.v1.Project
+	1, // 3: project.v1.ProjectService.GetAllProjects:input_type -> project.v1.GetAllProjectsRequest
+	2, // 4: project.v1.ProjectService.GetAllProjects:output_type -> project.v1.GetAllProjectsResponse
+	4, // [4:5] is the sub-list for method output_type
+	3, // [3:4] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_project_v1_project_proto_init() }
@@ -403,7 +235,7 @@ func file_project_v1_project_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_project_v1_project_proto_rawDesc), len(file_project_v1_project_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

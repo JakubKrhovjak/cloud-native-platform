@@ -30,10 +30,6 @@ test-coverage:
 	@echo "📊 Running tests with coverage..."
 	@go test -cover ./services/student-service/... ./services/project-service/...
 
-# Verbose test output
-test-verbose:
-	@echo "🔍 Running tests (verbose)..."
-	@go test -v ./services/student-service/... ./services/project-service/...
 
 # Test with race detector
 test-race:
@@ -67,6 +63,10 @@ admin-dev:
 admin-build:
 	@echo "🏗️  Building admin panel..."
 	@cd services/admin && npm run build
+
+generate-proto:
+	@echo "🔨 Generating protobuf files..."
+	./scripts/generate-proto.sh
 
 # Help
 help:
