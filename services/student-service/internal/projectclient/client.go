@@ -15,6 +15,13 @@ type Project struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
+type Message struct {
+	ID        int       `json:"id"`
+	Email     string    `json:"email"`
+	Message   string    `json:"message"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
 type Client struct {
 	baseURL    string
 	httpClient *http.Client
