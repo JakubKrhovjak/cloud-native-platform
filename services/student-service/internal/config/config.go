@@ -20,7 +20,6 @@ type ServerConfig struct {
 }
 
 type ProjectServiceConfig struct {
-	BaseURL     string `mapstructure:"url"`
 	GrpcAddress string `mapstructure:"grpc"`
 }
 
@@ -56,10 +55,6 @@ func Load() (*Config, error) {
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
-
-	// Enable environment variable overrides
-	viper.AutomaticEnv()
-	viper.BindEnv("project_service.grpc", "PROJECT_SERVICE_GRPC")
 
 	// Unmarshal into struct
 	var config Config

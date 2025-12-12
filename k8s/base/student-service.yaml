@@ -90,8 +90,6 @@ spec:
               value: "kafka.grud.svc.cluster.local:9092"
             - name: KAFKA_TOPIC
               value: "student-messages"
-            - name: PROJECT_SERVICE_GRPC
-              value: "project-service.grud.svc.cluster.local:50052"
           envFrom:
             - configMapRef:
                 name: student-service-config

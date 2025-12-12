@@ -12,8 +12,7 @@ database:
   name: university
 
 project_service:
-  url: http://localhost:8081
-  grpc: localhost:9090
+  grpc: localhost:50052
 
 kafka:
   brokers:
