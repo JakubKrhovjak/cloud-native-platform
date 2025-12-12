@@ -75,8 +75,6 @@ func New() *App {
 	studentHandler := student.NewHandler(studentService, slogLogger)
 
 	// Project client endpoints (auth required)
-	httpClient := projectclient.NewClient(cfg.ProjectService.BaseURL)
-
 	grpcClient, err := projectclient.NewGrpcClient(cfg.ProjectService.GrpcAddress)
 	if err != nil {
 		slogLogger.Warn("failed to initialize gRPC client", "error", err)
@@ -85,7 +83,7 @@ func New() *App {
 		slogLogger.Info("gRPC client initialized successfully")
 	}
 
-	projectHandler := projectclient.NewHandler(httpClient, grpcClient, slogLogger)
+	projectHandler := projectclient.NewHandler(grpcClient, slogLogger)
 
 	// Kafka producer setup
 	kafkaProducer, err := kafka.NewProducer(cfg.Kafka.Brokers, cfg.Kafka.Topic, slogLogger)

@@ -1,9 +1,6 @@
 # Project Service - Local Development (IDE)
 env: local
 
-server:
-  port: "8081"
-
 database:
   host: localhost
   port: "5440"

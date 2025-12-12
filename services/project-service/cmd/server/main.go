@@ -12,6 +12,7 @@ import (
 )
 
 func main() {
+	// Initialize application with gRPC on port 50052
 	application := app.New()
 
 	go func() {

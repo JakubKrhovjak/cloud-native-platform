@@ -10,14 +10,12 @@ import (
 )
 
 type Handler struct {
-	httpClient *Client
 	grpcClient *GrpcClient
 	logger     *slog.Logger
 }
 
-func NewHandler(httpClient *Client, grpcClient *GrpcClient, logger *slog.Logger) *Handler {
+func NewHandler(grpcClient *GrpcClient, logger *slog.Logger) *Handler {
 	return &Handler{
-		httpClient: httpClient,
 		grpcClient: grpcClient,
 		logger:     logger,
 	}
