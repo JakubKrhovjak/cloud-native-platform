@@ -1,4 +1,4 @@
-.PHONY: test test-student test-project test-integration test-all test-coverage test-verbose clean admin-dev admin-build admin-install
+.PHONY: test test-student test-project test-integration test-all test-coverage test-verbose clean admin-dev admin-build admin-install k8s/setup k8s/deploy k8s/deploy-dev k8s/deploy-prod k8s/status k8s/wait k8s/logs k8s/cleanup setup deploy deploy-dev deploy-prod status wait logs cleanup
 
 # Default: Run all tests (shared container, fast)
 test:
@@ -63,6 +63,41 @@ generate-proto:
 	@echo "🔨 Generating protobuf files..."
 	./scripts/generate-proto.sh
 
+# Kubernetes commands (proxy to k8s/Makefile)
+k8s/setup:
+	@$(MAKE) -C k8s setup
+
+k8s/deploy:
+	@$(MAKE) -C k8s deploy
+
+k8s/deploy-dev:
+	@$(MAKE) -C k8s deploy-dev
+
+k8s/deploy-prod:
+	@$(MAKE) -C k8s deploy-prod
+
+k8s/status:
+	@$(MAKE) -C k8s status
+
+k8s/wait:
+	@$(MAKE) -C k8s wait
+
+k8s/logs:
+	@$(MAKE) -C k8s logs
+
+k8s/cleanup:
+	@$(MAKE) -C k8s cleanup
+
+# Kubernetes aliases (without k8s/ prefix)
+setup: k8s/setup
+deploy: k8s/deploy
+deploy-dev: k8s/deploy-dev
+deploy-prod: k8s/deploy-prod
+status: k8s/status
+wait: k8s/wait
+logs: k8s/logs
+cleanup: k8s/cleanup
+
 # Help
 help:
 	@echo "Available commands:"
@@ -81,5 +116,13 @@ help:
 	@echo "  make admin-install     - Install admin panel dependencies"
 	@echo "  make admin-dev         - Start admin panel dev server"
 	@echo "  make admin-build       - Build admin panel for production"
+	@echo ""
+	@echo "Kubernetes:"
+	@echo "  make setup             - Create Kind cluster"
+	@echo "  make deploy-dev        - Deploy to development"
+	@echo "  make deploy-prod       - Deploy to production"
+	@echo "  make status            - Show cluster status"
+	@echo "  make logs              - Follow service logs"
+	@echo "  make cleanup           - Delete cluster"
 	@echo ""
 	@echo "  make help              - Show this help message"
