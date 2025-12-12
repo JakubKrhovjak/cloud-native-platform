@@ -173,6 +173,366 @@ func (x *GetAllProjectsResponse) GetProjects() []*Project {
 	return nil
 }
 
+// GetProjectRequest is the request message for GetProject RPC
+type GetProjectRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int32                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetProjectRequest) Reset() {
+	*x = GetProjectRequest{}
+	mi := &file_project_v1_project_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetProjectRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetProjectRequest) ProtoMessage() {}
+
+func (x *GetProjectRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_project_v1_project_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetProjectRequest.ProtoReflect.Descriptor instead.
+func (*GetProjectRequest) Descriptor() ([]byte, []int) {
+	return file_project_v1_project_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetProjectRequest) GetId() int32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+// GetProjectResponse is the response message for GetProject RPC
+type GetProjectResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Project       *Project               `protobuf:"bytes,1,opt,name=project,proto3" json:"project,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetProjectResponse) Reset() {
+	*x = GetProjectResponse{}
+	mi := &file_project_v1_project_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetProjectResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetProjectResponse) ProtoMessage() {}
+
+func (x *GetProjectResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_project_v1_project_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetProjectResponse.ProtoReflect.Descriptor instead.
+func (*GetProjectResponse) Descriptor() ([]byte, []int) {
+	return file_project_v1_project_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GetProjectResponse) GetProject() *Project {
+	if x != nil {
+		return x.Project
+	}
+	return nil
+}
+
+// CreateProjectRequest is the request message for CreateProject RPC
+type CreateProjectRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateProjectRequest) Reset() {
+	*x = CreateProjectRequest{}
+	mi := &file_project_v1_project_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateProjectRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateProjectRequest) ProtoMessage() {}
+
+func (x *CreateProjectRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_project_v1_project_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateProjectRequest.ProtoReflect.Descriptor instead.
+func (*CreateProjectRequest) Descriptor() ([]byte, []int) {
+	return file_project_v1_project_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *CreateProjectRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+// CreateProjectResponse is the response message for CreateProject RPC
+type CreateProjectResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Project       *Project               `protobuf:"bytes,1,opt,name=project,proto3" json:"project,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateProjectResponse) Reset() {
+	*x = CreateProjectResponse{}
+	mi := &file_project_v1_project_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateProjectResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateProjectResponse) ProtoMessage() {}
+
+func (x *CreateProjectResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_project_v1_project_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateProjectResponse.ProtoReflect.Descriptor instead.
+func (*CreateProjectResponse) Descriptor() ([]byte, []int) {
+	return file_project_v1_project_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *CreateProjectResponse) GetProject() *Project {
+	if x != nil {
+		return x.Project
+	}
+	return nil
+}
+
+// UpdateProjectRequest is the request message for UpdateProject RPC
+type UpdateProjectRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int32                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateProjectRequest) Reset() {
+	*x = UpdateProjectRequest{}
+	mi := &file_project_v1_project_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateProjectRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateProjectRequest) ProtoMessage() {}
+
+func (x *UpdateProjectRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_project_v1_project_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateProjectRequest.ProtoReflect.Descriptor instead.
+func (*UpdateProjectRequest) Descriptor() ([]byte, []int) {
+	return file_project_v1_project_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *UpdateProjectRequest) GetId() int32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *UpdateProjectRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+// UpdateProjectResponse is the response message for UpdateProject RPC
+type UpdateProjectResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Project       *Project               `protobuf:"bytes,1,opt,name=project,proto3" json:"project,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateProjectResponse) Reset() {
+	*x = UpdateProjectResponse{}
+	mi := &file_project_v1_project_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateProjectResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateProjectResponse) ProtoMessage() {}
+
+func (x *UpdateProjectResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_project_v1_project_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateProjectResponse.ProtoReflect.Descriptor instead.
+func (*UpdateProjectResponse) Descriptor() ([]byte, []int) {
+	return file_project_v1_project_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *UpdateProjectResponse) GetProject() *Project {
+	if x != nil {
+		return x.Project
+	}
+	return nil
+}
+
+// DeleteProjectRequest is the request message for DeleteProject RPC
+type DeleteProjectRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int32                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteProjectRequest) Reset() {
+	*x = DeleteProjectRequest{}
+	mi := &file_project_v1_project_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteProjectRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteProjectRequest) ProtoMessage() {}
+
+func (x *DeleteProjectRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_project_v1_project_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteProjectRequest.ProtoReflect.Descriptor instead.
+func (*DeleteProjectRequest) Descriptor() ([]byte, []int) {
+	return file_project_v1_project_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *DeleteProjectRequest) GetId() int32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+// DeleteProjectResponse is the response message for DeleteProject RPC
+type DeleteProjectResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteProjectResponse) Reset() {
+	*x = DeleteProjectResponse{}
+	mi := &file_project_v1_project_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteProjectResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteProjectResponse) ProtoMessage() {}
+
+func (x *DeleteProjectResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_project_v1_project_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteProjectResponse.ProtoReflect.Descriptor instead.
+func (*DeleteProjectResponse) Descriptor() ([]byte, []int) {
+	return file_project_v1_project_proto_rawDescGZIP(), []int{10}
+}
+
 var File_project_v1_project_proto protoreflect.FileDescriptor
 
 const file_project_v1_project_proto_rawDesc = "" +
@@ -188,9 +548,30 @@ const file_project_v1_project_proto_rawDesc = "" +
 	"updated_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\x17\n" +
 	"\x15GetAllProjectsRequest\"I\n" +
 	"\x16GetAllProjectsResponse\x12/\n" +
-	"\bprojects\x18\x01 \x03(\v2\x13.project.v1.ProjectR\bprojects2i\n" +
+	"\bprojects\x18\x01 \x03(\v2\x13.project.v1.ProjectR\bprojects\"#\n" +
+	"\x11GetProjectRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x05R\x02id\"C\n" +
+	"\x12GetProjectResponse\x12-\n" +
+	"\aproject\x18\x01 \x01(\v2\x13.project.v1.ProjectR\aproject\"*\n" +
+	"\x14CreateProjectRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"F\n" +
+	"\x15CreateProjectResponse\x12-\n" +
+	"\aproject\x18\x01 \x01(\v2\x13.project.v1.ProjectR\aproject\":\n" +
+	"\x14UpdateProjectRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x05R\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"F\n" +
+	"\x15UpdateProjectResponse\x12-\n" +
+	"\aproject\x18\x01 \x01(\v2\x13.project.v1.ProjectR\aproject\"&\n" +
+	"\x14DeleteProjectRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x05R\x02id\"\x17\n" +
+	"\x15DeleteProjectResponse2\xb8\x03\n" +
 	"\x0eProjectService\x12W\n" +
-	"\x0eGetAllProjects\x12!.project.v1.GetAllProjectsRequest\x1a\".project.v1.GetAllProjectsResponseB#Z!grud/api/gen/project/v1;projectv1b\x06proto3"
+	"\x0eGetAllProjects\x12!.project.v1.GetAllProjectsRequest\x1a\".project.v1.GetAllProjectsResponse\x12K\n" +
+	"\n" +
+	"GetProject\x12\x1d.project.v1.GetProjectRequest\x1a\x1e.project.v1.GetProjectResponse\x12T\n" +
+	"\rCreateProject\x12 .project.v1.CreateProjectRequest\x1a!.project.v1.CreateProjectResponse\x12T\n" +
+	"\rUpdateProject\x12 .project.v1.UpdateProjectRequest\x1a!.project.v1.UpdateProjectResponse\x12T\n" +
+	"\rDeleteProject\x12 .project.v1.DeleteProjectRequest\x1a!.project.v1.DeleteProjectResponseB#Z!grud/api/gen/project/v1;projectv1b\x06proto3"
 
 var (
 	file_project_v1_project_proto_rawDescOnce sync.Once
@@ -204,24 +585,43 @@ func file_project_v1_project_proto_rawDescGZIP() []byte {
 	return file_project_v1_project_proto_rawDescData
 }
 
-var file_project_v1_project_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_project_v1_project_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_project_v1_project_proto_goTypes = []any{
 	(*Project)(nil),                // 0: project.v1.Project
 	(*GetAllProjectsRequest)(nil),  // 1: project.v1.GetAllProjectsRequest
 	(*GetAllProjectsResponse)(nil), // 2: project.v1.GetAllProjectsResponse
-	(*timestamppb.Timestamp)(nil),  // 3: google.protobuf.Timestamp
+	(*GetProjectRequest)(nil),      // 3: project.v1.GetProjectRequest
+	(*GetProjectResponse)(nil),     // 4: project.v1.GetProjectResponse
+	(*CreateProjectRequest)(nil),   // 5: project.v1.CreateProjectRequest
+	(*CreateProjectResponse)(nil),  // 6: project.v1.CreateProjectResponse
+	(*UpdateProjectRequest)(nil),   // 7: project.v1.UpdateProjectRequest
+	(*UpdateProjectResponse)(nil),  // 8: project.v1.UpdateProjectResponse
+	(*DeleteProjectRequest)(nil),   // 9: project.v1.DeleteProjectRequest
+	(*DeleteProjectResponse)(nil),  // 10: project.v1.DeleteProjectResponse
+	(*timestamppb.Timestamp)(nil),  // 11: google.protobuf.Timestamp
 }
 var file_project_v1_project_proto_depIdxs = []int32{
-	3, // 0: project.v1.Project.created_at:type_name -> google.protobuf.Timestamp
-	3, // 1: project.v1.Project.updated_at:type_name -> google.protobuf.Timestamp
-	0, // 2: project.v1.GetAllProjectsResponse.projects:type_name -> project.v1.Project
-	1, // 3: project.v1.ProjectService.GetAllProjects:input_type -> project.v1.GetAllProjectsRequest
-	2, // 4: project.v1.ProjectService.GetAllProjects:output_type -> project.v1.GetAllProjectsResponse
-	4, // [4:5] is the sub-list for method output_type
-	3, // [3:4] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	11, // 0: project.v1.Project.created_at:type_name -> google.protobuf.Timestamp
+	11, // 1: project.v1.Project.updated_at:type_name -> google.protobuf.Timestamp
+	0,  // 2: project.v1.GetAllProjectsResponse.projects:type_name -> project.v1.Project
+	0,  // 3: project.v1.GetProjectResponse.project:type_name -> project.v1.Project
+	0,  // 4: project.v1.CreateProjectResponse.project:type_name -> project.v1.Project
+	0,  // 5: project.v1.UpdateProjectResponse.project:type_name -> project.v1.Project
+	1,  // 6: project.v1.ProjectService.GetAllProjects:input_type -> project.v1.GetAllProjectsRequest
+	3,  // 7: project.v1.ProjectService.GetProject:input_type -> project.v1.GetProjectRequest
+	5,  // 8: project.v1.ProjectService.CreateProject:input_type -> project.v1.CreateProjectRequest
+	7,  // 9: project.v1.ProjectService.UpdateProject:input_type -> project.v1.UpdateProjectRequest
+	9,  // 10: project.v1.ProjectService.DeleteProject:input_type -> project.v1.DeleteProjectRequest
+	2,  // 11: project.v1.ProjectService.GetAllProjects:output_type -> project.v1.GetAllProjectsResponse
+	4,  // 12: project.v1.ProjectService.GetProject:output_type -> project.v1.GetProjectResponse
+	6,  // 13: project.v1.ProjectService.CreateProject:output_type -> project.v1.CreateProjectResponse
+	8,  // 14: project.v1.ProjectService.UpdateProject:output_type -> project.v1.UpdateProjectResponse
+	10, // 15: project.v1.ProjectService.DeleteProject:output_type -> project.v1.DeleteProjectResponse
+	11, // [11:16] is the sub-list for method output_type
+	6,  // [6:11] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_project_v1_project_proto_init() }
@@ -235,7 +635,7 @@ func file_project_v1_project_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_project_v1_project_proto_rawDesc), len(file_project_v1_project_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

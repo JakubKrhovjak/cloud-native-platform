@@ -22,8 +22,55 @@ message GetAllProjectsResponse {
   repeated Project projects = 1;
 }
 
+// GetProjectRequest is the request message for GetProject RPC
+message GetProjectRequest {
+  int32 id = 1;
+}
+
+// GetProjectResponse is the response message for GetProject RPC
+message GetProjectResponse {
+  Project project = 1;
+}
+
+// CreateProjectRequest is the request message for CreateProject RPC
+message CreateProjectRequest {
+  string name = 1;
+}
+
+// CreateProjectResponse is the response message for CreateProject RPC
+message CreateProjectResponse {
+  Project project = 1;
+}
+
+// UpdateProjectRequest is the request message for UpdateProject RPC
+message UpdateProjectRequest {
+  int32 id = 1;
+  string name = 2;
+}
+
+// UpdateProjectResponse is the response message for UpdateProject RPC
+message UpdateProjectResponse {
+  Project project = 1;
+}
+
+// DeleteProjectRequest is the request message for DeleteProject RPC
+message DeleteProjectRequest {
+  int32 id = 1;
+}
+
+// DeleteProjectResponse is the response message for DeleteProject RPC
+message DeleteProjectResponse {}
+
 // ProjectService provides operations on projects
 service ProjectService {
   // GetAllProjects returns all projects
   rpc GetAllProjects(GetAllProjectsRequest) returns (GetAllProjectsResponse);
+  // GetProject returns a single project by ID
+  rpc GetProject(GetProjectRequest) returns (GetProjectResponse);
+  // CreateProject creates a new project
+  rpc CreateProject(CreateProjectRequest) returns (CreateProjectResponse);
+  // UpdateProject updates an existing project
+  rpc UpdateProject(UpdateProjectRequest) returns (UpdateProjectResponse);
+  // DeleteProject deletes a project by ID
+  rpc DeleteProject(DeleteProjectRequest) returns (DeleteProjectResponse);
 }

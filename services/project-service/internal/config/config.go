@@ -9,14 +9,9 @@ import (
 
 type Config struct {
 	Env      string         `mapstructure:"env"`
-	Server   ServerConfig   `mapstructure:"server"`
 	Database DatabaseConfig `mapstructure:"database"`
 	Grpc     GrpcConfig     `mapstructure:"grpc"`
 	Kafka    KafkaConfig    `mapstructure:"kafka"`
-}
-
-type ServerConfig struct {
-	Port string `mapstructure:"port"`
 }
 
 type DatabaseConfig struct {

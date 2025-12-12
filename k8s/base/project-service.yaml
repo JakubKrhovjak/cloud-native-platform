@@ -17,14 +17,13 @@ metadata:
   name: project-service
   namespace: grud
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
     app: project-service
   ports:
-    - name: http
-      port: 8081
-      targetPort: 8081
-      nodePort: 30081
+    - name: grpc
+      port: 50052
+      targetPort: 50052
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -60,11 +59,11 @@ spec:
           image: ko://project-service/cmd/server
           imagePullPolicy: IfNotPresent
           ports:
-            - name: http
-              containerPort: 8081
+            - name: grpc
+              containerPort: 50052
           env:
-            - name: PORT
-              value: "8081"
+            - name: GRPC_PORT
+              value: "50052"
             - name: DB_HOST
               value: "project-db.grud.svc.cluster.local"
             - name: DB_PORT
@@ -96,15 +95,13 @@ spec:
               mountPath: /configs
               readOnly: true
           livenessProbe:
-            httpGet:
-              path: /health
-              port: http
+            tcpSocket:
+              port: 50052
             initialDelaySeconds: 30
             periodSeconds: 10
           readinessProbe:
-            httpGet:
-              path: /ready
-              port: http
+            grpc:
+              port: 50052
             initialDelaySeconds: 10
             periodSeconds: 5
           resources:
