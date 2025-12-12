@@ -9,14 +9,9 @@ import (
 
 type Config struct {
 	Env      string         `mapstructure:"env"`
-	Server   ServerConfig   `mapstructure:"server"`
 	Database DatabaseConfig `mapstructure:"database"`
 	Grpc     GrpcConfig     `mapstructure:"grpc"`
 	Kafka    KafkaConfig    `mapstructure:"kafka"`
-}
-
-type ServerConfig struct {
-	Port string `mapstructure:"port"`
 }
 
 type DatabaseConfig struct {
@@ -56,6 +51,10 @@ func Load() (*Config, error) {
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
+
+	// Enable environment variable overrides
+	viper.AutomaticEnv()
+	viper.BindEnv("grpc.port", "GRPC_PORT")
 
 	// Unmarshal into struct
 	var config Config

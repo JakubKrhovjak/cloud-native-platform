@@ -71,4 +71,86 @@ func TestProjectGrpcServer_Shared(t *testing.T) {
 		assert.Len(t, resp.Projects, 0)
 	})
 
+	t.Run("CreateProject", func(t *testing.T) {
+		testdb.CleanupTables(t, pgContainer.DB, "projects")
+
+		ctx := context.Background()
+		req := &pb.CreateProjectRequest{
+			Name: "New Project",
+		}
+		resp, err := grpcServer.CreateProject(ctx, req)
+
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.NotNil(t, resp.Project)
+		assert.NotZero(t, resp.Project.Id)
+		assert.Equal(t, "New Project", resp.Project.Name)
+		assert.NotZero(t, resp.Project.CreatedAt)
+		assert.NotZero(t, resp.Project.UpdatedAt)
+	})
+
+	t.Run("GetProject", func(t *testing.T) {
+		testdb.CleanupTables(t, pgContainer.DB, "projects")
+
+		ctx := context.Background()
+		p := &project.Project{Name: "Test Project"}
+		_, err := pgContainer.DB.NewInsert().Model(p).Exec(ctx)
+		require.NoError(t, err)
+
+		req := &pb.GetProjectRequest{Id: int32(p.ID)}
+		resp, err := grpcServer.GetProject(ctx, req)
+
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.NotNil(t, resp.Project)
+		assert.Equal(t, int32(p.ID), resp.Project.Id)
+		assert.Equal(t, "Test Project", resp.Project.Name)
+		assert.NotZero(t, resp.Project.CreatedAt)
+		assert.NotZero(t, resp.Project.UpdatedAt)
+	})
+
+	t.Run("UpdateProject", func(t *testing.T) {
+		testdb.CleanupTables(t, pgContainer.DB, "projects")
+
+		ctx := context.Background()
+		p := &project.Project{Name: "Old Name"}
+		_, err := pgContainer.DB.NewInsert().Model(p).Exec(ctx)
+		require.NoError(t, err)
+
+		req := &pb.UpdateProjectRequest{
+			Id:   int32(p.ID),
+			Name: "Updated Name",
+		}
+		resp, err := grpcServer.UpdateProject(ctx, req)
+
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.NotNil(t, resp.Project)
+		assert.Equal(t, int32(p.ID), resp.Project.Id)
+		assert.Equal(t, "Updated Name", resp.Project.Name)
+		assert.NotZero(t, resp.Project.CreatedAt)
+		assert.NotZero(t, resp.Project.UpdatedAt)
+	})
+
+	t.Run("DeleteProject", func(t *testing.T) {
+		testdb.CleanupTables(t, pgContainer.DB, "projects")
+
+		ctx := context.Background()
+		p := &project.Project{Name: "To Delete"}
+		_, err := pgContainer.DB.NewInsert().Model(p).Exec(ctx)
+		require.NoError(t, err)
+
+		req := &pb.DeleteProjectRequest{Id: int32(p.ID)}
+		resp, err := grpcServer.DeleteProject(ctx, req)
+
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+
+		// Verify project is deleted
+		var count int
+		count, err = pgContainer.DB.NewSelect().Model((*project.Project)(nil)).Where("id = ?", p.ID).Count(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, 0, count)
+	})
+
 }

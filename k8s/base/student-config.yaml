@@ -19,8 +19,7 @@ data:
       name: university
 
     project_service:
-      url: http://project-service:8081
-      grpc: project-service:9090
+      grpc: project-service:50052
 
     kafka:
       brokers:

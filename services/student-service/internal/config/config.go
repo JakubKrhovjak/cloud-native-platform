@@ -20,7 +20,6 @@ type ServerConfig struct {
 }
 
 type ProjectServiceConfig struct {
-	BaseURL     string `mapstructure:"url"`
 	GrpcAddress string `mapstructure:"grpc"`
 }
 

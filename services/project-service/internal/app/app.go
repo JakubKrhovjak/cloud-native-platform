@@ -6,11 +6,9 @@ import (
 	"log"
 	"log/slog"
 	"net"
-	"net/http"
 
 	"project-service/internal/config"
 	"project-service/internal/db"
-	"project-service/internal/health"
 	"project-service/internal/kafka"
 	"project-service/internal/message"
 	"project-service/internal/project"
@@ -20,14 +18,13 @@ import (
 	messagepb "grud/api/gen/message/v1"
 	projectpb "grud/api/gen/project/v1"
 
-	"github.com/gorilla/mux"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
 )
 
 type App struct {
 	config        *config.Config
-	router        *mux.Router
-	httpServer    *http.Server
 	grpcServer    *grpc.Server
 	kafkaConsumer *kafka.Consumer
 	logger        *slog.Logger
@@ -49,7 +46,6 @@ func New() *App {
 
 	app := &App{
 		config: cfg,
-		router: mux.NewRouter(),
 		logger: slogLogger,
 	}
 
@@ -74,14 +70,6 @@ func New() *App {
 
 	app.kafkaConsumer = kafkaConsumer
 
-	// Health endpoints
-	healthHandler := health.NewHandler()
-	healthHandler.RegisterRoutes(app.router)
-
-	// HTTP Handlers
-	projectHandler := project.NewHandler(projectService, slogLogger)
-	projectHandler.RegisterRoutes(app.router)
-
 	// gRPC Server
 	app.grpcServer = grpc.NewServer()
 	projectGrpcHandler := project.NewGrpcServer(projectService, slogLogger)
@@ -90,25 +78,19 @@ func New() *App {
 	messageGrpcHandler := message.NewGrpcServer(messageService, slogLogger)
 	messagepb.RegisterMessageServiceServer(app.grpcServer, messageGrpcHandler)
 
+	// Register gRPC health check
+	healthServer := health.NewServer()
+	grpc_health_v1.RegisterHealthServer(app.grpcServer, healthServer)
+	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
+	healthServer.SetServingStatus("project.v1.ProjectService", grpc_health_v1.HealthCheckResponse_SERVING)
+	healthServer.SetServingStatus("message.v1.MessageService", grpc_health_v1.HealthCheckResponse_SERVING)
+
 	slogLogger.Info("application initialized successfully")
 
 	return app
 }
 
 func (a *App) Run() error {
-	// Start HTTP server
-	a.httpServer = &http.Server{
-		Addr:    fmt.Sprintf(":%s", a.config.Server.Port),
-		Handler: a.router,
-	}
-
-	go func() {
-		a.logger.Info("HTTP server starting", "port", a.config.Server.Port)
-		if err := a.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatal("HTTP server failed:", err)
-		}
-	}()
-
 	// Start Kafka consumer
 	go func() {
 		a.logger.Info("Kafka consumer starting", "topic", a.config.Kafka.Topic)
@@ -128,13 +110,8 @@ func (a *App) Run() error {
 	return a.grpcServer.Serve(lis)
 }
 
-func (a *App) Shutdown(ctx context.Context) error {
+func (a *App) Shutdown(_ context.Context) error {
 	a.logger.Info("shutting down servers")
-
-	// Shutdown HTTP server
-	if err := a.httpServer.Shutdown(ctx); err != nil {
-		a.logger.Error("HTTP server shutdown error", "error", err)
-	}
 
 	// Shutdown gRPC server
 	a.grpcServer.GracefulStop()
