@@ -53,6 +53,11 @@ admin-install:
 
 admin-dev:
 	@echo "🚀 Starting admin panel dev server..."
+	@echo "📡 Starting port-forward to student-service..."
+	@kubectl port-forward -n grud service/student-service 9080:8080 > /dev/null 2>&1 &
+	@sleep 2
+	@echo "✅ Port-forward running on localhost:9080"
+	@echo "🎨 Starting admin panel..."
 	@cd services/admin && npm run dev
 
 admin-build:
