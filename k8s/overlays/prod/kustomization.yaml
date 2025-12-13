@@ -37,7 +37,7 @@ patches:
         path: /spec/replicas
         value: 3
 
-  # Set APP_ENV to prod for project-service
+  # Set ENV to prod for project-service
   - target:
       kind: Deployment
       name: project-service
@@ -46,7 +46,7 @@ patches:
         path: /spec/template/spec/containers/0/env/0/value
         value: prod
 
-  # Set APP_ENV to prod for student-service
+  # Set ENV to prod for student-service
   - target:
       kind: Deployment
       name: student-service

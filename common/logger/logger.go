@@ -40,13 +40,8 @@ func New() *slog.Logger {
 	return slog.New(handler)
 }
 
-// NewWithServiceContext creates a logger with service metadata
-// Adds service, version, and environment fields to all log entries
 func NewWithServiceContext(serviceName, version string) *slog.Logger {
-	logger := New()
-
-	// Add service context to all logs
-	return logger.With(
+	return New().With(
 		slog.String("service", serviceName),
 		slog.String("version", version),
 		slog.String("environment", os.Getenv("ENV")),

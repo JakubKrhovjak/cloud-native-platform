@@ -26,13 +26,13 @@ When creating a run configuration in GoLand:
    ```
 
 4. **Environment Variables** (REQUIRED):
-   - `APP_ENV=local` (required for config loading)
+   - `ENV=local` (required for config loading)
    - `ENV=local` (required for local development, disables secure cookies)
    - `JWT_SECRET=your-secret-key` (required for authentication)
 
    Example for local development:
    ```
-   APP_ENV=local
+   ENV=local
    ENV=local
    JWT_SECRET=production-secret-change-this-in-real-deployment
    ```
@@ -137,7 +137,7 @@ kustomize build k8s/overlays/dev | ko resolve -f - | kubectl apply -f -
 If you see `Config File "config.local" Not Found`, ensure:
 1. Working directory is set to project root in your IDE run configuration
 2. Config file exists at `services/<service-name>/configs/config.local.yaml`
-3. `APP_ENV` is set correctly (defaults to `local`)
+3. `ENV` is set correctly (defaults to `local`)
 
 ### Database connection refused
 Ensure database is running:

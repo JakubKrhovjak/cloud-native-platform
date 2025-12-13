@@ -32,8 +32,8 @@ type KafkaConfig struct {
 }
 
 func Load() (*Config, error) {
-	// Get environment from APP_ENV, default to "local"
-	env := os.Getenv("APP_ENV")
+	// Get environment from ENV, default to "local"
+	env := os.Getenv("ENV")
 	if env == "" {
 		env = "local"
 	}
