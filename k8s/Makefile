@@ -33,6 +33,8 @@ deploy-dev: ## Deploy with development overlay (1 replica each)
 	@kind load docker-image admin-panel:latest --name $(KIND_CLUSTER_NAME)
 	@echo "$(BLUE)🚢 Deploying services with Kustomize...$(NC)"
 	@kustomize build overlays/dev/ | ko resolve -f - | kubectl apply -f -
+	@echo "$(BLUE)🔄 Restarting admin-panel to use new image...$(NC)"
+	@kubectl rollout restart deployment/admin-panel -n grud
 	@echo "$(GREEN)✅ Development deployment complete!$(NC)"
 
 deploy-prod: ## Deploy with production overlay (3 replicas each)
