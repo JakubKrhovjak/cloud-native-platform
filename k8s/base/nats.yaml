@@ -1,46 +1,43 @@
-# Admin Panel - Complete manifest
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: admin-panel-config
-  namespace: grud
-data:
-  STUDENT_SERVICE_URL: "http://student-service.grud.svc.cluster.local:8080"
----
+# NATS - Lightweight messaging system
 apiVersion: v1
 kind: Service
 metadata:
-  name: admin-panel
+  name: nats
   namespace: grud
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
-    app: admin-panel
+    app: nats
   ports:
-    - name: http
-      port: 80
-      targetPort: 80
-      nodePort: 30082
+    - name: client
+      port: 4222
+      targetPort: 4222
+    - name: cluster
+      port: 6222
+      targetPort: 6222
+    - name: monitor
+      port: 8222
+      targetPort: 8222
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: admin-panel
+  name: nats
   namespace: grud
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: admin-panel
+      app: nats
   template:
     metadata:
       labels:
-        app: admin-panel
+        app: nats
     spec:
       tolerations:
         - key: "workload"
           operator: "Equal"
-          value: "app"
+          value: "infra"
           effect: "NoSchedule"
       affinity:
         nodeAffinity:
@@ -50,24 +47,27 @@ spec:
                   - key: node-type
                     operator: In
                     values:
-                      - app
+                      - infra
       containers:
-        - name: admin-panel
-          image: admin-panel:latest
-          imagePullPolicy: IfNotPresent
+        - name: nats
+          image: nats:2.10-alpine
           ports:
-            - name: http
-              containerPort: 80
+            - containerPort: 4222
+              name: client
+            - containerPort: 6222
+              name: cluster
+            - containerPort: 8222
+              name: monitor
           livenessProbe:
             httpGet:
               path: /
-              port: http
+              port: 8222
             initialDelaySeconds: 10
             periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /
-              port: http
+              port: 8222
             initialDelaySeconds: 5
             periodSeconds: 5
           resources:
@@ -77,5 +77,3 @@ spec:
             limits:
               memory: "128Mi"
               cpu: "200m"
-          securityContext:
-            allowPrivilegeEscalation: false

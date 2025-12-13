@@ -28,7 +28,7 @@ export default function Login() {
     try {
       const response = await authApi.login(data);
       login(response.accessToken, response.refreshToken, response.student);
-      navigate('/students');
+      navigate('/messages');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Login failed. Please try again.');
     } finally {

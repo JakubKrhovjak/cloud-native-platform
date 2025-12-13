@@ -27,7 +27,6 @@ func New(cfg config.DatabaseConfig) *bun.DB {
 	return NewWithDSN(dsn)
 }
 
-// NewWithDSN creates a new database connection with a custom DSN (useful for testing)
 func NewWithDSN(dsn string) *bun.DB {
 	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
 	db := bun.NewDB(sqldb, pgdialect.New())
@@ -38,12 +37,6 @@ func NewWithDSN(dsn string) *bun.DB {
 
 	slog.Info("database connected successfully")
 	return db
-}
-
-func Close(db *bun.DB) {
-	if db != nil {
-		db.Close()
-	}
 }
 
 func RunMigrations(ctx context.Context, db *bun.DB, models ...interface{}) error {

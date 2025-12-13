@@ -6,6 +6,8 @@ import (
 
 	pb "grud/api/gen/project/v1"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -48,6 +50,10 @@ func (s *GrpcServer) GetAllProjects(ctx context.Context, req *pb.GetAllProjectsR
 }
 
 func (s *GrpcServer) GetProject(ctx context.Context, req *pb.GetProjectRequest) (*pb.GetProjectResponse, error) {
+	if req.Id <= 0 {
+		return nil, status.Error(codes.InvalidArgument, "id must be greater than 0")
+	}
+
 	s.logger.Info("gRPC: fetching project by ID", "id", req.Id)
 
 	project, err := s.service.GetProjectByID(ctx, int(req.Id))
@@ -89,6 +95,10 @@ func (s *GrpcServer) CreateProject(ctx context.Context, req *pb.CreateProjectReq
 }
 
 func (s *GrpcServer) UpdateProject(ctx context.Context, req *pb.UpdateProjectRequest) (*pb.UpdateProjectResponse, error) {
+	if req.Id <= 0 {
+		return nil, status.Error(codes.InvalidArgument, "id must be greater than 0")
+	}
+
 	s.logger.Info("gRPC: updating project", "id", req.Id, "name", req.Name)
 
 	project := &Project{
@@ -119,6 +129,10 @@ func (s *GrpcServer) UpdateProject(ctx context.Context, req *pb.UpdateProjectReq
 }
 
 func (s *GrpcServer) DeleteProject(ctx context.Context, req *pb.DeleteProjectRequest) (*pb.DeleteProjectResponse, error) {
+	if req.Id <= 0 {
+		return nil, status.Error(codes.InvalidArgument, "id must be greater than 0")
+	}
+
 	s.logger.Info("gRPC: deleting project", "id", req.Id)
 
 	if err := s.service.DeleteProject(ctx, int(req.Id)); err != nil {

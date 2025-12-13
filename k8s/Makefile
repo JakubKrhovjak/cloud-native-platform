@@ -27,7 +27,14 @@ deploy: ## Deploy everything with Ko + Kustomize (base config)
 
 deploy-dev: ## Deploy with development overlay (1 replica each)
 	@echo "$(BLUE)🚀 Deploying to development...$(NC)"
+	@echo "$(BLUE)📦 Building admin panel Docker image...$(NC)"
+	@docker build -t admin-panel:latest ../services/admin
+	@echo "$(BLUE)📤 Loading admin panel image into Kind cluster...$(NC)"
+	@kind load docker-image admin-panel:latest --name $(KIND_CLUSTER_NAME)
+	@echo "$(BLUE)🚢 Deploying services with Kustomize...$(NC)"
 	@kustomize build overlays/dev/ | ko resolve -f - | kubectl apply -f -
+	@echo "$(BLUE)🔄 Restarting admin-panel to use new image...$(NC)"
+	@kubectl rollout restart deployment/admin-panel -n grud
 	@echo "$(GREEN)✅ Development deployment complete!$(NC)"
 
 deploy-prod: ## Deploy with production overlay (3 replicas each)
@@ -68,6 +75,7 @@ wait: ## Wait for all resources to be ready
 	@echo "$(BLUE)⏳ Waiting for services...$(NC)"
 	@kubectl wait --for=condition=Available deployment/student-service -n grud --timeout=300s
 	@kubectl wait --for=condition=Available deployment/project-service -n grud --timeout=300s
+	@kubectl wait --for=condition=Available deployment/admin-panel -n grud --timeout=300s
 	@echo "$(GREEN)✅ All resources ready!$(NC)"
 
 logs: ## Follow logs for all services
@@ -83,6 +91,9 @@ logs-project: ## Follow project-service logs
 logs-db: ## Follow database logs
 	@kubectl logs -n grud -l app=student-db -f --tail=50 &
 	@kubectl logs -n grud -l app=project-db -f --tail=50
+
+logs-admin: ## Follow admin-panel logs
+	@kubectl logs -n grud -l app=admin-panel -f --tail=100
 
 test: ## Test services
 	@echo "$(BLUE)🧪 Testing services...$(NC)"
@@ -100,6 +111,10 @@ port-forward-student: ## Port-forward student-service to localhost:9080
 port-forward-project: ## Port-forward project-service to localhost:9052
 	@echo "$(BLUE)🔌 Port-forwarding project-service to localhost:9052...$(NC)"
 	@kubectl port-forward -n grud service/project-service 9052:50052
+
+port-forward-admin: ## Port-forward admin-panel to localhost:3000
+	@echo "$(BLUE)🔌 Port-forwarding admin-panel to localhost:3000...$(NC)"
+	@kubectl port-forward -n grud service/admin-panel 3000:80
 
 cleanup: ## Delete the entire cluster
 	@../scripts/cleanup.sh

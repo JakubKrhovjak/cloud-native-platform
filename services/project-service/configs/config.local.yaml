@@ -11,7 +11,6 @@ database:
 grpc:
   port: "9090"
 
-kafka:
-  brokers:
-    - localhost:9092
-  topic: student-messages
+nats:
+  url: nats://localhost:4222
+  subject: student.messages

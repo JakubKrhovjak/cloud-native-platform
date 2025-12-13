@@ -63,9 +63,14 @@ export default function Students() {
               </Typography>
             )}
           </Box>
-          <Button variant="outlined" color="secondary" onClick={handleLogout}>
-            Logout
-          </Button>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button variant="outlined" onClick={() => navigate('/messages')}>
+              Messages
+            </Button>
+            <Button variant="outlined" color="secondary" onClick={handleLogout}>
+              Logout
+            </Button>
+          </Box>
         </Box>
 
         {error && (

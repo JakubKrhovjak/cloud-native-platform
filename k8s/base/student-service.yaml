@@ -65,7 +65,7 @@ spec:
             - name: http
               containerPort: 8080
           env:
-            - name: APP_ENV
+            - name: ENV
               value: "dev"
             - name: PORT
               value: "8080"

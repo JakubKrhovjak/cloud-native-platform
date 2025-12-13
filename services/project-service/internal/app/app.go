@@ -9,8 +9,8 @@ import (
 
 	"project-service/internal/config"
 	"project-service/internal/db"
-	"project-service/internal/kafka"
 	"project-service/internal/message"
+	"project-service/internal/messaging"
 	"project-service/internal/project"
 
 	"grud/common/logger"
@@ -24,10 +24,10 @@ import (
 )
 
 type App struct {
-	config        *config.Config
-	grpcServer    *grpc.Server
-	kafkaConsumer *kafka.Consumer
-	logger        *slog.Logger
+	config       *config.Config
+	grpcServer   *grpc.Server
+	natsConsumer *messaging.Consumer
+	logger       *slog.Logger
 }
 
 func New() *App {
@@ -59,16 +59,15 @@ func New() *App {
 	projectRepo := project.NewRepository(database)
 	projectService := project.NewService(projectRepo)
 
-	// Initialize message repository, service and Kafka consumer
 	messageRepo := message.NewRepository(database)
 	messageService := message.NewService(messageRepo)
-	kafkaConsumer, err := kafka.NewConsumer(cfg.Kafka.Brokers, cfg.Kafka.Topic, messageRepo, slogLogger)
+	natsConsumer, err := messaging.NewConsumer(cfg.NATS.URL, cfg.NATS.Subject, messageRepo, slogLogger)
 	if err != nil {
-		log.Fatal("failed to create Kafka consumer:", err)
+		log.Fatal("failed to create NATS consumer:", err)
 	}
-	slogLogger.Info("kafka consumer initialized", "brokers", cfg.Kafka.Brokers, "topic", cfg.Kafka.Topic)
+	slogLogger.Info("NATS consumer initialized", "url", cfg.NATS.URL, "subject", cfg.NATS.Subject)
 
-	app.kafkaConsumer = kafkaConsumer
+	app.natsConsumer = natsConsumer
 
 	// gRPC Server
 	app.grpcServer = grpc.NewServer()
@@ -91,12 +90,12 @@ func New() *App {
 }
 
 func (a *App) Run() error {
-	// Start Kafka consumer
+	// Start NATS consumer
 	go func() {
-		a.logger.Info("Kafka consumer starting", "topic", a.config.Kafka.Topic)
+		a.logger.Info("NATS consumer starting", "subject", a.config.NATS.Subject)
 		ctx := context.Background()
-		if err := a.kafkaConsumer.Start(ctx); err != nil {
-			a.logger.Error("Kafka consumer error", "error", err)
+		if err := a.natsConsumer.Start(ctx); err != nil {
+			a.logger.Error("NATS consumer error", "error", err)
 		}
 	}()
 
@@ -116,9 +115,9 @@ func (a *App) Shutdown(_ context.Context) error {
 	// Shutdown gRPC server
 	a.grpcServer.GracefulStop()
 
-	// Close Kafka consumer
-	if err := a.kafkaConsumer.Close(); err != nil {
-		a.logger.Error("Kafka consumer close error", "error", err)
+	// Close NATS consumer
+	if err := a.natsConsumer.Close(); err != nil {
+		a.logger.Error("NATS consumer close error", "error", err)
 	}
 
 	return nil

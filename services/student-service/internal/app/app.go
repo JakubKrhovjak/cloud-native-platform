@@ -11,8 +11,8 @@ import (
 	"student-service/internal/config"
 	"student-service/internal/db"
 	"student-service/internal/health"
-	"student-service/internal/kafka"
 	"student-service/internal/message"
+	"student-service/internal/messaging"
 	"student-service/internal/middleware"
 	"student-service/internal/projectclient"
 	"student-service/internal/student"
@@ -85,13 +85,13 @@ func New() *App {
 
 	projectHandler := projectclient.NewHandler(grpcClient, slogLogger)
 
-	// Kafka producer setup
-	kafkaProducer, err := kafka.NewProducer(cfg.Kafka.Brokers, cfg.Kafka.Topic, slogLogger)
+	// NATS producer setup
+	natsProducer, err := messaging.NewProducer(cfg.NATS.URL, cfg.NATS.Subject, slogLogger)
 	if err != nil {
-		slogLogger.Warn("failed to initialize kafka producer", "error", err)
-		kafkaProducer = nil
+		slogLogger.Warn("failed to initialize NATS producer", "error", err)
+		natsProducer = nil
 	} else {
-		slogLogger.Info("kafka producer initialized successfully")
+		slogLogger.Info("NATS producer initialized successfully")
 	}
 
 	// Create protected routes group for /api endpoints
@@ -100,9 +100,9 @@ func New() *App {
 		studentHandler.RegisterRoutes(r)
 		projectHandler.RegisterRoutes(r)
 
-		// Message handler (only if Kafka is available)
-		if kafkaProducer != nil {
-			messageService := message.NewService(kafkaProducer, slogLogger)
+		// Message handler (only if NATS is available)
+		if natsProducer != nil {
+			messageService := message.NewService(natsProducer, slogLogger)
 			messageHandler := message.NewHandler(messageService, slogLogger)
 			messageHandler.RegisterRoutes(r)
 		}

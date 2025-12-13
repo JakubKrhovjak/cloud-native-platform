@@ -1,4 +1,4 @@
-.PHONY: test test-student test-project test-integration test-all test-coverage test-verbose clean admin-dev admin-build admin-install k8s/setup k8s/deploy k8s/deploy-dev k8s/deploy-prod k8s/status k8s/wait k8s/logs k8s/cleanup setup deploy deploy-dev deploy-prod status wait logs cleanup
+.PHONY: test test-student test-project test-integration test-all test-coverage test-verbose clean admin-dev admin-build admin-install k8s/setup k8s/deploy k8s/deploy-dev k8s/deploy-prod k8s/status k8s/wait k8s/logs k8s/cleanup k8s/port-forward-admin k8s/port-forward-student k8s/port-forward-project setup deploy deploy-dev deploy-prod status wait logs cleanup port-forward-admin port-forward-student port-forward-project
 
 # Default: Run all tests (shared container, fast)
 test:
@@ -93,6 +93,15 @@ k8s/logs:
 k8s/cleanup:
 	@$(MAKE) -C k8s cleanup
 
+k8s/port-forward-admin:
+	@$(MAKE) -C k8s port-forward-admin
+
+k8s/port-forward-student:
+	@$(MAKE) -C k8s port-forward-student
+
+k8s/port-forward-project:
+	@$(MAKE) -C k8s port-forward-project
+
 # Kubernetes aliases (without k8s/ prefix)
 setup: k8s/setup
 deploy: k8s/deploy
@@ -102,6 +111,9 @@ status: k8s/status
 wait: k8s/wait
 logs: k8s/logs
 cleanup: k8s/cleanup
+port-forward-admin: k8s/port-forward-admin
+port-forward-student: k8s/port-forward-student
+port-forward-project: k8s/port-forward-project
 
 # Help
 help:
@@ -123,11 +135,14 @@ help:
 	@echo "  make admin-build       - Build admin panel for production"
 	@echo ""
 	@echo "Kubernetes:"
-	@echo "  make setup             - Create Kind cluster"
-	@echo "  make deploy-dev        - Deploy to development"
-	@echo "  make deploy-prod       - Deploy to production"
-	@echo "  make status            - Show cluster status"
-	@echo "  make logs              - Follow service logs"
-	@echo "  make cleanup           - Delete cluster"
+	@echo "  make setup                  - Create Kind cluster"
+	@echo "  make deploy-dev             - Deploy to development"
+	@echo "  make deploy-prod            - Deploy to production"
+	@echo "  make status                 - Show cluster status"
+	@echo "  make logs                   - Follow service logs"
+	@echo "  make port-forward-admin     - Port-forward admin-panel to localhost:3000"
+	@echo "  make port-forward-student   - Port-forward student-service to localhost:9080"
+	@echo "  make port-forward-project   - Port-forward project-service to localhost:9052"
+	@echo "  make cleanup                - Delete cluster"
 	@echo ""
-	@echo "  make help              - Show this help message"
+	@echo "  make help                   - Show this help message"

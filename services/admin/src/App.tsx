@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Students from './pages/Students';
+import Messages from './pages/Messages';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -10,7 +11,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
-  return !isAuthenticated ? <>{children}</> : <Navigate to="/students" />;
+  return !isAuthenticated ? <>{children}</> : <Navigate to="/messages" />;
 }
 
 function App() {
@@ -31,6 +32,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Students />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/messages"
+            element={
+              <ProtectedRoute>
+                <Messages />
               </ProtectedRoute>
             }
           />

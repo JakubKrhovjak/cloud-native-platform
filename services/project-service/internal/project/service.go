@@ -37,22 +37,13 @@ func (s *service) GetAllProjects(ctx context.Context) ([]Project, error) {
 }
 
 func (s *service) GetProjectByID(ctx context.Context, id int) (*Project, error) {
-	if id <= 0 {
-		return nil, ErrInvalidInput
-	}
 	return s.repo.GetByID(ctx, id)
 }
 
 func (s *service) UpdateProject(ctx context.Context, project *Project) error {
-	if project.ID <= 0 {
-		return ErrInvalidInput
-	}
 	return s.repo.Update(ctx, project)
 }
 
 func (s *service) DeleteProject(ctx context.Context, id int) error {
-	if id <= 0 {
-		return ErrInvalidInput
-	}
 	return s.repo.Delete(ctx, id)
 }

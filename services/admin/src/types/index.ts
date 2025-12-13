@@ -17,3 +17,14 @@ export interface AuthResponse {
   refreshToken: string;
   student: Student;
 }
+
+export interface Message {
+  id: number;
+  email: string;
+  message: string;
+  createdAt: string;
+}
+
+export interface SendMessageRequest {
+  message: string;
+}
