@@ -28,21 +28,18 @@ func TestNATSConsumerIntegration(t *testing.T) {
 	defer pgContainer.Cleanup(t)
 
 	pgContainer.RunMigrations(t, (*message.Message)(nil))
+	natsURL := natsContainer.URL
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+
+	subject := "test.messages." + strings.ReplaceAll(t.Name(), "/", ".")
+	repo := message.NewRepository(pgContainer.DB)
+
+	consumer, err := messaging.NewConsumer(natsURL, subject, repo, logger)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = consumer.Close() })
 
 	t.Run("Consumer_ReceivesAndStoresMessage", func(t *testing.T) {
 		testdb.CleanupTables(t, pgContainer.DB, "messages")
-
-		natsURL := natsContainer.URL
-		logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-
-		subject := "test.messages." + strings.ReplaceAll(t.Name(), "/", ".")
-		repo := message.NewRepository(pgContainer.DB)
-
-		// Create consumer
-		consumer, err := messaging.NewConsumer(natsURL, subject, repo, logger)
-		require.NoError(t, err)
-		t.Cleanup(func() { _ = consumer.Close() })
-
 		// Start consumer in background
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -83,16 +80,6 @@ func TestNATSConsumerIntegration(t *testing.T) {
 	t.Run("Consumer_MultipleMessages", func(t *testing.T) {
 		testdb.CleanupTables(t, pgContainer.DB, "messages")
 
-		natsURL := natsContainer.URL
-		logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-
-		subject := "test.messages." + strings.ReplaceAll(t.Name(), "/", ".")
-		repo := message.NewRepository(pgContainer.DB)
-
-		consumer, err := messaging.NewConsumer(natsURL, subject, repo, logger)
-		require.NoError(t, err)
-		t.Cleanup(func() { _ = consumer.Close() })
-
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -128,16 +115,6 @@ func TestNATSConsumerIntegration(t *testing.T) {
 
 	t.Run("Consumer_InvalidJSON", func(t *testing.T) {
 		testdb.CleanupTables(t, pgContainer.DB, "messages")
-
-		natsURL := natsContainer.URL
-		logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-
-		subject := "test.messages." + strings.ReplaceAll(t.Name(), "/", ".")
-		repo := message.NewRepository(pgContainer.DB)
-
-		consumer, err := messaging.NewConsumer(natsURL, subject, repo, logger)
-		require.NoError(t, err)
-		t.Cleanup(func() { _ = consumer.Close() })
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
