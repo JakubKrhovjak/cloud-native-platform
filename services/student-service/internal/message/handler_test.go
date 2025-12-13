@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -23,10 +24,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupTestWithNATSContainer(t *testing.T, natsContainer *testnats.NATSContainer) (chi.Router, *nats.Conn, string) {
+func setupTestWithNATSContainer(t *testing.T, natsContainer *testnats.NATSContainer, subject string) (chi.Router, *nats.Conn) {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 
-	subject := "test.messages"
 	producer, err := messaging.NewProducer(natsContainer.URL, subject, logger)
 	require.NoError(t, err)
 
@@ -38,7 +38,7 @@ func setupTestWithNATSContainer(t *testing.T, natsContainer *testnats.NATSContai
 
 	nc := natsContainer.Connect(t)
 
-	return router, nc, subject
+	return router, nc
 }
 
 func TestMessageHandlerWithNATSContainer(t *testing.T) {
@@ -46,7 +46,8 @@ func TestMessageHandlerWithNATSContainer(t *testing.T) {
 	defer natsContainer.Cleanup(t)
 
 	t.Run("SendMessage_Success", func(t *testing.T) {
-		router, nc, subject := setupTestWithNATSContainer(t, natsContainer)
+		subject := "test.messages." + strings.ReplaceAll(t.Name(), "/", ".")
+		router, nc := setupTestWithNATSContainer(t, natsContainer, subject)
 
 		// Subscribe to verify message was sent
 		received := make(chan *nats.Msg, 1)
@@ -93,13 +94,18 @@ func TestMessageHandlerWithNATSContainer(t *testing.T) {
 	})
 
 	t.Run("SendMessage_MultipleMessages", func(t *testing.T) {
-		router, nc, subject := setupTestWithNATSContainer(t, natsContainer)
+		subject := "test.messages." + strings.ReplaceAll(t.Name(), "/", ".")
+		router, nc := setupTestWithNATSContainer(t, natsContainer, subject)
 
 		received := make(chan *nats.Msg, 3)
 		_, err := nc.Subscribe(subject, func(msg *nats.Msg) {
 			received <- msg
 		})
 		require.NoError(t, err)
+
+		// Ensure subscriber is ready
+		require.NoError(t, nc.Flush())
+		time.Sleep(50 * time.Millisecond)
 
 		emails := []string{"user1@example.com", "user2@example.com", "user3@example.com"}
 
@@ -135,7 +141,8 @@ func TestMessageHandlerWithNATSContainer(t *testing.T) {
 	})
 
 	t.Run("SendMessage_Unauthorized", func(t *testing.T) {
-		router, _, _ := setupTestWithNATSContainer(t, natsContainer)
+		subject := "test.messages." + strings.ReplaceAll(t.Name(), "/", ".")
+		router, _ := setupTestWithNATSContainer(t, natsContainer, subject)
 
 		payload := message.SendMessageRequest{
 			Message: "This should fail",
@@ -152,7 +159,8 @@ func TestMessageHandlerWithNATSContainer(t *testing.T) {
 	})
 
 	t.Run("SendMessage_EmptyMessage", func(t *testing.T) {
-		router, _, _ := setupTestWithNATSContainer(t, natsContainer)
+		subject := "test.messages." + strings.ReplaceAll(t.Name(), "/", ".")
+		router, _ := setupTestWithNATSContainer(t, natsContainer, subject)
 
 		payload := message.SendMessageRequest{
 			Message: "",

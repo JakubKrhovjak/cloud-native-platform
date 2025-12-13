@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -48,7 +49,7 @@ func TestNATSConsumerIntegration(t *testing.T) {
 
 		logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 
-		subject := "test.messages"
+		subject := "test.messages." + strings.ReplaceAll(t.Name(), "/", ".")
 		repo := &MockMessageRepository{messages: make([]*message.Message, 0)}
 
 		// Create consumer
@@ -98,7 +99,7 @@ func TestNATSConsumerIntegration(t *testing.T) {
 
 		logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 
-		subject := "test.messages"
+		subject := "test.messages." + strings.ReplaceAll(t.Name(), "/", ".")
 		repo := &MockMessageRepository{messages: make([]*message.Message, 0)}
 
 		consumer, err := messaging.NewConsumer(natsURL, subject, repo, logger)
@@ -141,7 +142,7 @@ func TestNATSConsumerIntegration(t *testing.T) {
 
 		logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 
-		subject := "test.messages"
+		subject := "test.messages." + strings.ReplaceAll(t.Name(), "/", ".")
 		repo := &MockMessageRepository{messages: make([]*message.Message, 0)}
 
 		consumer, err := messaging.NewConsumer(natsURL, subject, repo, logger)
