@@ -10,13 +10,6 @@ resources:
 
 # Development-specific patches
 patches:
-  # Reduce replicas for all deployments
-  - target:
-      kind: Deployment
-    patch: |-
-      - op: replace
-        path: /spec/replicas
-        value: 2
 
   # Set ENV to development
   - target:

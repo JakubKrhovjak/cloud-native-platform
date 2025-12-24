@@ -82,3 +82,17 @@ func (c *GrpcClient) GetMessagesByEmail(ctx context.Context, email string) ([]Me
 func (c *GrpcClient) Close() error {
 	return c.conn.Close()
 }
+
+// HealthCheck verifies gRPC connection is healthy
+func (c *GrpcClient) HealthCheck(ctx context.Context) error {
+	if c.conn == nil {
+		return fmt.Errorf("grpc connection is nil")
+	}
+
+	// Try a simple RPC call with short timeout to verify connectivity
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	_, err := c.projectClient.GetAllProjects(ctx, &projectpb.GetAllProjectsRequest{})
+	return err
+}

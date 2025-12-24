@@ -15,6 +15,11 @@ func main() {
 	// Initialize application with gRPC on port 50052
 	application := app.New()
 
+	// Start dependency health checks in background
+	healthCtx, healthCancel := context.WithCancel(context.Background())
+	defer healthCancel()
+	go application.StartHealthChecks(healthCtx)
+
 	go func() {
 		if err := application.Run(); err != nil {
 			log.Fatal("Failed to start server:", err)

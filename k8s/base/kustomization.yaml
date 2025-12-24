@@ -7,7 +7,6 @@ namespace: grud
 resources:
   - namespace.yaml
   - secrets.yaml
-  - nats.yaml
   - student-service.yaml
   - project-service.yaml
   - student-db.yaml

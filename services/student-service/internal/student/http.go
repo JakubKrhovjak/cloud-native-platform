@@ -7,23 +7,28 @@ import (
 	"net/http"
 	"strconv"
 
+	"student-service/internal/metrics"
+
 	"grud/common/httputil"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Handler struct {
 	service  Service
 	validate *validator.Validate
 	logger   *slog.Logger
+	metrics  *metrics.Metrics
 }
 
-func NewHandler(service Service, logger *slog.Logger) *Handler {
+func NewHandler(service Service, logger *slog.Logger, metrics *metrics.Metrics) *Handler {
 	return &Handler{
 		service:  service,
 		validate: validator.New(),
 		logger:   logger,
+		metrics:  metrics,
 	}
 }
 
@@ -42,12 +47,27 @@ func (h *Handler) CreateStudent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Set default password for students created via API
+	// In production, students should be created via /auth/register
+	if student.Password == "" {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("DefaultPassword123!"), bcrypt.DefaultCost)
+		if err != nil {
+			h.logger.Error("failed to hash password", "error", err)
+			httputil.RespondWithError(w, http.StatusInternalServerError, "Internal server error")
+			return
+		}
+		student.Password = string(hashedPassword)
+	}
+
 	h.logger.Info("creating student", "email", student.Email)
 	createdStudent, err := h.service.CreateStudent(r.Context(), &student)
 	if err != nil {
 		h.handleServiceError(w, err)
 		return
 	}
+
+	// Record metric
+	h.metrics.RecordStudentRegistration(r.Context())
 
 	httputil.RespondWithJSON(w, http.StatusCreated, createdStudent)
 }
@@ -60,6 +80,9 @@ func (h *Handler) GetAllStudents(w http.ResponseWriter, r *http.Request) {
 		h.handleServiceError(w, err)
 		return
 	}
+
+	// Record metric
+	h.metrics.RecordStudentsListViewed(r.Context())
 
 	httputil.RespondWithJSON(w, http.StatusOK, students)
 }
@@ -77,6 +100,9 @@ func (h *Handler) GetStudent(w http.ResponseWriter, r *http.Request) {
 		h.handleServiceError(w, err)
 		return
 	}
+
+	// Record metric
+	h.metrics.RecordStudentViewed(r.Context())
 
 	httputil.RespondWithJSON(w, http.StatusOK, student)
 }

@@ -1,4 +1,51 @@
-.PHONY: test test-student test-project test-integration test-all test-coverage test-verbose clean admin-dev admin-build admin-install k8s/setup k8s/deploy k8s/deploy-dev k8s/deploy-prod k8s/status k8s/wait k8s/logs k8s/cleanup k8s/port-forward-admin k8s/port-forward-student k8s/port-forward-project setup deploy deploy-dev deploy-prod status wait logs cleanup port-forward-admin port-forward-student port-forward-project
+.PHONY: test test-student test-project test-integration test-all test-coverage test-verbose clean admin-dev admin-build admin-install k8s/setup k8s/deploy k8s/deploy-dev k8s/deploy-prod k8s/status k8s/wait k8s/logs k8s/stop k8s/start k8s/cleanup k8s/port-forward-admin k8s/port-forward-student k8s/port-forward-project setup deploy deploy-dev deploy-prod status wait logs stop start cleanup port-forward-admin port-forward-student port-forward-project build build-student build-project run-student run-project version
+
+# Build configuration
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+GIT_COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+BUILD_TIME ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
+
+# Linker flags
+STUDENT_LDFLAGS := -X 'student-service/internal/app.Version=$(VERSION)' \
+                   -X 'student-service/internal/app.GitCommit=$(GIT_COMMIT)' \
+                   -X 'student-service/internal/app.BuildTime=$(BUILD_TIME)'
+
+PROJECT_LDFLAGS := -X 'project-service/internal/app.Version=$(VERSION)' \
+                   -X 'project-service/internal/app.GitCommit=$(GIT_COMMIT)' \
+                   -X 'project-service/internal/app.BuildTime=$(BUILD_TIME)'
+
+# Build targets
+build: build-student build-project
+	@echo "✅ All services built successfully"
+
+build-student:
+	@echo "🔨 Building student-service $(VERSION) ($(GIT_COMMIT))..."
+	@mkdir -p bin
+	@cd services/student-service && \
+	go build -ldflags="$(STUDENT_LDFLAGS)" \
+	  -o ../../bin/student-service \
+	  ./cmd/server
+	@echo "✅ student-service → bin/student-service"
+
+build-project:
+	@echo "🔨 Building project-service $(VERSION) ($(GIT_COMMIT))..."
+	@mkdir -p bin
+	@cd services/project-service && \
+	go build -ldflags="$(PROJECT_LDFLAGS)" \
+	  -o ../../bin/project-service \
+	  ./cmd/server
+	@echo "✅ project-service → bin/project-service"
+
+run-student:
+	@cd services/student-service && go run ./cmd/server
+
+run-project:
+	@cd services/project-service && go run ./cmd/server
+
+version:
+	@echo "Version:    $(VERSION)"
+	@echo "Git Commit: $(GIT_COMMIT)"
+	@echo "Build Time: $(BUILD_TIME)"
 
 # Default: Run all tests (shared container, fast)
 test:
@@ -16,104 +63,111 @@ test-project:
 
 # Integration tests (isolated containers, slower)
 test-integration:
-	@echo "🧪 Running integration tests (isolated containers)..."
-	@go test -tags=integration ./services/student-service/... ./services/project-service/...
-
-# All tests (shared + integration)
-test-all:
-	@echo "🧪 Running ALL tests (shared + integration)..."
-	@go test ./services/student-service/... ./services/project-service/...
-	@go test -tags=integration ./services/student-service/... ./services/project-service/...
-
-# Tests with coverage
-test-coverage:
-	@echo "📊 Running tests with coverage..."
-	@go test -cover ./services/student-service/... ./services/project-service/...
-
-
-# Test with race detector
-test-race:
-	@echo "🏁 Running tests with race detector..."
-	@go test -race ./services/student-service/... ./services/project-service/...
-
-# Clean test cache
-clean:
-	@echo "🧹 Cleaning test cache..."
-	@go clean -testcache
-
-# Watch tests (requires entr: brew install entr)
-test-watch:
-	@echo "👀 Watching for changes..."
-	@find . -name '*.go' | entr -c make test
-
-# Admin panel commands
-admin-install:
-	@echo "📦 Installing admin panel dependencies..."
-	@cd services/admin && npm install
-
-admin-dev:
-	@echo "🚀 Starting admin panel dev server..."
-	@echo "📡 Starting port-forward to student-service..."
-	@kubectl port-forward -n grud service/student-service 9080:8080 > /dev/null 2>&1 &
-	@sleep 2
-	@echo "✅ Port-forward running on localhost:9080"
-	@echo "🎨 Starting admin panel..."
-	@cd services/admin && npm run dev
-
-admin-build:
-	@echo "🏗️  Building admin panel..."
-	@cd services/admin && npm run build
-
-generate-proto:
-	@echo "🔨 Generating protobuf files..."
-	./scripts/generate-proto.sh
-
-# Kubernetes commands (proxy to k8s/Makefile)
-k8s/setup:
-	@$(MAKE) -C k8s setup
-
-k8s/deploy:
-	@$(MAKE) -C k8s deploy
-
-k8s/deploy-dev:
-	@$(MAKE) -C k8s deploy-dev
-
-k8s/deploy-prod:
-	@$(MAKE) -C k8s deploy-prod
-
-k8s/status:
-	@$(MAKE) -C k8s status
-
-k8s/wait:
-	@$(MAKE) -C k8s wait
-
-k8s/logs:
-	@$(MAKE) -C k8s logs
-
-k8s/cleanup:
-	@$(MAKE) -C k8s cleanup
-
-k8s/port-forward-admin:
-	@$(MAKE) -C k8s port-forward-admin
-
-k8s/port-forward-student:
-	@$(MAKE) -C k8s port-forward-student
-
+	mak
 k8s/port-forward-project:
 	@$(MAKE) -C k8s port-forward-project
 
 # Kubernetes aliases (without k8s/ prefix)
-setup: k8s/setup
-deploy: k8s/deploy
-deploy-dev: k8s/deploy-dev
-deploy-prod: k8s/deploy-prod
-status: k8s/status
-wait: k8s/wait
-logs: k8s/logs
-cleanup: k8s/cleanup
-port-forward-admin: k8s/port-forward-admin
-port-forward-student: k8s/port-forward-student
-port-forward-project: k8s/port-forward-project
+setup:
+	@$(MAKE) -C k8s setup
+
+deploy:
+	@$(MAKE) -C k8s deploy
+
+deploy-dev:
+	@$(MAKE) -C k8s deploy-dev
+
+deploy-prod:
+	@$(MAKE) -C k8s deploy-prod
+
+status:
+	@$(MAKE) -C k8s status
+
+wait:
+	@$(MAKE) -C k8s wait
+
+logs:
+	@$(MAKE) -C k8s logs
+
+stop:
+	@$(MAKE) -C k8s stop
+
+start:
+	@$(MAKE) -C k8s start
+
+cleanup:
+	@$(MAKE) -C k8s cleanup
+
+port-forward-admin:
+	@$(MAKE) -C k8s port-forward-admin
+
+port-forward-student:
+	@$(MAKE) -C k8s port-forward-student
+
+port-forward-project:
+	@$(MAKE) -C k8s port-forward-project
+
+# Observability stack (Helm-based)
+infra/setup:
+	@echo "📦 Adding Helm repositories..."
+	@helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+	@helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+	@helm repo update
+	@echo "✅ Helm repositories added"
+
+infra/deploy-prometheus:
+	@echo "🔥 Deploying Prometheus stack..."
+	@kubectl create namespace infra --dry-run=client -o yaml | kubectl apply -f -
+	@helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
+		-n infra \
+		-f k8s/infra/prometheus-values.yaml \
+		--wait
+	@echo "📊 Deploying Grafana dashboards..."
+	@kubectl apply -f k8s/infra/grafana-dashboard-configmap.yaml
+	@echo "✅ Prometheus stack deployed"
+	@echo "📊 Grafana: http://localhost:30300 (admin/admin)"
+
+infra/deploy-otel:
+	@echo "📡 Deploying OpenTelemetry Collector..."
+	@kubectl create namespace infra --dry-run=client -o yaml | kubectl apply -f -
+	@helm upgrade --install otel-collector open-telemetry/opentelemetry-collector \
+		-n infra \
+		-f k8s/infra/otel-collector-values.yaml \
+		--wait
+	@echo "✅ OTel Collector deployed"
+
+infra/deploy-nats:
+	@echo "💬 Deploying NATS..."
+	@kubectl create namespace infra --dry-run=client -o yaml | kubectl apply -f -
+	@kubectl apply -f k8s/infra/nats.yaml
+	@echo "✅ NATS deployed"
+
+infra/deploy: infra/setup infra/deploy-prometheus infra/deploy-otel infra/deploy-nats
+	@echo "✅ Full observability stack deployed"
+
+infra/status:
+	@echo "📊 Observability stack status:"
+	@kubectl get pods -n infra
+
+infra/cleanup:
+	@echo "🧹 Cleaning up observability stack..."
+	@helm uninstall prometheus -n infra 2>/dev/null || true
+	@helm uninstall otel-collector -n infra 2>/dev/null || true
+	@kubectl delete -f k8s/infra/nats.yaml 2>/dev/null || true
+	@kubectl delete namespace infra 2>/dev/null || true
+	@echo "✅ Cleanup complete"
+
+infra/port-forward-grafana:
+	@echo "📊 Port-forwarding Grafana to localhost:3000..."
+	@kubectl port-forward -n infra svc/prometheus-grafana 3000:80
+
+infra/port-forward-prometheus:
+	@echo "📈 Port-forwarding Prometheus to localhost:9090..."
+	@kubectl port-forward -n infra svc/prometheus-kube-prometheus-prometheus 9090:9090
+
+infra/port-forward-nats:
+	@echo "💬 Port-forwarding NATS monitoring to localhost:8222..."
+	@kubectl port-forward -n infra svc/nats 8222:8222
 
 # Help
 help:
@@ -140,9 +194,23 @@ help:
 	@echo "  make deploy-prod            - Deploy to production"
 	@echo "  make status                 - Show cluster status"
 	@echo "  make logs                   - Follow service logs"
+	@echo "  make stop                   - Stop Kind cluster (without deleting)"
+	@echo "  make start                  - Start Kind cluster"
 	@echo "  make port-forward-admin     - Port-forward admin-panel to localhost:3000"
 	@echo "  make port-forward-student   - Port-forward student-service to localhost:9080"
 	@echo "  make port-forward-project   - Port-forward project-service to localhost:9052"
 	@echo "  make cleanup                - Delete cluster"
+	@echo ""
+	@echo "Observability:"
+	@echo "  make infra/setup            - Add Helm repositories"
+	@echo "  make infra/deploy           - Deploy full infra stack (Prometheus + OTel + NATS)"
+	@echo "  make infra/deploy-prometheus - Deploy Prometheus stack only"
+	@echo "  make infra/deploy-otel      - Deploy OTel Collector only"
+	@echo "  make infra/deploy-nats      - Deploy NATS only"
+	@echo "  make infra/status           - Show infra pods status"
+	@echo "  make infra/port-forward-grafana    - Port-forward Grafana to localhost:3000"
+	@echo "  make infra/port-forward-prometheus - Port-forward Prometheus to localhost:9090"
+	@echo "  make infra/port-forward-nats       - Port-forward NATS monitoring to localhost:8222"
+	@echo "  make infra/cleanup          - Remove infra stack"
 	@echo ""
 	@echo "  make help                   - Show this help message"

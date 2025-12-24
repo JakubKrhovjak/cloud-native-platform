@@ -7,7 +7,9 @@ import (
 	"testing"
 
 	pb "grud/api/gen/project/v1"
+	commonmetrics "grud/common/metrics"
 	"grud/testing/testdb"
+	projectmetrics "project-service/internal/metrics"
 	"project-service/internal/project"
 
 	"github.com/stretchr/testify/assert"
@@ -21,10 +23,12 @@ func TestProjectGrpcServer_Shared(t *testing.T) {
 	pgContainer.RunMigrations(t, (*project.Project)(nil))
 	pgContainer.CreateUpdateTrigger(t, "projects")
 
-	repo := project.NewRepository(pgContainer.DB)
+	mockServiceMetrics := projectmetrics.NewMock()
+	mockRepoMetrics := commonmetrics.NewMock()
+	repo := project.NewRepository(pgContainer.DB, mockRepoMetrics)
 	service := project.NewService(repo)
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-	grpcServer := project.NewGrpcServer(service, logger)
+	grpcServer := project.NewGrpcServer(service, logger, mockServiceMetrics)
 
 	t.Run("GetAllProjects", func(t *testing.T) {
 		testdb.CleanupTables(t, pgContainer.DB, "projects")

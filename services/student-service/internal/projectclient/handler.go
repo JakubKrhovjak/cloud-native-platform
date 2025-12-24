@@ -4,6 +4,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	"student-service/internal/metrics"
+
 	"grud/common/httputil"
 
 	"github.com/go-chi/chi/v5"
@@ -12,12 +14,14 @@ import (
 type Handler struct {
 	grpcClient *GrpcClient
 	logger     *slog.Logger
+	metrics    *metrics.Metrics
 }
 
-func NewHandler(grpcClient *GrpcClient, logger *slog.Logger) *Handler {
+func NewHandler(grpcClient *GrpcClient, logger *slog.Logger, metrics *metrics.Metrics) *Handler {
 	return &Handler{
 		grpcClient: grpcClient,
 		logger:     logger,
+		metrics:    metrics,
 	}
 }
 
@@ -39,6 +43,9 @@ func (h *Handler) GetAllProjects(w http.ResponseWriter, r *http.Request) {
 		httputil.RespondWithError(w, http.StatusInternalServerError, "Failed to fetch projects")
 		return
 	}
+
+	// Record metric
+	h.metrics.RecordProjectsListViewedByStudent(r.Context())
 
 	httputil.RespondWithJSON(w, http.StatusOK, projects)
 }

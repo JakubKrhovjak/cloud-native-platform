@@ -10,6 +10,7 @@ import (
 	"os"
 	"testing"
 
+	commonmetrics "grud/common/metrics"
 	"grud/testing/testdb"
 	"student-service/internal/auth"
 	"student-service/internal/student"
@@ -32,8 +33,9 @@ func TestAuthService_Shared(t *testing.T) {
 	pgContainer.RunMigrations(t, (*student.Student)(nil), (*auth.RefreshToken)(nil))
 
 	// Create handler ONCE and reuse across all subtests
-	studentRepo := student.NewRepository(pgContainer.DB)
-	authRepo := auth.NewRepository(pgContainer.DB)
+	mockMetrics := commonmetrics.NewMock()
+	studentRepo := student.NewRepository(pgContainer.DB, mockMetrics)
+	authRepo := auth.NewRepository(pgContainer.DB, mockMetrics)
 	authService := auth.NewService(authRepo, studentRepo)
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	authHandler := auth.NewHandler(authService, logger)

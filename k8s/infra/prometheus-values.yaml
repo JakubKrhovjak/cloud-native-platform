@@ -1,0 +1,131 @@
+# kube-prometheus-stack Helm values for GRUD project
+# Deploys Prometheus, Grafana, Alertmanager on infra node
+
+# Global settings
+defaultRules:
+  create: true
+
+# Prometheus configuration
+prometheus:
+  prometheusSpec:
+    retention: 7d
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
+
+    # Schedule on infra node
+    nodeSelector:
+      node-type: infra
+    tolerations:
+      - key: "workload"
+        operator: "Equal"
+        value: "infra"
+        effect: "NoSchedule"
+
+    # Service monitors for OTel Collector and apps
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelector: {}
+    podMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelector: {}
+
+  # Prometheus Service
+  service:
+    type: ClusterIP
+    port: 9090
+
+# Grafana configuration
+grafana:
+  enabled: true
+  adminPassword: admin # Change this in production!
+
+  # Schedule on infra node
+  nodeSelector:
+    node-type: infra
+  tolerations:
+    - key: "workload"
+      operator: "Equal"
+      value: "infra"
+      effect: "NoSchedule"
+
+  # Service configuration
+  service:
+    type: NodePort
+    nodePort: 30300
+    port: 80
+
+  # Security context to fix permission issues
+  securityContext:
+    runAsUser: 472
+    runAsGroup: 472
+    fsGroup: 472
+
+  # Disable init container that causes permission issues
+  initChownData:
+    enabled: false
+
+  # Default datasources
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          url: http://prometheus-kube-prometheus-prometheus:9090
+          access: proxy
+          isDefault: false
+
+  # Enable persistence for dashboards
+  persistence:
+    enabled: true
+    size: 5Gi
+
+# Alertmanager
+alertmanager:
+  alertmanagerSpec:
+    nodeSelector:
+      node-type: infra
+    tolerations:
+      - key: "workload"
+        operator: "Equal"
+        value: "infra"
+        effect: "NoSchedule"
+
+# Prometheus Node Exporter (runs on all nodes)
+prometheus-node-exporter:
+  tolerations:
+    - operator: Exists
+
+# Kube State Metrics
+kube-state-metrics:
+  nodeSelector:
+    node-type: infra
+  tolerations:
+    - key: "workload"
+      operator: "Equal"
+      value: "infra"
+      effect: "NoSchedule"
+
+# Prometheus Operator
+prometheusOperator:
+  nodeSelector:
+    node-type: infra
+  tolerations:
+    - key: "workload"
+      operator: "Equal"
+      value: "infra"
+      effect: "NoSchedule"
+
+  # Admission webhooks configuration
+  admissionWebhooks:
+    patch:
+      nodeSelector:
+        node-type: infra
+      tolerations:
+        - key: "workload"
+          operator: "Equal"
+          value: "infra"
+          effect: "NoSchedule"

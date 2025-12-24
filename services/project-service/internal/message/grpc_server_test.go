@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	pb "grud/api/gen/message/v1"
+	commonmetrics "grud/common/metrics"
 	"grud/testing/testdb"
 	"project-service/internal/message"
 
@@ -20,7 +21,8 @@ func TestMessageGrpcServer_Shared(t *testing.T) {
 
 	pgContainer.RunMigrations(t, (*message.Message)(nil))
 
-	repo := message.NewRepository(pgContainer.DB)
+	mockMetrics := commonmetrics.NewMock()
+	repo := message.NewRepository(pgContainer.DB, mockMetrics)
 	service := message.NewService(repo)
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	grpcServer := message.NewGrpcServer(service, logger)

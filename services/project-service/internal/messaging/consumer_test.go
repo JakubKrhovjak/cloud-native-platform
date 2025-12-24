@@ -8,11 +8,12 @@ import (
 	"testing"
 	"time"
 
-	"project-service/internal/message"
-	"project-service/internal/messaging"
-
+	commonmetrics "grud/common/metrics"
 	"grud/testing/testdb"
 	"grud/testing/testnats"
+	"project-service/internal/message"
+	"project-service/internal/messaging"
+	projectmetrics "project-service/internal/metrics"
 
 	"github.com/nats-io/nats.go"
 	"github.com/stretchr/testify/assert"
@@ -31,9 +32,11 @@ func TestNATSConsumerIntegration(t *testing.T) {
 	natsURL := natsContainer.URL
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	subject := "test.messages"
-	repo := message.NewRepository(pgContainer.DB)
+	mockServiceMetrics := projectmetrics.NewMock()
+	mockRepoMetrics := commonmetrics.NewMock()
+	repo := message.NewRepository(pgContainer.DB, mockRepoMetrics)
 
-	consumer, _ := messaging.NewConsumer(natsURL, subject, repo, logger)
+	consumer, _ := messaging.NewConsumer(natsURL, subject, repo, logger, mockServiceMetrics)
 	startConsumer(consumer)
 	defer func() { _ = consumer.Close() }()
 	time.Sleep(100 * time.Millisecond)

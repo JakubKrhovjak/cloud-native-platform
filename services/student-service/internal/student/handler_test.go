@@ -10,7 +10,9 @@ import (
 	"os"
 	"testing"
 
+	commonmetrics "grud/common/metrics"
 	"grud/testing/testdb"
+	"student-service/internal/metrics"
 	"student-service/internal/student"
 
 	"github.com/go-chi/chi/v5"
@@ -25,10 +27,12 @@ func TestStudentService_Shared(t *testing.T) {
 	pgContainer.RunMigrations(t, (*student.Student)(nil))
 
 	// Create handler ONCE and reuse across all subtests
-	repo := student.NewRepository(pgContainer.DB)
+	mockServiceMetrics := metrics.NewMock()
+	mockRepoMetrics := commonmetrics.NewMock()
+	repo := student.NewRepository(pgContainer.DB, mockRepoMetrics)
 	service := student.NewService(repo)
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-	handler := student.NewHandler(service, logger)
+	handler := student.NewHandler(service, logger, mockServiceMetrics)
 	router := chi.NewRouter()
 	handler.RegisterRoutes(router)
 

@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	pb "grud/api/gen/project/v1"
+	"project-service/internal/metrics"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -15,12 +16,14 @@ type GrpcServer struct {
 	pb.UnimplementedProjectServiceServer
 	service Service
 	logger  *slog.Logger
+	metrics *metrics.Metrics
 }
 
-func NewGrpcServer(service Service, logger *slog.Logger) *GrpcServer {
+func NewGrpcServer(service Service, logger *slog.Logger, metrics *metrics.Metrics) *GrpcServer {
 	return &GrpcServer{
 		service: service,
 		logger:  logger,
+		metrics: metrics,
 	}
 }
 
@@ -44,6 +47,9 @@ func (s *GrpcServer) GetAllProjects(ctx context.Context, req *pb.GetAllProjectsR
 		}
 	}
 
+	// Record metric
+	s.metrics.RecordProjectsListViewed(ctx)
+
 	return &pb.GetAllProjectsResponse{
 		Projects: pbProjects,
 	}, nil
@@ -61,6 +67,9 @@ func (s *GrpcServer) GetProject(ctx context.Context, req *pb.GetProjectRequest) 
 		s.logger.Error("gRPC: failed to fetch project", "error", err, "id", req.Id)
 		return nil, err
 	}
+
+	// Record metric
+	s.metrics.RecordProjectViewed(ctx)
 
 	return &pb.GetProjectResponse{
 		Project: &pb.Project{
@@ -83,6 +92,9 @@ func (s *GrpcServer) CreateProject(ctx context.Context, req *pb.CreateProjectReq
 		s.logger.Error("gRPC: failed to create project", "error", err)
 		return nil, err
 	}
+
+	// Record metric
+	s.metrics.RecordProjectCreation(ctx)
 
 	return &pb.CreateProjectResponse{
 		Project: &pb.Project{

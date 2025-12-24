@@ -1,4 +1,4 @@
-.PHONY: help setup install-operator deploy deploy-dev deploy-prod status logs cleanup
+.PHONY: help setup install-operator deploy deploy-dev deploy-prod status logs stop start cleanup
 
 # Colors
 BLUE := \033[0;34m
@@ -78,16 +78,6 @@ wait: ## Wait for all resources to be ready
 	@kubectl wait --for=condition=Available deployment/admin-panel -n grud --timeout=300s
 	@echo "$(GREEN)✅ All resources ready!$(NC)"
 
-logs: ## Follow logs for all services
-	@echo "$(BLUE)📜 Following service logs...$(NC)"
-	@kubectl logs -n grud -l 'app in (student-service,project-service)' -f --tail=50
-
-logs-student: ## Follow student-service logs
-	@kubectl logs -n grud -l app=student-service -f --tail=100
-
-logs-project: ## Follow project-service logs
-	@kubectl logs -n grud -l app=project-service -f --tail=100
-
 logs-db: ## Follow database logs
 	@kubectl logs -n grud -l app=student-db -f --tail=50 &
 	@kubectl logs -n grud -l app=project-db -f --tail=50
@@ -115,6 +105,22 @@ port-forward-project: ## Port-forward project-service to localhost:9052
 port-forward-admin: ## Port-forward admin-panel to localhost:3000
 	@echo "$(BLUE)🔌 Port-forwarding admin-panel to localhost:3000...$(NC)"
 	@kubectl port-forward -n grud service/admin-panel 3000:80
+
+port-forward-prometheus: ## Port-forward Prometheus to localhost:9090
+	@echo "$(BLUE)🔌 Port-forwarding Prometheus to localhost:9090...$(NC)"
+	@kubectl port-forward -n infra service/prometheus-kube-prometheus-prometheus 9090:9090
+
+stop: ## Stop Kind cluster (without deleting)
+	@echo "$(YELLOW)⏸️  Stopping Kind cluster...$(NC)"
+	@docker stop $(KIND_CLUSTER_NAME)-control-plane $(KIND_CLUSTER_NAME)-worker $(KIND_CLUSTER_NAME)-worker2 $(KIND_CLUSTER_NAME)-worker3 2>/dev/null || true
+	@echo "$(GREEN)✅ Cluster stopped$(NC)"
+
+start: ## Start Kind cluster
+	@echo "$(BLUE)▶️  Starting Kind cluster...$(NC)"
+	@docker start $(KIND_CLUSTER_NAME)-control-plane $(KIND_CLUSTER_NAME)-worker $(KIND_CLUSTER_NAME)-worker2 $(KIND_CLUSTER_NAME)-worker3 2>/dev/null || true
+	@echo "$(BLUE)⏳ Waiting for cluster to be ready...$(NC)"
+	@kubectl wait --for=condition=Ready nodes --all --timeout=120s
+	@echo "$(GREEN)✅ Cluster started and ready!$(NC)"
 
 cleanup: ## Delete the entire cluster
 	@../scripts/cleanup.sh

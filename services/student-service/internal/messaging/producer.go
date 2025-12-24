@@ -48,3 +48,16 @@ func (p *Producer) Close() error {
 	p.conn.Close()
 	return nil
 }
+
+// HealthCheck verifies NATS connection is healthy
+func (p *Producer) HealthCheck() error {
+	if p.conn == nil {
+		return nats.ErrConnectionClosed
+	}
+
+	if !p.conn.IsConnected() {
+		return nats.ErrDisconnected
+	}
+
+	return nil
+}

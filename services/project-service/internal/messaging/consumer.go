@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"project-service/internal/message"
+	"project-service/internal/metrics"
 
 	"github.com/nats-io/nats.go"
 )
@@ -16,9 +17,10 @@ type Consumer struct {
 	subject    string
 	repository message.Repository
 	logger     *slog.Logger
+	metrics    *metrics.Metrics
 }
 
-func NewConsumer(url string, subject string, repository message.Repository, logger *slog.Logger) (*Consumer, error) {
+func NewConsumer(url string, subject string, repository message.Repository, logger *slog.Logger, metrics *metrics.Metrics) (*Consumer, error) {
 	nc, err := nats.Connect(url)
 	if err != nil {
 		return nil, err
@@ -29,6 +31,7 @@ func NewConsumer(url string, subject string, repository message.Repository, logg
 		subject:    subject,
 		repository: repository,
 		logger:     logger,
+		metrics:    metrics,
 	}, nil
 }
 
@@ -51,6 +54,9 @@ func (c *Consumer) Start(ctx context.Context) error {
 			c.logger.Error("failed to save message to database", "error", err)
 			return
 		}
+
+		// Record metric
+		c.metrics.RecordMessageReceived(context.Background())
 
 		c.logger.Info("message saved to database",
 			"email", event.Email,
@@ -75,5 +81,18 @@ func (c *Consumer) Close() error {
 		c.sub.Unsubscribe()
 	}
 	c.conn.Close()
+	return nil
+}
+
+// HealthCheck verifies NATS connection is healthy
+func (c *Consumer) HealthCheck() error {
+	if c.conn == nil {
+		return nats.ErrConnectionClosed
+	}
+
+	if !c.conn.IsConnected() {
+		return nats.ErrDisconnected
+	}
+
 	return nil
 }

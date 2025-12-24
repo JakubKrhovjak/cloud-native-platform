@@ -17,5 +17,5 @@ data:
       port: "50052"
 
     nats:
-      url: nats://nats.grud.svc.cluster.local:4222
+      url: nats://nats.infra.svc.cluster.local:4222
       subject: student.messages

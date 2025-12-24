@@ -15,6 +15,7 @@ import (
 	"student-service/internal/auth"
 	"student-service/internal/message"
 	"student-service/internal/messaging"
+	"student-service/internal/metrics"
 
 	"grud/testing/testnats"
 
@@ -31,7 +32,8 @@ func setupTestWithNATSContainer(t *testing.T, natsContainer *testnats.NATSContai
 	require.NoError(t, err)
 
 	service := message.NewService(producer, logger)
-	handler := message.NewHandler(service, logger)
+	mockMetrics := metrics.NewMock()
+	handler := message.NewHandler(service, logger, mockMetrics)
 
 	router := chi.NewRouter()
 	handler.RegisterRoutes(router)

@@ -9,15 +9,15 @@ import (
 	"time"
 
 	"student-service/internal/app"
-
-	"github.com/joho/godotenv"
 )
 
 func main() {
-	// Load .env file if it exists (ignore error if file doesn't exist)
-	_ = godotenv.Load()
-
 	application := app.New()
+
+	// Start dependency health checks in background
+	healthCtx, healthCancel := context.WithCancel(context.Background())
+	defer healthCancel()
+	go application.StartHealthChecks(healthCtx)
 
 	go func() {
 		if err := application.Run(); err != nil {

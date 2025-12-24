@@ -3,6 +3,9 @@ package student
 import (
 	"context"
 	"database/sql"
+	"time"
+
+	"grud/common/metrics"
 
 	"github.com/uptrace/bun"
 )
@@ -17,15 +20,23 @@ type Repository interface {
 }
 
 type repository struct {
-	db *bun.DB
+	db      *bun.DB
+	metrics *metrics.Metrics
 }
 
-func NewRepository(db *bun.DB) Repository {
-	return &repository{db: db}
+func NewRepository(db *bun.DB, m *metrics.Metrics) Repository {
+	return &repository{
+		db:      db,
+		metrics: m,
+	}
 }
 
 func (r *repository) Create(ctx context.Context, student *Student) (*Student, error) {
+	start := time.Now()
 	_, err := r.db.NewInsert().Model(student).Returning("*").Exec(ctx)
+
+	r.metrics.Database.RecordQuery(ctx, "insert", "students", time.Since(start), err)
+
 	if err != nil {
 		return nil, err
 	}
@@ -33,14 +44,22 @@ func (r *repository) Create(ctx context.Context, student *Student) (*Student, er
 }
 
 func (r *repository) GetAll(ctx context.Context) ([]Student, error) {
+	start := time.Now()
 	var students []Student
 	err := r.db.NewSelect().Model(&students).Scan(ctx)
+
+	r.metrics.Database.RecordQuery(ctx, "select", "students", time.Since(start), err)
+
 	return students, err
 }
 
 func (r *repository) GetByID(ctx context.Context, id int) (*Student, error) {
+	start := time.Now()
 	student := new(Student)
 	err := r.db.NewSelect().Model(student).Where("id = ?", id).Scan(ctx)
+
+	r.metrics.Database.RecordQuery(ctx, "select", "students", time.Since(start), err)
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrStudentNotFound
@@ -51,7 +70,11 @@ func (r *repository) GetByID(ctx context.Context, id int) (*Student, error) {
 }
 
 func (r *repository) Update(ctx context.Context, student *Student) error {
+	start := time.Now()
 	result, err := r.db.NewUpdate().Model(student).WherePK().Exec(ctx)
+
+	r.metrics.Database.RecordQuery(ctx, "update", "students", time.Since(start), err)
+
 	if err != nil {
 		return err
 	}
@@ -66,8 +89,12 @@ func (r *repository) Update(ctx context.Context, student *Student) error {
 }
 
 func (r *repository) Delete(ctx context.Context, id int) error {
+	start := time.Now()
 	student := &Student{ID: id}
 	result, err := r.db.NewDelete().Model(student).WherePK().Exec(ctx)
+
+	r.metrics.Database.RecordQuery(ctx, "delete", "students", time.Since(start), err)
+
 	if err != nil {
 		return err
 	}
@@ -82,11 +109,15 @@ func (r *repository) Delete(ctx context.Context, id int) error {
 }
 
 func (r *repository) GetByEmail(ctx context.Context, email string) (*Student, error) {
+	start := time.Now()
 	student := new(Student)
 	err := r.db.NewSelect().
 		Model(student).
 		Where("email = ?", email).
 		Scan(ctx)
+
+	r.metrics.Database.RecordQuery(ctx, "select", "students", time.Since(start), err)
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrStudentNotFound
