@@ -681,7 +681,7 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "max by (dependency) (grud_dependency_up)",
+              "expr": "max by (dependency) (grud_dependency_up{service_name=\"$service_name\"})",
               "legendFormat": "{{dependency}}",
               "range": true,
               "refId": "A"
@@ -1477,8 +1477,8 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(rate(grud_messaging_messages_published_total{service_name=\"$service_name\"}[5m]))",
-              "legendFormat": "Published",
+              "expr": "sum(rate(grud_student_service_messages_sent_total{service_name=\"$service_name\"}[5m]))",
+              "legendFormat": "Sent",
               "range": true,
               "refId": "A"
             },
@@ -1488,9 +1488,9 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(rate(grud_messaging_messages_consumed_total{service_name=\"$service_name\"}[5m]))",
+              "expr": "sum(rate(grud_project_service_messages_received_total{service_name=\"$service_name\"}[5m]))",
               "hide": false,
-              "legendFormat": "Consumed",
+              "legendFormat": "Received",
               "range": true,
               "refId": "B"
             }
