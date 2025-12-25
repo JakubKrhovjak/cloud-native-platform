@@ -122,7 +122,6 @@ infra/deploy-prometheus:
 		--wait
 	@echo "📊 Deploying Grafana dashboards..."
 	@kubectl apply -f k8s/infra/grafana-dashboard-configmap.yaml
-	@kubectl apply -f k8s/infra/grafana-logs-dashboard-configmap.yaml
 	@echo "✅ Prometheus stack deployed"
 	@echo "📊 Grafana: http://localhost:30300 (admin/admin)"
 

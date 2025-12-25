@@ -76,7 +76,7 @@ grafana:
           type: prometheus
           url: http://prometheus-kube-prometheus-prometheus:9090
           access: proxy
-          isDefault: true
+          isDefault: false
         - name: Loki
           type: loki
           url: http://loki-gateway.infra.svc.cluster.local
