@@ -94,6 +94,50 @@ alertmanager:
         value: "infra"
         effect: "NoSchedule"
 
+  config:
+    global:
+      resolve_timeout: 5m
+      # SMTP configuration - UPDATE THESE VALUES!
+      smtp_smarthost: 'smtp.gmail.com:587'
+      smtp_from: 'grud-alerts@gmail.com'
+      smtp_auth_username: 'your-email@gmail.com'
+      smtp_auth_password: 'your-app-password'
+      smtp_require_tls: true
+
+    route:
+      group_by: ['alertname', 'service_name']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      receiver: 'email-notifications'
+      routes:
+        # Critical alerts - immediate
+        - match:
+            severity: critical
+          receiver: 'email-notifications'
+          group_wait: 10s
+          repeat_interval: 1h
+        # Warning alerts
+        - match:
+            severity: warning
+          receiver: 'email-notifications'
+          repeat_interval: 4h
+
+    receivers:
+      - name: 'email-notifications'
+        email_configs:
+          - to: 'jakub.krhovjak@protonmail.com'
+            send_resolved: true
+            headers:
+              Subject: '[GRUD {{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+
+    inhibit_rules:
+      - source_matchers:
+          - severity = critical
+        target_matchers:
+          - severity = warning
+        equal: ['alertname', 'service_name']
+
 # Prometheus Node Exporter (runs on all nodes)
 prometheus-node-exporter:
   tolerations:
