@@ -1,0 +1,174 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: grud-alerts
+  namespace: infra
+  labels:
+    release: prometheus
+    app: kube-prometheus-stack
+spec:
+  groups:
+    # Service availability alerts
+    - name: grud.service.availability
+      rules:
+        - alert: ServiceDown
+          expr: up{job=~".*grud.*"} == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Service {{ $labels.job }} is down"
+            description: "Service {{ $labels.job }} has been down for more than 1 minute."
+
+        - alert: ServiceNotReady
+          expr: kube_deployment_status_replicas_available{namespace="grud"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Deployment {{ $labels.deployment }} has no ready replicas"
+            description: "Deployment {{ $labels.deployment }} in namespace {{ $labels.namespace }} has no available replicas for more than 2 minutes."
+
+    # Dependency health alerts
+    - name: grud.dependencies
+      rules:
+        - alert: DependencyDown
+          expr: grud_dependency_up == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Dependency {{ $labels.dependency }} is down for {{ $labels.service_name }}"
+            description: "Dependency {{ $labels.dependency }} for service {{ $labels.service_name }} has been down for more than 1 minute."
+
+        - alert: DatabaseConnectionPoolExhausted
+          expr: (grud_db_connections_in_use / grud_db_connections_max_open) > 0.9
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Database connection pool nearly exhausted for {{ $labels.service_name }}"
+            description: "Database connection pool for {{ $labels.service_name }} is {{ $value | humanizePercentage }} utilized."
+
+        - alert: DatabaseConnectionPoolCritical
+          expr: (grud_db_connections_in_use / grud_db_connections_max_open) > 0.95
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Database connection pool critical for {{ $labels.service_name }}"
+            description: "Database connection pool for {{ $labels.service_name }} is {{ $value | humanizePercentage }} utilized. Service may become unresponsive."
+
+    # Error rate alerts
+    - name: grud.errors
+      rules:
+        - alert: HighHTTPErrorRate
+          expr: |
+            (
+              sum(rate(grud_http_server_request_duration_seconds_count{http_status_code=~"5.."}[5m])) by (service_name)
+              /
+              sum(rate(grud_http_server_request_duration_seconds_count[5m])) by (service_name)
+            ) > 0.05
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High HTTP 5xx error rate for {{ $labels.service_name }}"
+            description: "HTTP 5xx error rate for {{ $labels.service_name }} is {{ $value | humanizePercentage }}."
+
+        - alert: CriticalHTTPErrorRate
+          expr: |
+            (
+              sum(rate(grud_http_server_request_duration_seconds_count{http_status_code=~"5.."}[5m])) by (service_name)
+              /
+              sum(rate(grud_http_server_request_duration_seconds_count[5m])) by (service_name)
+            ) > 0.1
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Critical HTTP error rate for {{ $labels.service_name }}"
+            description: "HTTP 5xx error rate for {{ $labels.service_name }} is {{ $value | humanizePercentage }}. Immediate attention required."
+
+        - alert: HighGRPCErrorRate
+          expr: |
+            (
+              sum(rate(grud_grpc_server_errors_total[5m])) by (service_name)
+              /
+              sum(rate(grud_grpc_server_requests_total[5m])) by (service_name)
+            ) > 0.05
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High gRPC error rate for {{ $labels.service_name }}"
+            description: "gRPC error rate for {{ $labels.service_name }} is {{ $value | humanizePercentage }}."
+
+        - alert: DatabaseQueryErrors
+          expr: sum(rate(grud_db_query_errors_total[5m])) by (service_name) > 0.1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Database query errors detected for {{ $labels.service_name }}"
+            description: "Database query error rate for {{ $labels.service_name }} is {{ $value }} errors/sec."
+
+    # Latency alerts
+    - name: grud.latency
+      rules:
+        - alert: HighHTTPLatency
+          expr: |
+            histogram_quantile(0.95,
+              sum(rate(grud_http_server_request_duration_seconds_bucket[5m])) by (le, service_name)
+            ) > 1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High HTTP latency for {{ $labels.service_name }}"
+            description: "HTTP p95 latency for {{ $labels.service_name }} is {{ $value | humanizeDuration }}."
+
+        - alert: HighGRPCLatency
+          expr: |
+            histogram_quantile(0.95,
+              sum(rate(grud_grpc_server_request_duration_seconds_bucket[5m])) by (le, service_name)
+            ) > 1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High gRPC latency for {{ $labels.service_name }}"
+            description: "gRPC p95 latency for {{ $labels.service_name }} is {{ $value | humanizeDuration }}."
+
+        - alert: HighDependencyLatency
+          expr: |
+            histogram_quantile(0.95,
+              sum(rate(grud_dependency_response_time_seconds_bucket[5m])) by (le, service_name, dependency)
+            ) > 0.5
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High latency for dependency {{ $labels.dependency }}"
+            description: "Dependency {{ $labels.dependency }} p95 latency for {{ $labels.service_name }} is {{ $value | humanizeDuration }}."
+
+    # Saturation alerts
+    - name: grud.saturation
+      rules:
+        - alert: HighGoroutineCount
+          expr: grud_runtime_go_goroutines > 1000
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High goroutine count for {{ $labels.service_name }}"
+            description: "Service {{ $labels.service_name }} has {{ $value }} goroutines. Possible goroutine leak."
+
+        - alert: HighMemoryUsage
+          expr: grud_runtime_go_mem_heap_alloc_bytes > 500000000
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High memory usage for {{ $labels.service_name }}"
+            description: "Service {{ $labels.service_name }} heap allocation is {{ $value | humanize1024 }}B."
