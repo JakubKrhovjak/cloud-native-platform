@@ -1,0 +1,102 @@
+# Loki Helm values for GRUD project
+# Simple single-binary deployment
+
+deploymentMode: SingleBinary
+
+loki:
+  auth_enabled: false
+
+  commonConfig:
+    replication_factor: 1
+    path_prefix: /var/loki
+
+  storage:
+    type: filesystem
+
+  schemaConfig:
+    configs:
+      - from: "2024-01-01"
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: index_
+          period: 24h
+
+  limits_config:
+    retention_period: 168h  # 7 days
+    ingestion_rate_mb: 10
+    max_line_size: 256kb
+
+singleBinary:
+  replicas: 1
+  nodeSelector:
+    node-type: infra
+  tolerations:
+    - key: "workload"
+      operator: "Equal"
+      value: "infra"
+      effect: "NoSchedule"
+  persistence:
+    enabled: true
+    size: 10Gi
+
+# Disable distributed components
+backend:
+  replicas: 0
+read:
+  replicas: 0
+write:
+  replicas: 0
+ingester:
+  replicas: 0
+querier:
+  replicas: 0
+queryFrontend:
+  replicas: 0
+queryScheduler:
+  replicas: 0
+distributor:
+  replicas: 0
+compactor:
+  replicas: 0
+indexGateway:
+  replicas: 0
+bloomCompactor:
+  replicas: 0
+bloomGateway:
+  replicas: 0
+
+# Gateway
+gateway:
+  enabled: true
+  nodeSelector:
+    node-type: infra
+  tolerations:
+    - key: "workload"
+      operator: "Equal"
+      value: "infra"
+      effect: "NoSchedule"
+
+# Disable minio
+minio:
+  enabled: false
+
+# Disable monitoring (we have our own Prometheus)
+monitoring:
+  selfMonitoring:
+    enabled: false
+    grafanaAgent:
+      installOperator: false
+  lokiCanary:
+    enabled: false
+
+# Test disabled
+test:
+  enabled: false
+
+# Disable cache (not needed for small deployments)
+chunksCache:
+  enabled: false
+resultsCache:
+  enabled: false

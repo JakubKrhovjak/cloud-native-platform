@@ -1,12 +1,13 @@
 package message
 
 import (
+	"context"
 	"log/slog"
 )
 
 // Producer interface for messaging (NATS/Kafka)
 type Producer interface {
-	SendMessage(value interface{}) error
+	SendMessage(ctx context.Context, value interface{}) error
 	Close() error
 }
 
@@ -22,16 +23,16 @@ func NewService(producer Producer, logger *slog.Logger) *Service {
 	}
 }
 
-func (s *Service) SendMessage(email string, message string) error {
+func (s *Service) SendMessage(ctx context.Context, email string, message string) error {
 	event := MessageEvent{
 		Email:   email,
 		Message: message,
 	}
 
-	s.logger.Info("sending message to NATS", "email", email)
+	s.logger.InfoContext(ctx, "sending message to NATS", "email", email)
 
-	if err := s.producer.SendMessage(event); err != nil {
-		s.logger.Error("failed to send message", "error", err)
+	if err := s.producer.SendMessage(ctx, event); err != nil {
+		s.logger.ErrorContext(ctx, "failed to send message", "error", err)
 		return err
 	}
 

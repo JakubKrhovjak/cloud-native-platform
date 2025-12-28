@@ -9,6 +9,8 @@ import (
 	"project-service/internal/metrics"
 
 	"github.com/nats-io/nats.go"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 type Consumer struct {
@@ -37,11 +39,14 @@ func NewConsumer(url string, subject string, repository message.Repository, logg
 
 func (c *Consumer) Start(ctx context.Context) error {
 	sub, err := c.conn.Subscribe(c.subject, func(msg *nats.Msg) {
-		c.logger.Info("received message from NATS", "subject", msg.Subject)
+		// Extract trace context from NATS headers
+		msgCtx := otel.GetTextMapPropagator().Extract(context.Background(), propagation.HeaderCarrier(msg.Header))
+
+		c.logger.InfoContext(msgCtx, "received message from NATS", "subject", msg.Subject)
 
 		var event message.MessageEvent
 		if err := json.Unmarshal(msg.Data, &event); err != nil {
-			c.logger.Error("failed to unmarshal message", "error", err)
+			c.logger.ErrorContext(msgCtx, "failed to unmarshal message", "error", err)
 			return
 		}
 
@@ -50,15 +55,15 @@ func (c *Consumer) Start(ctx context.Context) error {
 			Message: event.Message,
 		}
 
-		if err := c.repository.Create(context.Background(), dbMessage); err != nil {
-			c.logger.Error("failed to save message to database", "error", err)
+		if err := c.repository.Create(msgCtx, dbMessage); err != nil {
+			c.logger.ErrorContext(msgCtx, "failed to save message to database", "error", err)
 			return
 		}
 
 		// Record metric
-		c.metrics.RecordMessageReceived(context.Background())
+		c.metrics.RecordMessageReceived(msgCtx)
 
-		c.logger.Info("message saved to database",
+		c.logger.InfoContext(msgCtx, "message saved to database",
 			"email", event.Email,
 			"message", event.Message,
 			"id", dbMessage.ID,

@@ -1,10 +1,13 @@
 package messaging
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 
 	"github.com/nats-io/nats.go"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 type Producer struct {
@@ -28,19 +31,26 @@ func NewProducer(url string, subject string, logger *slog.Logger) (*Producer, er
 	}, nil
 }
 
-func (p *Producer) SendMessage(value interface{}) error {
+func (p *Producer) SendMessage(ctx context.Context, value interface{}) error {
 	valueBytes, err := json.Marshal(value)
 	if err != nil {
-		p.logger.Error("failed to marshal message", "error", err)
+		p.logger.ErrorContext(ctx, "failed to marshal message", "error", err)
 		return err
 	}
 
-	if err := p.conn.Publish(p.subject, valueBytes); err != nil {
-		p.logger.Error("failed to send message to NATS", "error", err)
+	// Create NATS message with headers for trace propagation
+	msg := nats.NewMsg(p.subject)
+	msg.Data = valueBytes
+
+	// Inject trace context into NATS headers
+	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(msg.Header))
+
+	if err := p.conn.PublishMsg(msg); err != nil {
+		p.logger.ErrorContext(ctx, "failed to send message to NATS", "error", err)
 		return err
 	}
 
-	p.logger.Info("message sent to NATS", "subject", p.subject)
+	p.logger.InfoContext(ctx, "message sent to NATS", "subject", p.subject)
 	return nil
 }
 

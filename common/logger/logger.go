@@ -6,26 +6,32 @@ import (
 	"io"
 	"log/slog"
 	"os"
+
+	"go.opentelemetry.io/otel/trace"
 )
 
-// New creates a new slog.Logger
+// New creates a new slog.Logger with trace context support
 // Kubernetes/Production: JSONHandler (structured logging for log aggregation)
 // Local development: TextHandler with colored output
+// All handlers are wrapped with traceContextHandler to add trace_id/span_id
 func New() *slog.Logger {
 	_, inK8s := os.LookupEnv("KUBERNETES_SERVICE_HOST")
 
 	env := os.Getenv("ENV")
 	useJSON := inK8s || env == "prod" || env == "dev"
 
+	var handler slog.Handler
 	if useJSON {
-		return slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 			Level:     slog.LevelInfo,
-			AddSource: true, // Include source file:line for debugging
-		}))
+			AddSource: true,
+		})
+	} else {
+		handler = newColorTextHandler(os.Stdout, &slog.HandlerOptions{
+			Level: slog.LevelDebug,
+		})
 	}
-	return slog.New(newColorTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelDebug,
-	}))
+	return slog.New(newTraceContextHandler(handler))
 }
 
 func NewWithServiceContext(serviceName, version string) *slog.Logger {
@@ -76,4 +82,35 @@ func (h *colorTextHandler) WithGroup(name string) slog.Handler {
 	return &colorTextHandler{
 		handler: h.handler.WithGroup(name),
 	}
+}
+
+// traceContextHandler wraps any slog.Handler to add trace_id and span_id from OTel context
+type traceContextHandler struct {
+	handler slog.Handler
+}
+
+func newTraceContextHandler(h slog.Handler) *traceContextHandler {
+	return &traceContextHandler{handler: h}
+}
+
+func (h *traceContextHandler) Enabled(ctx context.Context, level slog.Level) bool {
+	return h.handler.Enabled(ctx, level)
+}
+
+func (h *traceContextHandler) Handle(ctx context.Context, r slog.Record) error {
+	if spanCtx := trace.SpanContextFromContext(ctx); spanCtx.IsValid() {
+		r.AddAttrs(
+			slog.String("trace_id", spanCtx.TraceID().String()),
+			slog.String("span_id", spanCtx.SpanID().String()),
+		)
+	}
+	return h.handler.Handle(ctx, r)
+}
+
+func (h *traceContextHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return &traceContextHandler{handler: h.handler.WithAttrs(attrs)}
+}
+
+func (h *traceContextHandler) WithGroup(name string) slog.Handler {
+	return &traceContextHandler{handler: h.handler.WithGroup(name)}
 }

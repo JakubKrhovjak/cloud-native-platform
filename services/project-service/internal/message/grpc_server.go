@@ -23,11 +23,11 @@ func NewGrpcServer(service Service, logger *slog.Logger) *GrpcServer {
 }
 
 func (s *GrpcServer) GetMessagesByEmail(ctx context.Context, req *pb.GetMessagesByEmailRequest) (*pb.GetMessagesByEmailResponse, error) {
-	s.logger.Info("gRPC: fetching messages by email", "email", req.Email)
+	s.logger.InfoContext(ctx, "gRPC: fetching messages by email", "email", req.Email)
 
 	messages, err := s.service.GetMessagesByEmail(ctx, req.Email)
 	if err != nil {
-		s.logger.Error("gRPC: failed to fetch messages by email", "error", err, "email", req.Email)
+		s.logger.ErrorContext(ctx, "gRPC: failed to fetch messages by email", "error", err, "email", req.Email)
 		return nil, err
 	}
 

@@ -9,6 +9,8 @@ defaultRules:
 prometheus:
   prometheusSpec:
     retention: 7d
+    # Enable remote write receiver for Tempo metrics-generator
+    enableRemoteWriteReceiver: true
     storageSpec:
       volumeClaimTemplate:
         spec:
@@ -67,16 +69,9 @@ grafana:
   initChownData:
     enabled: false
 
-  # Default datasources
-  datasources:
-    datasources.yaml:
-      apiVersion: 1
-      datasources:
-        - name: Prometheus
-          type: prometheus
-          url: http://prometheus-kube-prometheus-prometheus:9090
-          access: proxy
-          isDefault: false
+  # Datasources are managed via ConfigMap with grafana_datasource label
+  # See k8s/infra/grafana-datasources.yaml for Loki and Tempo
+  # Prometheus and Alertmanager are added by kube-prometheus-stack automatically
 
   # Enable persistence for dashboards
   persistence:

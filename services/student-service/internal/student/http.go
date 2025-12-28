@@ -52,14 +52,14 @@ func (h *Handler) CreateStudent(w http.ResponseWriter, r *http.Request) {
 	if student.Password == "" {
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("DefaultPassword123!"), bcrypt.DefaultCost)
 		if err != nil {
-			h.logger.Error("failed to hash password", "error", err)
+			h.logger.ErrorContext(r.Context(), "failed to hash password", "error", err)
 			httputil.RespondWithError(w, http.StatusInternalServerError, "Internal server error")
 			return
 		}
 		student.Password = string(hashedPassword)
 	}
 
-	h.logger.Info("creating student", "email", student.Email)
+	h.logger.InfoContext(r.Context(), "creating student", "email", student.Email)
 	createdStudent, err := h.service.CreateStudent(r.Context(), &student)
 	if err != nil {
 		h.handleServiceError(w, err)
@@ -73,7 +73,7 @@ func (h *Handler) CreateStudent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetAllStudents(w http.ResponseWriter, r *http.Request) {
-	h.logger.Info("fetching all students")
+	h.logger.InfoContext(r.Context(), "fetching all students")
 
 	students, err := h.service.GetAllStudents(r.Context())
 	if err != nil {
@@ -94,7 +94,7 @@ func (h *Handler) GetStudent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.logger.Info("fetching student by ID")
+	h.logger.InfoContext(r.Context(), "fetching student by ID")
 	student, err := h.service.GetStudentByID(r.Context(), id)
 	if err != nil {
 		h.handleServiceError(w, err)
@@ -117,7 +117,7 @@ func (h *Handler) UpdateStudent(w http.ResponseWriter, r *http.Request) {
 	}
 	student.ID = id
 
-	h.logger.Info("updating student", "email", student.Email)
+	h.logger.InfoContext(r.Context(), "updating student", "email", student.Email)
 	if err := h.service.UpdateStudent(r.Context(), &student); err != nil {
 		h.handleServiceError(w, err)
 		return
@@ -133,7 +133,7 @@ func (h *Handler) DeleteStudent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.logger.Info("deleting student")
+	h.logger.InfoContext(r.Context(), "deleting student")
 	if err := h.service.DeleteStudent(r.Context(), id); err != nil {
 		h.handleServiceError(w, err)
 		return
