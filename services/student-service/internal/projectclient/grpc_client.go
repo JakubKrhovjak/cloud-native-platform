@@ -8,6 +8,7 @@ import (
 	messagepb "grud/api/gen/message/v1"
 	projectpb "grud/api/gen/project/v1"
 
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -21,6 +22,7 @@ type GrpcClient struct {
 func NewGrpcClient(address string) (*GrpcClient, error) {
 	conn, err := grpc.NewClient(address,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to gRPC server: %w", err)

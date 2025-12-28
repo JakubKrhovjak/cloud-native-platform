@@ -36,10 +36,10 @@ func (h *Handler) GetAllProjects(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.logger.Info("fetching all projects from project-service via gRPC")
+	h.logger.InfoContext(r.Context(), "fetching all projects from project-service via gRPC")
 	projects, err := h.grpcClient.GetAllProjects(r.Context())
 	if err != nil {
-		h.logger.Error("failed to fetch projects via gRPC", "error", err)
+		h.logger.ErrorContext(r.Context(), "failed to fetch projects via gRPC", "error", err)
 		httputil.RespondWithError(w, http.StatusInternalServerError, "Failed to fetch projects")
 		return
 	}
@@ -62,10 +62,10 @@ func (h *Handler) GetMessages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.logger.Info("fetching messages from project-service via gRPC", "email", email)
+	h.logger.InfoContext(r.Context(), "fetching messages from project-service via gRPC", "email", email)
 	messages, err := h.grpcClient.GetMessagesByEmail(r.Context(), email)
 	if err != nil {
-		h.logger.Error("failed to fetch messages via gRPC", "error", err, "email", email)
+		h.logger.ErrorContext(r.Context(), "failed to fetch messages via gRPC", "error", err, "email", email)
 		httputil.RespondWithError(w, http.StatusInternalServerError, "Failed to fetch messages")
 		return
 	}

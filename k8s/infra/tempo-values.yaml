@@ -1,0 +1,58 @@
+# Tempo Helm values for GRUD project
+# Distributed tracing backend
+
+# Single binary mode (simpler for dev/small clusters)
+tempo:
+  storage:
+    trace:
+      backend: local
+      local:
+        path: /var/tempo/traces
+      wal:
+        path: /var/tempo/wal
+
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: "0.0.0.0:4317"
+        http:
+          endpoint: "0.0.0.0:4318"
+
+  retention: 168h  # 7 days
+
+  # Metrics generator - required for TraceQL rate() queries
+  metricsGenerator:
+    enabled: true
+    remoteWriteUrl: "http://prometheus-kube-prometheus-prometheus.infra:9090/api/v1/write"
+
+  # Enable processors for metrics generation
+  # - service-graphs: dependency maps between services
+  # - span-metrics: RED metrics (rate, errors, duration)
+  # - local-blocks: required for TraceQL metrics queries (rate() in Grafana)
+  overrides:
+    defaults:
+      metrics_generator:
+        processors:
+          - service-graphs
+          - span-metrics
+          - local-blocks
+
+# Run on infra node
+nodeSelector:
+  node-type: infra
+
+tolerations:
+  - key: "workload"
+    operator: "Equal"
+    value: "infra"
+    effect: "NoSchedule"
+
+# Persistence
+persistence:
+  enabled: true
+  size: 10Gi
+
+# Service for OTel Collector to send traces
+service:
+  type: ClusterIP

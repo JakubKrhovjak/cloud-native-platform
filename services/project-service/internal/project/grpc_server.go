@@ -28,11 +28,11 @@ func NewGrpcServer(service Service, logger *slog.Logger, metrics *metrics.Metric
 }
 
 func (s *GrpcServer) GetAllProjects(ctx context.Context, req *pb.GetAllProjectsRequest) (*pb.GetAllProjectsResponse, error) {
-	s.logger.Info("gRPC: fetching all projects")
+	s.logger.InfoContext(ctx, "gRPC: fetching all projects")
 
 	projects, err := s.service.GetAllProjects(ctx)
 	if err != nil {
-		s.logger.Error("gRPC: failed to fetch projects", "error", err)
+		s.logger.ErrorContext(ctx, "gRPC: failed to fetch projects", "error", err)
 		return nil, err
 	}
 
@@ -60,11 +60,11 @@ func (s *GrpcServer) GetProject(ctx context.Context, req *pb.GetProjectRequest) 
 		return nil, status.Error(codes.InvalidArgument, "id must be greater than 0")
 	}
 
-	s.logger.Info("gRPC: fetching project by ID", "id", req.Id)
+	s.logger.InfoContext(ctx, "gRPC: fetching project by ID", "id", req.Id)
 
 	project, err := s.service.GetProjectByID(ctx, int(req.Id))
 	if err != nil {
-		s.logger.Error("gRPC: failed to fetch project", "error", err, "id", req.Id)
+		s.logger.ErrorContext(ctx, "gRPC: failed to fetch project", "error", err, "id", req.Id)
 		return nil, err
 	}
 
@@ -82,14 +82,14 @@ func (s *GrpcServer) GetProject(ctx context.Context, req *pb.GetProjectRequest) 
 }
 
 func (s *GrpcServer) CreateProject(ctx context.Context, req *pb.CreateProjectRequest) (*pb.CreateProjectResponse, error) {
-	s.logger.Info("gRPC: creating project", "name", req.Name)
+	s.logger.InfoContext(ctx, "gRPC: creating project", "name", req.Name)
 
 	project := &Project{
 		Name: req.Name,
 	}
 
 	if err := s.service.CreateProject(ctx, project); err != nil {
-		s.logger.Error("gRPC: failed to create project", "error", err)
+		s.logger.ErrorContext(ctx, "gRPC: failed to create project", "error", err)
 		return nil, err
 	}
 
@@ -111,7 +111,7 @@ func (s *GrpcServer) UpdateProject(ctx context.Context, req *pb.UpdateProjectReq
 		return nil, status.Error(codes.InvalidArgument, "id must be greater than 0")
 	}
 
-	s.logger.Info("gRPC: updating project", "id", req.Id, "name", req.Name)
+	s.logger.InfoContext(ctx, "gRPC: updating project", "id", req.Id, "name", req.Name)
 
 	project := &Project{
 		ID:   int(req.Id),
@@ -119,14 +119,14 @@ func (s *GrpcServer) UpdateProject(ctx context.Context, req *pb.UpdateProjectReq
 	}
 
 	if err := s.service.UpdateProject(ctx, project); err != nil {
-		s.logger.Error("gRPC: failed to update project", "error", err, "id", req.Id)
+		s.logger.ErrorContext(ctx, "gRPC: failed to update project", "error", err, "id", req.Id)
 		return nil, err
 	}
 
 	// Fetch updated project to get all fields including timestamps
 	updatedProject, err := s.service.GetProjectByID(ctx, int(req.Id))
 	if err != nil {
-		s.logger.Error("gRPC: failed to fetch updated project", "error", err, "id", req.Id)
+		s.logger.ErrorContext(ctx, "gRPC: failed to fetch updated project", "error", err, "id", req.Id)
 		return nil, err
 	}
 
@@ -145,10 +145,10 @@ func (s *GrpcServer) DeleteProject(ctx context.Context, req *pb.DeleteProjectReq
 		return nil, status.Error(codes.InvalidArgument, "id must be greater than 0")
 	}
 
-	s.logger.Info("gRPC: deleting project", "id", req.Id)
+	s.logger.InfoContext(ctx, "gRPC: deleting project", "id", req.Id)
 
 	if err := s.service.DeleteProject(ctx, int(req.Id)); err != nil {
-		s.logger.Error("gRPC: failed to delete project", "error", err, "id", req.Id)
+		s.logger.ErrorContext(ctx, "gRPC: failed to delete project", "error", err, "id", req.Id)
 		return nil, err
 	}
 

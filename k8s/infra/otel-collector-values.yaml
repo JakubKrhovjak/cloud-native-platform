@@ -90,7 +90,7 @@ config:
       limit_mib: 400
 
   exporters:
-    # Export to Prometheus
+    # Export metrics to Prometheus
     prometheus:
       endpoint: "0.0.0.0:8889"
       namespace: grud
@@ -100,16 +100,26 @@ config:
       resource_to_telemetry_conversion:
         enabled: true
 
+    # Export traces to Tempo
+    otlp/tempo:
+      endpoint: tempo.infra.svc.cluster.local:4317
+      tls:
+        insecure: true
+
     # Debug logging (optional, disable in production)
     debug:
-      verbosity: detailed
+      verbosity: basic
 
   service:
     pipelines:
       metrics:
         receivers: [otlp]
         processors: [memory_limiter, batch, resource]
-        exporters: [prometheus, debug]
+        exporters: [prometheus]
+      traces:
+        receivers: [otlp]
+        processors: [memory_limiter, batch, resource]
+        exporters: [otlp/tempo]
 
 # ServiceMonitor for Prometheus to scrape OTel Collector
 serviceMonitor:
