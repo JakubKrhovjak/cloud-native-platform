@@ -146,11 +146,7 @@ infra/deploy-loki:
 		-n infra \
 		-f k8s/infra/loki-values.yaml \
 		--wait
-	@helm upgrade --install promtail grafana/promtail \
-		-n infra \
-		-f k8s/infra/promtail-values.yaml \
-		--wait
-	@echo "✅ Loki stack deployed"
+	@echo "✅ Loki deployed (logs collected by Alloy)"
 
 infra/deploy-tempo:
 	@echo "🔍 Deploying Tempo (tracing)..."
@@ -175,7 +171,6 @@ infra/status:
 
 infra/cleanup:
 	@echo "🧹 Cleaning up observability stack..."
-	@helm uninstall promtail -n infra 2>/dev/null || true
 	@helm uninstall loki -n infra 2>/dev/null || true
 	@helm uninstall tempo -n infra 2>/dev/null || true
 	@helm uninstall prometheus -n infra 2>/dev/null || true
