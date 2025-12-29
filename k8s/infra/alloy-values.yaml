@@ -1,0 +1,92 @@
+# Grafana Alloy Helm values for GRUD project
+# Receives OTLP metrics from Go services and exports to Prometheus
+# Replaces OpenTelemetry Collector
+
+alloy:
+  # Stability level for components
+  stabilityLevel: "generally-available"
+
+  # Extra ports for OTLP receivers
+  extraPorts:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+      protocol: TCP
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+      protocol: TCP
+
+  # Alloy configuration (River format)
+  configMap:
+    content: |
+      // Logging configuration
+      logging {
+        level = "info"
+        format = "logfmt"
+      }
+
+      // OTLP gRPC receiver - services send metrics/traces here on port 4317
+      otelcol.receiver.otlp "default" {
+        grpc {
+          endpoint = "0.0.0.0:4317"
+        }
+        http {
+          endpoint = "0.0.0.0:4318"
+        }
+        output {
+          metrics = [otelcol.processor.batch.default.input]
+          traces  = [otelcol.processor.batch.default.input]
+        }
+      }
+
+      // Batch processor for better performance
+      otelcol.processor.batch "default" {
+        timeout = "10s"
+        send_batch_size = 1024
+        output {
+          metrics = [otelcol.exporter.prometheus.default.input]
+          traces  = [otelcol.exporter.otlp.tempo.input]
+        }
+      }
+
+      // Export metrics via Prometheus endpoint (Prometheus scrapes this)
+      otelcol.exporter.prometheus "default" {
+        forward_to = []
+      }
+
+      // Export traces to Tempo via OTLP
+      otelcol.exporter.otlp "tempo" {
+        client {
+          endpoint = "tempo.infra.svc.cluster.local:4317"
+          tls {
+            insecure = true
+          }
+        }
+      }
+
+# Controller configuration
+controller:
+  type: deployment
+  replicas: 1
+  nodeSelector:
+    node-type: infra
+  tolerations:
+    - key: "workload"
+      operator: "Equal"
+      value: "infra"
+      effect: "NoSchedule"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# ServiceMonitor for Prometheus to scrape Alloy
+serviceMonitor:
+  enabled: true
+  additionalLabels:
+    release: prometheus
+  interval: 15s
