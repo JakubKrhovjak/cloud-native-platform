@@ -93,7 +93,7 @@ spec:
             - name: KAFKA_TOPIC
               value: "student-messages"
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: "otel-collector-opentelemetry-collector.infra.svc.cluster.local:4317"
+              value: "alloy.infra.svc.cluster.local:4317"
           envFrom:
             - configMapRef:
                 name: student-service-config

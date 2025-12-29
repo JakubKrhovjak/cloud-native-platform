@@ -108,7 +108,6 @@ port-forward-project:
 infra/setup:
 	@echo "📦 Adding Helm repositories..."
 	@helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-	@helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
 	@helm repo add grafana https://grafana.github.io/helm-charts
 	@helm repo update
 	@echo "✅ Helm repositories added"
@@ -125,14 +124,14 @@ infra/deploy-prometheus:
 	@echo "✅ Prometheus stack deployed"
 	@echo "📊 Grafana: http://localhost:30300 (admin/admin)"
 
-infra/deploy-otel:
-	@echo "📡 Deploying OpenTelemetry Collector..."
+infra/deploy-alloy:
+	@echo "📡 Deploying Grafana Alloy..."
 	@kubectl create namespace infra --dry-run=client -o yaml | kubectl apply -f -
-	@helm upgrade --install otel-collector open-telemetry/opentelemetry-collector \
+	@helm upgrade --install alloy grafana/alloy \
 		-n infra \
-		-f k8s/infra/otel-collector-values.yaml \
+		-f k8s/infra/alloy-values.yaml \
 		--wait
-	@echo "✅ OTel Collector deployed"
+	@echo "✅ Grafana Alloy deployed"
 
 infra/deploy-nats:
 	@echo "💬 Deploying NATS..."
@@ -147,11 +146,7 @@ infra/deploy-loki:
 		-n infra \
 		-f k8s/infra/loki-values.yaml \
 		--wait
-	@helm upgrade --install promtail grafana/promtail \
-		-n infra \
-		-f k8s/infra/promtail-values.yaml \
-		--wait
-	@echo "✅ Loki stack deployed"
+	@echo "✅ Loki deployed (logs collected by Alloy)"
 
 infra/deploy-tempo:
 	@echo "🔍 Deploying Tempo (tracing)..."
@@ -167,7 +162,7 @@ infra/deploy-alerts:
 	@kubectl apply -f k8s/infra/alerting-rules.yaml
 	@echo "✅ Alerting rules deployed"
 
-infra/deploy: infra/setup infra/deploy-prometheus infra/deploy-otel infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts
+infra/deploy: infra/setup infra/deploy-prometheus infra/deploy-alloy infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts
 	@echo "✅ Full observability stack deployed"
 
 infra/status:
@@ -176,11 +171,10 @@ infra/status:
 
 infra/cleanup:
 	@echo "🧹 Cleaning up observability stack..."
-	@helm uninstall promtail -n infra 2>/dev/null || true
 	@helm uninstall loki -n infra 2>/dev/null || true
 	@helm uninstall tempo -n infra 2>/dev/null || true
 	@helm uninstall prometheus -n infra 2>/dev/null || true
-	@helm uninstall otel-collector -n infra 2>/dev/null || true
+	@helm uninstall alloy -n infra 2>/dev/null || true
 	@kubectl delete -f k8s/infra/nats.yaml 2>/dev/null || true
 	@kubectl delete -f k8s/infra/alerting-rules.yaml 2>/dev/null || true
 	@kubectl delete namespace infra 2>/dev/null || true
@@ -232,9 +226,9 @@ help:
 	@echo ""
 	@echo "Observability:"
 	@echo "  make infra/setup            - Add Helm repositories"
-	@echo "  make infra/deploy           - Deploy full infra stack (Prometheus + OTel + NATS + Loki)"
+	@echo "  make infra/deploy           - Deploy full infra stack (Prometheus + Alloy + NATS + Loki)"
 	@echo "  make infra/deploy-prometheus - Deploy Prometheus stack only"
-	@echo "  make infra/deploy-otel      - Deploy OTel Collector only"
+	@echo "  make infra/deploy-alloy     - Deploy Grafana Alloy only"
 	@echo "  make infra/deploy-nats      - Deploy NATS only"
 	@echo "  make infra/deploy-loki      - Deploy Loki logging stack"
 	@echo "  make infra/deploy-tempo     - Deploy Tempo tracing"

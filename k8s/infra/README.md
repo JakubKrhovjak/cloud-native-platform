@@ -1,6 +1,6 @@
 # Infrastructure Stack
 
-This directory contains configuration for the infrastructure stack (Prometheus, Grafana, OpenTelemetry Collector, NATS).
+This directory contains configuration for the infrastructure stack (Prometheus, Grafana, Grafana Alloy, NATS).
 
 ## Components
 
@@ -11,10 +11,11 @@ This directory contains configuration for the infrastructure stack (Prometheus, 
 - **Node Exporter**: Node metrics
 - **Kube State Metrics**: Kubernetes object metrics
 
-### 2. **OpenTelemetry Collector**
-- Receives OTLP metrics from Go services (student-service, project-service)
+### 2. **Grafana Alloy**
+- Receives OTLP metrics and traces from Go services (student-service, project-service)
 - Exports metrics to Prometheus
-- Endpoint: `otel-collector.infra.svc.cluster.local:4317`
+- Exports traces to Tempo
+- Endpoint: `alloy.infra.svc.cluster.local:4317`
 
 ### 3. **NATS**
 - Lightweight messaging system for development
@@ -30,10 +31,10 @@ make infra/deploy
 ```
 
 This command:
-1. Adds Helm repositories (prometheus-community, open-telemetry)
+1. Adds Helm repositories (prometheus-community, grafana)
 2. Creates namespace `infra`
 3. Deploys kube-prometheus-stack
-4. Deploys OpenTelemetry Collector
+4. Deploys Grafana Alloy
 5. Deploys NATS
 
 ### Step 2: Verify deployment
@@ -45,8 +46,8 @@ Expected output:
 ```
 NAME                                                   READY   STATUS    RESTARTS   AGE
 alertmanager-prometheus-kube-prometheus-alertmanager-0 2/2     Running   0          2m
+alloy-...                                              1/1     Running   0          2m
 nats-...                                               1/1     Running   0          2m
-otel-collector-...                                     1/1     Running   0          2m
 prometheus-grafana-...                                 3/3     Running   0          2m
 prometheus-kube-prometheus-operator-...                1/1     Running   0          2m
 prometheus-kube-state-metrics-...                      1/1     Running   0          2m
@@ -71,7 +72,7 @@ make infra/port-forward-grafana
 make deploy-dev
 ```
 
-After deployment, services will automatically start sending metrics to OTel Collector.
+After deployment, services will automatically start sending metrics to Grafana Alloy.
 
 ## UI Access
 
@@ -158,15 +159,15 @@ make infra/cleanup
 
 This removes:
 - Prometheus + Grafana
-- OpenTelemetry Collector
+- Grafana Alloy
 - NATS
 - `infra` namespace
 
 ## Troubleshooting
 
-### OTel Collector not running
+### Grafana Alloy not running
 ```bash
-kubectl logs -n infra deployment/otel-collector
+kubectl logs -n infra deployment/alloy
 ```
 
 ### Services not sending metrics
@@ -174,11 +175,11 @@ kubectl logs -n infra deployment/otel-collector
 # Check service logs
 kubectl logs -n grud deployment/student-service | grep -i otel
 
-# Check OTel Collector logs
-kubectl logs -n infra deployment/otel-collector | grep -i receive
+# Check Alloy logs
+kubectl logs -n infra deployment/alloy | grep -i receive
 ```
 
-### Prometheus not scraping OTel Collector
+### Prometheus not scraping Alloy
 ```bash
 # Check ServiceMonitor
 kubectl get servicemonitor -n infra

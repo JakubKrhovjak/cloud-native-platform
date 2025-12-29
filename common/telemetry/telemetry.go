@@ -138,7 +138,7 @@ func (t *Telemetry) Shutdown(ctx context.Context, logger *slog.Logger) error {
 func getOtelEndpoint() string {
 	otelEndpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 	if otelEndpoint == "" {
-		otelEndpoint = "otel-collector.infra.svc.cluster.local:4317"
+		otelEndpoint = "alloy.infra.svc.cluster.local:4317"
 	}
 	return otelEndpoint
 }

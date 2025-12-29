@@ -66,7 +66,7 @@ data:
                 "uid": "loki"
               },
               "editorMode": "code",
-              "expr": "{namespace=\"grud\", service=~\"$service\"} | json | level=~\"$level\" | line_format \"[{{.level}}] {{.service}}: {{.msg}} | trace_id:{{.trace_id}}\"",
+              "expr": "{namespace=\"grud\", service=~\"$service\", level=~\"$level\"} | json | line_format \"{{.time}} [{{.level}}] {{.service}}: {{.msg}}\" | label_format trace_id=\"{{.trace_id}}\"",
               "queryType": "range",
               "refId": "A"
             }
@@ -115,37 +115,28 @@ data:
               "text": "All",
               "value": "$__all"
             },
+            "datasource": {
+              "type": "loki",
+              "uid": "loki"
+            },
+            "definition": "",
             "hide": 0,
             "includeAll": true,
             "label": "Level",
             "multi": true,
             "name": "level",
-            "options": [
-              {
-                "selected": false,
-                "text": "DEBUG",
-                "value": "DEBUG"
-              },
-              {
-                "selected": false,
-                "text": "INFO",
-                "value": "INFO"
-              },
-              {
-                "selected": false,
-                "text": "WARN",
-                "value": "WARN"
-              },
-              {
-                "selected": false,
-                "text": "ERROR",
-                "value": "ERROR"
-              }
-            ],
-            "query": "DEBUG,INFO,WARN,ERROR",
-            "queryValue": "",
+            "options": [],
+            "query": {
+              "label": "level",
+              "refId": "LokiVariableQueryEditor-VariableQuery",
+              "stream": "{namespace=\"grud\"}",
+              "type": 1
+            },
+            "refresh": 2,
+            "regex": "",
             "skipUrlSync": false,
-            "type": "custom"
+            "sort": 1,
+            "type": "query"
           }
         ]
       },

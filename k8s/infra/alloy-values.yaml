@@ -1,0 +1,183 @@
+# Grafana Alloy Helm values for GRUD project
+# Unified telemetry collector: metrics, traces, and logs
+# Replaces OpenTelemetry Collector + Promtail
+
+alloy:
+  stabilityLevel: "generally-available"
+
+  extraPorts:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+      protocol: TCP
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+      protocol: TCP
+
+  mounts:
+    varlog: true
+    dockercontainers: true
+
+  configMap:
+    content: |
+      // ============================================
+      // LOGGING CONFIGURATION
+      // ============================================
+      logging {
+        level = "info"
+        format = "logfmt"
+      }
+
+      // ============================================
+      // METRICS & TRACES (OTLP)
+      // ============================================
+      otelcol.receiver.otlp "default" {
+        grpc {
+          endpoint = "0.0.0.0:4317"
+        }
+        http {
+          endpoint = "0.0.0.0:4318"
+        }
+        output {
+          metrics = [otelcol.processor.batch.default.input]
+          traces  = [otelcol.processor.batch.default.input]
+        }
+      }
+
+      otelcol.processor.batch "default" {
+        timeout = "10s"
+        send_batch_size = 1024
+        output {
+          metrics = [otelcol.exporter.prometheus.default.input]
+          traces  = [otelcol.exporter.otlp.tempo.input]
+        }
+      }
+
+      otelcol.exporter.prometheus "default" {
+        include_scope_info = true
+        include_target_info = true
+        resource_to_telemetry_conversion = true
+        forward_to = [prometheus.relabel.add_labels.receiver]
+      }
+
+      prometheus.relabel "add_labels" {
+        forward_to = [prometheus.remote_write.prometheus.receiver]
+        rule {
+          target_label = "cluster"
+          replacement  = "grud-cluster"
+        }
+      }
+
+      prometheus.remote_write "prometheus" {
+        endpoint {
+          url = "http://prometheus-kube-prometheus-prometheus.infra.svc.cluster.local:9090/api/v1/write"
+        }
+      }
+
+      otelcol.exporter.otlp "tempo" {
+        client {
+          endpoint = "tempo.infra.svc.cluster.local:4317"
+          tls {
+            insecure = true
+          }
+        }
+      }
+
+      // ============================================
+      // LOGS COLLECTION (replaces Promtail)
+      // ============================================
+
+      // Discover pods for log collection
+      discovery.kubernetes "pods" {
+        role = "pod"
+      }
+
+      // Relabel and filter targets
+      discovery.relabel "pods" {
+        targets = discovery.kubernetes.pods.targets
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_phase"]
+          regex         = "Pending|Succeeded|Failed|Unknown"
+          action        = "drop"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          target_label  = "container"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app"]
+          target_label  = "app"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app"]
+          target_label  = "job"
+        }
+      }
+
+      // Collect logs from Kubernetes pods
+      loki.source.kubernetes "pods" {
+        targets    = discovery.relabel.pods.output
+        forward_to = [loki.process.logs.receiver]
+      }
+
+      // Process logs
+      loki.process "logs" {
+        forward_to = [loki.write.loki.receiver]
+
+        // For GRUD services, parse JSON and extract fields
+        stage.match {
+          selector = "{namespace=\"grud\"}"
+
+          stage.json {
+            expressions = {
+              level    = "level",
+              msg      = "msg",
+              service  = "service",
+              trace_id = "trace_id",
+              span_id  = "span_id",
+            }
+          }
+
+          stage.labels {
+            values = {
+              level   = "",
+              service = "",
+            }
+          }
+        }
+      }
+
+      // Send logs to Loki
+      loki.write "loki" {
+        endpoint {
+          url = "http://loki-gateway.infra.svc.cluster.local/loki/api/v1/push"
+        }
+      }
+
+controller:
+  type: daemonset
+  tolerations:
+    - operator: "Exists"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+serviceMonitor:
+  enabled: true
+  additionalLabels:
+    release: prometheus
+  interval: 15s
