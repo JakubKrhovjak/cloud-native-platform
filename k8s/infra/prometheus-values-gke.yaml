@@ -1,0 +1,19 @@
+# GKE-specific prometheus values
+# Only contains differences from prometheus-values.yaml (base)
+
+grafana:
+  # Ingress for external access (instead of NodePort)
+  ingress:
+    enabled: true
+    ingressClassName: gce
+    annotations:
+      kubernetes.io/ingress.class: gce
+      kubernetes.io/ingress.global-static-ip-name: grud-grafana-ip
+    hosts: []
+    path: /
+    pathType: Prefix
+
+  # Use ClusterIP instead of NodePort when using Ingress
+  service:
+    type: ClusterIP
+    port: 80

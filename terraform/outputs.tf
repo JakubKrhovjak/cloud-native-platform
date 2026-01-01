@@ -16,7 +16,7 @@ output "registry_url" {
 
 output "get_credentials_command" {
   description = "Command to get cluster credentials"
-  value       = "gcloud container clusters get-credentials ${google_container_cluster.primary.name} --region ${var.region} --project ${var.project_id}"
+  value       = "gcloud container clusters get-credentials ${google_container_cluster.primary.name} --zone ${var.zone} --project ${var.project_id}"
 }
 
 output "configure_docker_command" {
@@ -43,4 +43,15 @@ output "cloudsql_instance_name" {
 output "cloudsql_private_ip" {
   description = "Cloud SQL private IP address"
   value       = google_sql_database_instance.postgres.private_ip_address
+}
+
+# Ingress
+output "ingress_ip" {
+  description = "Static IP for application Ingress"
+  value       = google_compute_global_address.ingress_ip.address
+}
+
+output "grafana_ip" {
+  description = "Static IP for Grafana Ingress"
+  value       = google_compute_global_address.grafana_ip.address
 }

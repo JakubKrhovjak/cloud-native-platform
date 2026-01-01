@@ -1,9 +1,12 @@
 resource "google_container_cluster" "primary" {
   name     = var.cluster_name
-  location = var.region
+  location = var.zone # Zonal cluster (single zone = fewer nodes)
 
   network    = google_compute_network.vpc.name
   subnetwork = google_compute_subnetwork.subnet.name
+
+  # Allow terraform to delete cluster
+  deletion_protection = false
 
   # We can't create a cluster with no node pool defined, but we want to only use
   # separately managed node pools. So we create the smallest possible default
@@ -35,7 +38,7 @@ resource "google_container_cluster" "primary" {
 # Infra node pool - for NATS only
 resource "google_container_node_pool" "infra" {
   name       = "infra-pool"
-  location   = var.region
+  location   = var.zone
   cluster    = google_container_cluster.primary.name
   node_count = 1
 
@@ -72,7 +75,7 @@ resource "google_container_node_pool" "infra" {
 # App node pool - for application workloads
 resource "google_container_node_pool" "app" {
   name       = "app-pool"
-  location   = var.region
+  location   = var.zone
   cluster    = google_container_cluster.primary.name
   node_count = var.app_node_count
 

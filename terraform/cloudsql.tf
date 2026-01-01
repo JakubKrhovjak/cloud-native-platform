@@ -17,7 +17,7 @@ resource "google_sql_database_instance" "postgres" {
     disk_type         = "PD_HDD"           # HDD (cheaper than SSD)
 
     ip_configuration {
-      ipv4_enabled    = false                       # No public IP
+      ipv4_enabled    = false # No public IP
       private_network = google_compute_network.vpc.id
     }
 

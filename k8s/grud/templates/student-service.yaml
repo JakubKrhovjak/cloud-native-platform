@@ -57,12 +57,22 @@ kind: Service
 metadata:
   name: student-service
   namespace: {{ .Values.global.namespace }}
+  {{- if .Values.ingress.enabled }}
+  annotations:
+    cloud.google.com/neg: '{"ingress": true}'
+  {{- end }}
 spec:
+  {{- if .Values.ingress.enabled }}
+  type: ClusterIP
+  {{- else }}
   type: NodePort
+  {{- end }}
   ports:
     - port: 8080
       targetPort: 8080
+      {{- if not .Values.ingress.enabled }}
       nodePort: 30080
+      {{- end }}
       name: http
   selector:
     app: student-service

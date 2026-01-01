@@ -1,4 +1,4 @@
-.PHONY: build build-student build-project version test kind/setup kind/deploy kind/status kind/wait kind/stop kind/start kind/cleanup gke/auth gke/connect gke/deploy gke/status gke/update-db-ip gke/full-deploy tf/init tf/plan tf/apply tf/destroy tf/output tf/fmt tf/validate helm/template-kind helm/template-gke helm/uninstall infra/setup infra/deploy infra/deploy-prometheus infra/deploy-alloy infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts infra/status infra/cleanup help
+.PHONY: build build-student build-project version test kind/setup kind/deploy kind/status kind/wait kind/stop kind/start kind/cleanup gke/auth gke/connect gke/deploy gke/status gke/update-db-ip gke/full-deploy gke/ingress gke/resources tf/init tf/plan tf/apply tf/destroy tf/output tf/fmt tf/validate helm/template-kind helm/template-gke helm/uninstall infra/setup infra/deploy infra/deploy-gke infra/deploy-prometheus infra/deploy-prometheus-gke infra/deploy-alloy infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts infra/status infra/cleanup help
 
 # =============================================================================
 # Build Configuration
@@ -116,6 +116,7 @@ kind/cleanup: ## Delete Kind cluster
 # =============================================================================
 GCP_PROJECT := rugged-abacus-483006-r5
 GCP_REGION := europe-west1
+GCP_ZONE := europe-west1-b
 GKE_CLUSTER := grud-cluster
 GKE_REGISTRY := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/grud
 
@@ -129,7 +130,7 @@ gke/auth: ## Authenticate with GCP
 gke/connect: ## Connect to GKE cluster
 	@echo "🔗 Connecting to GKE cluster..."
 	@gcloud container clusters get-credentials $(GKE_CLUSTER) \
-		--region=$(GCP_REGION) \
+		--zone=$(GCP_ZONE) \
 		--project=$(GCP_PROJECT)
 	@echo "✅ Connected to $(GKE_CLUSTER)"
 
@@ -170,7 +171,7 @@ gke/full-deploy: ## Full GKE deployment (terraform + helm)
 	@$(MAKE) tf/apply
 	@$(MAKE) gke/connect
 	@$(MAKE) infra/setup
-	@$(MAKE) infra/deploy
+	@$(MAKE) infra/deploy-gke
 	@$(MAKE) gke/update-db-ip
 	@$(MAKE) gke/deploy
 	@echo "✅ Full GKE depl oyment complete"
@@ -196,10 +197,44 @@ tf/apply: ## Apply Terraform configuration
 
 tf/destroy: ## Destroy Terraform resources
 	@echo "🗑️  Destroying Terraform resources..."
-	@cd $(TF_DIR) && terraform destroy
+	@cd $(TF_DIR) && terraform destroy -auto-approve
 
 tf/output: ## Show Terraform outputs
 	@cd $(TF_DIR) && terraform output
+
+gke/ingress: ## Show Ingress status and external IP
+	@echo "=== Reserved Static IPs (Terraform) ==="
+	@cd $(TF_DIR) && terraform output ingress_ip 2>/dev/null || echo "Not created yet"
+	@cd $(TF_DIR) && terraform output grafana_ip 2>/dev/null || echo "Not created yet"
+	@echo ""
+	@echo "=== App Ingress (grud namespace) ==="
+	@kubectl get ingress -n grud 2>/dev/null || echo "No ingress found"
+	@echo ""
+	@echo "=== Grafana Ingress (infra namespace) ==="
+	@kubectl get ingress -n infra 2>/dev/null || echo "No ingress found"
+	@echo ""
+	@echo "URLs (after deployment):"
+	@echo "  API:     http://$$(cd $(TF_DIR) && terraform output -raw ingress_ip 2>/dev/null)/api"
+	@echo "  Grafana: http://$$(cd $(TF_DIR) && terraform output -raw grafana_ip 2>/dev/null)"
+
+gke/resources: ## List all GCP resources in project
+	@echo "=== GKE Clusters ==="
+	@gcloud container clusters list --project=$(GCP_PROJECT) 2>/dev/null || echo "None"
+	@echo ""
+	@echo "=== Cloud SQL Instances ==="
+	@gcloud sql instances list --project=$(GCP_PROJECT) 2>/dev/null || echo "None"
+	@echo ""
+	@echo "=== Compute Instances (VMs) ==="
+	@gcloud compute instances list --project=$(GCP_PROJECT) 2>/dev/null || echo "None"
+	@echo ""
+	@echo "=== VPC Networks ==="
+	@gcloud compute networks list --project=$(GCP_PROJECT) 2>/dev/null
+	@echo ""
+	@echo "=== Artifact Registry ==="
+	@gcloud artifacts repositories list --project=$(GCP_PROJECT) --location=$(GCP_REGION) 2>/dev/null || echo "None"
+	@echo ""
+	@echo "=== Service Accounts (app) ==="
+	@gcloud iam service-accounts list --project=$(GCP_PROJECT) --filter="email~student-service OR email~project-service" 2>/dev/null || echo "None"
 
 tf/fmt: ## Format Terraform files
 	@cd $(TF_DIR) && terraform fmt -recursive
@@ -231,7 +266,7 @@ infra/setup: ## Add Helm repositories
 	@helm repo update
 	@echo "✅ Helm repositories added"
 
-infra/deploy-prometheus: ## Deploy Prometheus stack
+infra/deploy-prometheus: ## Deploy Prometheus stack (Kind)
 	@echo "🔥 Deploying Prometheus stack..."
 	@kubectl create namespace infra --dry-run=client -o yaml | kubectl apply -f -
 	@helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
@@ -241,6 +276,18 @@ infra/deploy-prometheus: ## Deploy Prometheus stack
 	@echo "📊 Deploying Grafana dashboards..."
 	@kubectl apply -f k8s/infra/grafana-dashboard-configmap.yaml
 	@echo "✅ Prometheus stack deployed"
+
+infra/deploy-prometheus-gke: ## Deploy Prometheus stack (GKE with Ingress)
+	@echo "🔥 Deploying Prometheus stack for GKE..."
+	@kubectl create namespace infra --dry-run=client -o yaml | kubectl apply -f -
+	@helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
+		-n infra \
+		-f k8s/infra/prometheus-values.yaml \
+		-f k8s/infra/prometheus-values-gke.yaml \
+		--wait
+	@echo "📊 Deploying Grafana dashboards..."
+	@kubectl apply -f k8s/infra/grafana-dashboard-configmap.yaml
+	@echo "✅ Prometheus stack deployed with Ingress"
 
 infra/deploy-alloy: ## Deploy Grafana Alloy
 	@echo "📡 Deploying Grafana Alloy..."
@@ -280,8 +327,11 @@ infra/deploy-alerts: ## Deploy alerting rules
 	@kubectl apply -f k8s/infra/alerting-rules.yaml
 	@echo "✅ Alerting rules deployed"
 
-infra/deploy: infra/setup infra/deploy-prometheus infra/deploy-alloy infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts ## Deploy full observability stack
+infra/deploy: infra/setup infra/deploy-prometheus infra/deploy-alloy infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts ## Deploy full observability stack (Kind)
 	@echo "✅ Full observability stack deployed"
+
+infra/deploy-gke: infra/setup infra/deploy-prometheus-gke infra/deploy-alloy infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts ## Deploy full observability stack (GKE)
+	@echo "✅ Full observability stack deployed for GKE"
 
 infra/status: ## Show infra pods status
 	@echo "📊 Observability stack status:"

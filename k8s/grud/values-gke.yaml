@@ -18,6 +18,16 @@ cloudSql:
   projectUser: project_user
   projectPassword: project_password_change_me
 
+# Ingress for external access
+ingress:
+  enabled: true
+  # host: api.yourdomain.com  # Uncomment and set your domain
+  annotations: {}
+  # For HTTPS, configure managed certificate:
+  # annotations:
+  #   networking.gke.io/managed-certificates: grud-cert
+  tls: []
+
 studentService:
   enabled: true
   replicaCount: 2

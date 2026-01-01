@@ -9,6 +9,10 @@ global:
 cloudSql:
   enabled: false
 
+# Ingress (disabled for Kind - using NodePort)
+ingress:
+  enabled: false
+
 # Student Service
 studentService:
   enabled: true
