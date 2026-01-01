@@ -1,0 +1,160 @@
+# Default values for grud
+# This is a YAML-formatted file.
+
+global:
+  environment: kind
+  namespace: grud
+
+# Student Service
+studentService:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ko://student-service/cmd/server
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  nodeSelector:
+    node-type: app
+  tolerations:
+    - key: workload
+      operator: Equal
+      value: app
+      effect: NoSchedule
+  config:
+    env: kind
+    serverPort: "8080"
+    grpcEndpoint: "project-service:50052"
+    natsUrl: "nats.infra.svc.cluster.local:4222"
+    natsSubject: "student-messages"
+    otelEndpoint: "alloy.infra.svc.cluster.local:4317"
+  database:
+    host: student-db.grud.svc.cluster.local
+    port: "5432"
+    name: university
+    secretName: student-db-app
+  auth:
+    jwtSecret: "super-secret-jwt-key-change-in-production"
+
+# Project Service
+projectService:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ko://project-service/cmd/server
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  nodeSelector:
+    node-type: app
+  tolerations:
+    - key: workload
+      operator: Equal
+      value: app
+      effect: NoSchedule
+  config:
+    env: kind
+    grpcPort: "50052"
+    natsUrl: "nats.infra.svc.cluster.local:4222"
+    natsSubject: "student-messages"
+    otelEndpoint: "alloy.infra.svc.cluster.local:4317"
+  database:
+    host: project-db.grud.svc.cluster.local
+    port: "5432"
+    name: projects
+    secretName: project-db-app
+
+# Admin Panel
+adminPanel:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: admin-panel
+    tag: latest
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 200m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  nodeSelector:
+    node-type: app
+  tolerations:
+    - key: workload
+      operator: Equal
+      value: app
+      effect: NoSchedule
+  service:
+    type: NodePort
+    port: 80
+    nodePort: 30082
+
+# Student Database
+studentDb:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: postgres
+    tag: "15-alpine"
+  resources:
+    limits:
+      cpu: 250m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  nodeSelector:
+    node-type: db
+  tolerations:
+    - key: workload
+      operator: Equal
+      value: db
+      effect: NoSchedule
+  storage:
+    size: 1Gi
+    storageClassName: standard
+  credentials:
+    database: university
+    username: student_user
+    password: student_password
+
+# Project Database
+projectDb:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: postgres
+    tag: "15-alpine"
+  resources:
+    limits:
+      cpu: 250m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  nodeSelector:
+    node-type: db
+  tolerations:
+    - key: workload
+      operator: Equal
+      value: db
+      effect: NoSchedule
+  storage:
+    size: 1Gi
+    storageClassName: standard
+  credentials:
+    database: projects
+    username: project_user
+    password: project_password

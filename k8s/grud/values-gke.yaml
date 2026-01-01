@@ -1,0 +1,57 @@
+# GKE cluster values
+# Databases and admin-panel disabled - using Cloud SQL
+
+global:
+  environment: gcp-gke
+  namespace: grud
+
+studentService:
+  enabled: true
+  replicaCount: 2
+  config:
+    env: gcp-gke
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  # No node selector/tolerations for GKE (runs on any node)
+  nodeSelector: {}
+  tolerations: []
+  database:
+    # TODO: Update with Cloud SQL connection
+    host: student-db.grud.svc.cluster.local
+    port: "5432"
+    name: university
+
+projectService:
+  enabled: true
+  replicaCount: 2
+  config:
+    env: gcp-gke
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  nodeSelector: {}
+  tolerations: []
+  database:
+    # TODO: Update with Cloud SQL connection
+    host: project-db.grud.svc.cluster.local
+    port: "5432"
+    name: projects
+
+# Disabled for GKE
+adminPanel:
+  enabled: false
+
+studentDb:
+  enabled: false
+
+projectDb:
+  enabled: false

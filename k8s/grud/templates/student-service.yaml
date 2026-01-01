@@ -1,0 +1,141 @@
+{{- if .Values.studentService.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: student-service-config
+  namespace: {{ .Values.global.namespace }}
+data:
+  ENV: {{ .Values.studentService.config.env | quote }}
+  SERVER_PORT: {{ .Values.studentService.config.serverPort | quote }}
+  PROJECT_SERVICE_GRPC: {{ .Values.studentService.config.grpcEndpoint | quote }}
+  NATS_URL: {{ .Values.studentService.config.natsUrl | quote }}
+  NATS_SUBJECT: {{ .Values.studentService.config.natsSubject | quote }}
+  OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.studentService.config.otelEndpoint | quote }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: student-service-secrets
+  namespace: {{ .Values.global.namespace }}
+type: Opaque
+stringData:
+  jwt-secret: {{ .Values.studentService.auth.jwtSecret | quote }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: student-service-file-config
+  namespace: {{ .Values.global.namespace }}
+data:
+  config.{{ .Values.studentService.config.env }}.yaml: |
+    env: {{ .Values.studentService.config.env }}
+    server:
+      port: {{ .Values.studentService.config.serverPort | quote }}
+    database:
+      host: {{ .Values.studentService.database.host }}
+      port: {{ .Values.studentService.database.port | quote }}
+      name: {{ .Values.studentService.database.name }}
+    project_service:
+      grpc: {{ .Values.studentService.config.grpcEndpoint }}
+    nats:
+      url: {{ .Values.studentService.config.natsUrl }}
+      subject: {{ .Values.studentService.config.natsSubject }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: student-service
+  namespace: {{ .Values.global.namespace }}
+spec:
+  type: NodePort
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30080
+      name: http
+  selector:
+    app: student-service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: student-service
+  namespace: {{ .Values.global.namespace }}
+spec:
+  replicas: {{ .Values.studentService.replicaCount }}
+  selector:
+    matchLabels:
+      app: student-service
+  template:
+    metadata:
+      labels:
+        app: student-service
+    spec:
+      {{- if .Values.studentService.tolerations }}
+      tolerations:
+        {{- toYaml .Values.studentService.tolerations | nindent 8 }}
+      {{- end }}
+      {{- if .Values.studentService.nodeSelector }}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-type
+                    operator: In
+                    values:
+                      - {{ index .Values.studentService.nodeSelector "node-type" }}
+      {{- end }}
+      containers:
+        - name: student-service
+          image: {{ .Values.studentService.image.repository }}
+          imagePullPolicy: {{ .Values.studentService.image.pullPolicy }}
+          ports:
+            - containerPort: 8080
+              name: http
+          envFrom:
+            - configMapRef:
+                name: student-service-config
+          env:
+            - name: ENV
+              value: {{ .Values.studentService.config.env | quote }}
+            - name: DB_HOST
+              value: {{ .Values.studentService.database.host }}
+            - name: DB_PORT
+              value: {{ .Values.studentService.database.port | quote }}
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.studentService.database.secretName }}
+                  key: dbname
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.studentService.database.secretName }}
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.studentService.database.secretName }}
+                  key: password
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: student-service-secrets
+                  key: jwt-secret
+          resources:
+            {{- toYaml .Values.studentService.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /configs
+              readOnly: true
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65532
+      volumes:
+        - name: config
+          configMap:
+            name: student-service-file-config
+{{- end }}

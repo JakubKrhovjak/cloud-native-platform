@@ -1,11 +1,12 @@
-.PHONY: test test-student test-project test-integration test-all test-coverage test-verbose clean admin-dev admin-build admin-install k8s/setup k8s/deploy k8s/deploy-dev k8s/deploy-prod k8s/status k8s/wait k8s/logs k8s/stop k8s/start k8s/cleanup k8s/port-forward-admin k8s/port-forward-student k8s/port-forward-project setup deploy deploy-dev deploy-prod status wait logs stop start cleanup port-forward-admin port-forward-student port-forward-project build build-student build-project run-student run-project version
+.PHONY: build build-student build-project version test kind/setup kind/deploy kind/status kind/wait kind/stop kind/start kind/cleanup gke/auth gke/enable-apis gke/create-registry gke/create-cluster gke/connect gke/deploy gke/status gke/delete-cluster helm/template-kind helm/template-gke helm/uninstall infra/setup infra/deploy infra/deploy-prometheus infra/deploy-alloy infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts infra/status infra/cleanup help
 
-# Build configuration
+# =============================================================================
+# Build Configuration
+# =============================================================================
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BUILD_TIME ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 
-# Linker flags
 STUDENT_LDFLAGS := -X 'student-service/internal/app.Version=$(VERSION)' \
                    -X 'student-service/internal/app.GitCommit=$(GIT_COMMIT)' \
                    -X 'student-service/internal/app.BuildTime=$(BUILD_TIME)'
@@ -14,105 +15,212 @@ PROJECT_LDFLAGS := -X 'project-service/internal/app.Version=$(VERSION)' \
                    -X 'project-service/internal/app.GitCommit=$(GIT_COMMIT)' \
                    -X 'project-service/internal/app.BuildTime=$(BUILD_TIME)'
 
-# Build targets
-build: build-student build-project
+# =============================================================================
+# Build Targets
+# =============================================================================
+build: build-student build-project ## Build all services
 	@echo "✅ All services built successfully"
 
-build-student:
+build-student: ## Build student-service
 	@echo "🔨 Building student-service $(VERSION) ($(GIT_COMMIT))..."
 	@mkdir -p bin
-	@cd services/student-service && \
-	go build -ldflags="$(STUDENT_LDFLAGS)" \
-	  -o ../../bin/student-service \
-	  ./cmd/server
+	@cd services/student-service && go build -ldflags="$(STUDENT_LDFLAGS)" -o ../../bin/student-service ./cmd/server
 	@echo "✅ student-service → bin/student-service"
 
-build-project:
+build-project: ## Build project-service
 	@echo "🔨 Building project-service $(VERSION) ($(GIT_COMMIT))..."
 	@mkdir -p bin
-	@cd services/project-service && \
-	go build -ldflags="$(PROJECT_LDFLAGS)" \
-	  -o ../../bin/project-service \
-	  ./cmd/server
+	@cd services/project-service && go build -ldflags="$(PROJECT_LDFLAGS)" -o ../../bin/project-service ./cmd/server
 	@echo "✅ project-service → bin/project-service"
 
-run-student:
-	@cd services/student-service && go run ./cmd/server
-
-run-project:
-	@cd services/project-service && go run ./cmd/server
-
-version:
+version: ## Show version info
 	@echo "Version:    $(VERSION)"
 	@echo "Git Commit: $(GIT_COMMIT)"
 	@echo "Build Time: $(BUILD_TIME)"
 
-# Default: Run all tests (shared container, fast)
-test:
-	@echo "🧪 Running all tests (shared container)..."
+# =============================================================================
+# Test Targets
+# =============================================================================
+test: ## Run all tests
+	@echo "🧪 Running all tests..."
 	@go test ./services/student-service/... ./services/project-service/...
 
-# Test individual services
-test-student:
-	@echo "🧪 Testing student-service..."
-	@go test ./services/student-service/...
+# =============================================================================
+# Kind Cluster
+# =============================================================================
+KIND_CLUSTER_NAME := grud-cluster
 
-test-project:
-	@echo "🧪 Testing project-service..."
-	@go test ./services/project-service/...
+kind/setup: ## Create Kind cluster
+	@echo "🚀 Creating Kind cluster..."
+	@./scripts/kind-setup.sh
 
-k8s/port-forward-project:
-	@$(MAKE) -C k8s port-forward-project
+kind/deploy: ## Deploy to Kind with Helm
+	@echo "🚀 Deploying to Kind with Helm..."
+	@echo "📦 Building Go services with ko..."
+	@cd services/student-service && KO_DOCKER_REPO=kind.local KIND_CLUSTER_NAME=grud-cluster ko build --bare ./cmd/server 2>&1 | grep "Loading" | sed 's/.*Loading //' > /tmp/student-image.txt
+	@cd services/project-service && KO_DOCKER_REPO=kind.local KIND_CLUSTER_NAME=grud-cluster ko build --bare ./cmd/server 2>&1 | grep "Loading" | sed 's/.*Loading //' > /tmp/project-image.txt
+	@echo "📦 Building admin-panel..."
+	@docker build -t admin-panel:latest services/admin
+	@kind load docker-image admin-panel:latest --name grud-cluster
+	@echo "🚀 Deploying with Helm..."
+	@helm upgrade --install grud k8s/grud \
+		-n grud --create-namespace \
+		-f k8s/grud/values-kind.yaml \
+		--set studentService.image.repository=$$(cat /tmp/student-image.txt) \
+		--set projectService.image.repository=$$(cat /tmp/project-image.txt) \
+		--wait
+	@echo "✅ Deployed to Kind"
 
-# Kubernetes aliases (without k8s/ prefix)
-setup:
-	@$(MAKE) -C k8s setup
+kind/status: ## Show Kind cluster status
+	@echo "📋 Kind Cluster Status"
+	@echo ""
+	@echo "Nodes:"
+	@kubectl get nodes -o wide
+	@echo ""
+	@echo "Deployments:"
+	@kubectl get deployments -n grud
+	@echo ""
+	@echo "Pods:"
+	@kubectl get pods -n grud -o wide
+	@echo ""
+	@echo "Services:"
+	@kubectl get services -n grud
 
-deploy:
-	@$(MAKE) -C k8s deploy
+kind/wait: ## Wait for all resources to be ready
+	@echo "⏳ Waiting for databases..."
+	@kubectl wait --for=condition=Ready pod -l app=student-db -n grud --timeout=300s
+	@kubectl wait --for=condition=Ready pod -l app=project-db -n grud --timeout=300s
+	@echo "⏳ Waiting for services..."
+	@kubectl wait --for=condition=Available deployment/student-service -n grud --timeout=300s
+	@kubectl wait --for=condition=Available deployment/project-service -n grud --timeout=300s
+	@kubectl wait --for=condition=Available deployment/admin-panel -n grud --timeout=300s
+	@echo "✅ All resources ready!"
 
-deploy-dev:
-	@$(MAKE) -C k8s deploy-dev
+kind/stop: ## Stop Kind cluster (without deleting)
+	@echo "⏸️  Stopping Kind cluster..."
+	@docker stop $(KIND_CLUSTER_NAME)-control-plane $(KIND_CLUSTER_NAME)-worker $(KIND_CLUSTER_NAME)-worker2 $(KIND_CLUSTER_NAME)-worker3 2>/dev/null || true
+	@echo "✅ Cluster stopped"
 
-deploy-prod:
-	@$(MAKE) -C k8s deploy-prod
+kind/start: ## Start Kind cluster
+	@echo "▶️  Starting Kind cluster..."
+	@docker start $(KIND_CLUSTER_NAME)-control-plane $(KIND_CLUSTER_NAME)-worker $(KIND_CLUSTER_NAME)-worker2 $(KIND_CLUSTER_NAME)-worker3 2>/dev/null || true
+	@echo "⏳ Waiting for cluster to be ready..."
+	@kubectl wait --for=condition=Ready nodes --all --timeout=120s
+	@echo "✅ Cluster started and ready!"
 
-status:
-	@$(MAKE) -C k8s status
+kind/cleanup: ## Delete Kind cluster
+	@./scripts/cleanup.sh
 
-wait:
-	@$(MAKE) -C k8s wait
+# =============================================================================
+# GKE Cluster
+# =============================================================================
+GCP_PROJECT := rugged-abacus-483006-r5
+GCP_REGION := europe-west1
+GKE_CLUSTER := grud-cluster
+GKE_REGISTRY := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/grud
 
-logs:
-	@$(MAKE) -C k8s logs
+gke/auth: ## Authenticate with GCP
+	@echo "🔐 Authenticating with GCP..."
+	@gcloud auth login
+	@gcloud config set project $(GCP_PROJECT)
+	@gcloud auth configure-docker $(GCP_REGION)-docker.pkg.dev
+	@echo "✅ GCP authentication complete"
 
-stop:
-	@$(MAKE) -C k8s stop
+gke/enable-apis: ## Enable required GCP APIs
+	@echo "🔧 Enabling required APIs..."
+	@gcloud services enable container.googleapis.com --project=$(GCP_PROJECT)
+	@gcloud services enable artifactregistry.googleapis.com --project=$(GCP_PROJECT)
+	@echo "✅ APIs enabled"
 
-start:
-	@$(MAKE) -C k8s start
+gke/create-registry: ## Create Artifact Registry repository
+	@echo "📦 Creating Artifact Registry..."
+	@gcloud artifacts repositories create grud \
+		--repository-format=docker \
+		--location=$(GCP_REGION) \
+		--description="GRUD container images" || echo "Repository already exists"
+	@echo "✅ Artifact Registry ready"
 
-cleanup:
-	@$(MAKE) -C k8s cleanup
+gke/create-cluster: ## Create GKE Standard cluster
+	@echo "🚀 Creating GKE Standard cluster..."
+	@gcloud container clusters create $(GKE_CLUSTER) \
+		--region=$(GCP_REGION) \
+		--project=$(GCP_PROJECT) \
+		--num-nodes=1 \
+		--machine-type=e2-small \
+		--disk-size=20GB
+	@echo "✅ GKE cluster created"
 
-port-forward-admin:
-	@$(MAKE) -C k8s port-forward-admin
+gke/connect: ## Connect to existing GKE cluster
+	@echo "🔗 Connecting to GKE cluster..."
+	@gcloud container clusters get-credentials $(GKE_CLUSTER) \
+		--region=$(GCP_REGION) \
+		--project=$(GCP_PROJECT)
+	@echo "✅ Connected to $(GKE_CLUSTER)"
 
-port-forward-student:
-	@$(MAKE) -C k8s port-forward-student
+gke/setup: gke/auth gke/create-registry ## Full GKE setup (auth + registry)
+	@echo "✅ GKE setup complete"
 
-port-forward-project:
-	@$(MAKE) -C k8s port-forward-project
+gke/full-setup: gke/auth gke/enable-apis gke/create-registry gke/create-cluster gke/connect ## Full GKE setup including cluster creation
+	@echo "✅ GKE full setup complete"
 
-# Observability stack (Helm-based)
-infra/setup:
+gke/deploy: gke/connect ## Deploy to GKE with Helm
+	@echo "🚀 Deploying to GKE with Helm..."
+	@helm upgrade --install grud k8s/grud \
+		-n grud --create-namespace \
+		-f k8s/grud/values-gke.yaml \
+		--set studentService.image.repository=$(GKE_REGISTRY)/student-service \
+		--set projectService.image.repository=$(GKE_REGISTRY)/project-service \
+		--wait
+	@echo "✅ Deployed to GKE"
+
+gke/status: gke/connect ## Show GKE cluster status
+	@echo "📋 GKE Cluster Status"
+	@echo ""
+	@echo "Nodes:"
+	@kubectl get nodes -o wide
+	@echo ""
+	@echo "Deployments:"
+	@kubectl get deployments -n grud
+	@echo ""
+	@echo "Pods:"
+	@kubectl get pods -n grud -o wide
+	@echo ""
+	@echo "Services:"
+	@kubectl get services -n grud
+
+gke/cleanup: ## Delete GKE cluster
+	@echo "🗑️  Deleting GKE cluster..."
+	@gcloud container clusters delete $(GKE_CLUSTER) \
+		--region=$(GCP_REGION) \
+		--project=$(GCP_PROJECT) \
+		--quiet
+	@echo "✅ GKE cluster deleted"
+
+# =============================================================================
+# Helm Utilities
+# =============================================================================
+helm/template-kind: ## Show rendered templates for Kind
+	@helm template grud k8s/grud -f k8s/grud/values-kind.yaml
+
+helm/template-gke: ## Show rendered templates for GKE
+	@helm template grud k8s/grud -f k8s/grud/values-gke.yaml
+
+helm/uninstall: ## Uninstall Helm release
+	@echo "🗑️  Uninstalling Helm release..."
+	@helm uninstall grud -n grud || true
+	@echo "✅ Helm release uninstalled"
+
+# =============================================================================
+# Observability Stack
+# =============================================================================
+infra/setup: ## Add Helm repositories
 	@echo "📦 Adding Helm repositories..."
 	@helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 	@helm repo add grafana https://grafana.github.io/helm-charts
 	@helm repo update
 	@echo "✅ Helm repositories added"
 
-infra/deploy-prometheus:
+infra/deploy-prometheus: ## Deploy Prometheus stack
 	@echo "🔥 Deploying Prometheus stack..."
 	@kubectl create namespace infra --dry-run=client -o yaml | kubectl apply -f -
 	@helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
@@ -122,9 +230,8 @@ infra/deploy-prometheus:
 	@echo "📊 Deploying Grafana dashboards..."
 	@kubectl apply -f k8s/infra/grafana-dashboard-configmap.yaml
 	@echo "✅ Prometheus stack deployed"
-	@echo "📊 Grafana: http://localhost:30300 (admin/admin)"
 
-infra/deploy-alloy:
+infra/deploy-alloy: ## Deploy Grafana Alloy
 	@echo "📡 Deploying Grafana Alloy..."
 	@kubectl create namespace infra --dry-run=client -o yaml | kubectl apply -f -
 	@helm upgrade --install alloy grafana/alloy \
@@ -133,23 +240,23 @@ infra/deploy-alloy:
 		--wait
 	@echo "✅ Grafana Alloy deployed"
 
-infra/deploy-nats:
+infra/deploy-nats: ## Deploy NATS
 	@echo "💬 Deploying NATS..."
 	@kubectl create namespace infra --dry-run=client -o yaml | kubectl apply -f -
 	@kubectl apply -f k8s/infra/nats.yaml
 	@echo "✅ NATS deployed"
 
-infra/deploy-loki:
-	@echo "📝 Deploying Loki (logging)..."
+infra/deploy-loki: ## Deploy Loki logging
+	@echo "📝 Deploying Loki..."
 	@kubectl create namespace infra --dry-run=client -o yaml | kubectl apply -f -
 	@helm upgrade --install loki grafana/loki \
 		-n infra \
 		-f k8s/infra/loki-values.yaml \
 		--wait
-	@echo "✅ Loki deployed (logs collected by Alloy)"
+	@echo "✅ Loki deployed"
 
-infra/deploy-tempo:
-	@echo "🔍 Deploying Tempo (tracing)..."
+infra/deploy-tempo: ## Deploy Tempo tracing
+	@echo "🔍 Deploying Tempo..."
 	@kubectl create namespace infra --dry-run=client -o yaml | kubectl apply -f -
 	@helm upgrade --install tempo grafana/tempo \
 		-n infra \
@@ -157,19 +264,19 @@ infra/deploy-tempo:
 		--wait
 	@echo "✅ Tempo deployed"
 
-infra/deploy-alerts:
+infra/deploy-alerts: ## Deploy alerting rules
 	@echo "🚨 Deploying alerting rules..."
 	@kubectl apply -f k8s/infra/alerting-rules.yaml
 	@echo "✅ Alerting rules deployed"
 
-infra/deploy: infra/setup infra/deploy-prometheus infra/deploy-alloy infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts
+infra/deploy: infra/setup infra/deploy-prometheus infra/deploy-alloy infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts ## Deploy full observability stack
 	@echo "✅ Full observability stack deployed"
 
-infra/status:
+infra/status: ## Show infra pods status
 	@echo "📊 Observability stack status:"
 	@kubectl get pods -n infra
 
-infra/cleanup:
+infra/cleanup: ## Remove observability stack
 	@echo "🧹 Cleaning up observability stack..."
 	@helm uninstall loki -n infra 2>/dev/null || true
 	@helm uninstall tempo -n infra 2>/dev/null || true
@@ -180,63 +287,39 @@ infra/cleanup:
 	@kubectl delete namespace infra 2>/dev/null || true
 	@echo "✅ Cleanup complete"
 
-infra/port-forward-grafana:
-	@echo "📊 Port-forwarding Grafana to localhost:3000..."
-	@kubectl port-forward -n infra svc/prometheus-grafana 3000:80
-
-infra/port-forward-prometheus:
-	@echo "📈 Port-forwarding Prometheus to localhost:9090..."
-	@kubectl port-forward -n infra svc/prometheus-kube-prometheus-prometheus 9090:9090
-
-infra/port-forward-nats:
-	@echo "💬 Port-forwarding NATS monitoring to localhost:8222..."
-	@kubectl port-forward -n infra svc/nats 8222:8222
-
+# =============================================================================
 # Help
-help:
-	@echo "Available commands:"
-	@echo "  make test              - Run all tests (default, fast)"
-	@echo "  make test-student      - Test student-service only"
-	@echo "  make test-project      - Test project-service only"
-	@echo "  make test-integration  - Run integration tests (slow)"
-	@echo "  make test-all          - Run all tests (shared + integration)"
-	@echo "  make test-coverage     - Run tests with coverage report"
-	@echo "  make test-verbose      - Run tests with verbose output"
-	@echo "  make test-race         - Run tests with race detector"
-	@echo "  make clean             - Clean test cache"
-	@echo "  make test-watch        - Watch and auto-run tests on change"
+# =============================================================================
+help: ## Show this help
+	@echo "GRUD - Available Commands"
 	@echo ""
-	@echo "Admin Panel:"
-	@echo "  make admin-install     - Install admin panel dependencies"
-	@echo "  make admin-dev         - Start admin panel dev server"
-	@echo "  make admin-build       - Build admin panel for production"
+	@echo "Build:"
+	@echo "  make build              - Build all services"
+	@echo "  make version            - Show version info"
+	@echo "  make test               - Run all tests"
 	@echo ""
-	@echo "Kubernetes:"
-	@echo "  make setup                  - Create Kind cluster"
-	@echo "  make deploy-dev             - Deploy to development"
-	@echo "  make deploy-prod            - Deploy to production"
-	@echo "  make status                 - Show cluster status"
-	@echo "  make logs                   - Follow service logs"
-	@echo "  make stop                   - Stop Kind cluster (without deleting)"
-	@echo "  make start                  - Start Kind cluster"
-	@echo "  make port-forward-admin     - Port-forward admin-panel to localhost:3000"
-	@echo "  make port-forward-student   - Port-forward student-service to localhost:9080"
-	@echo "  make port-forward-project   - Port-forward project-service to localhost:9052"
-	@echo "  make cleanup                - Delete cluster"
+	@echo "Kind Cluster:"
+	@echo "  make kind/setup         - Create Kind cluster"
+	@echo "  make kind/deploy        - Deploy to Kind with Helm"
+	@echo "  make kind/status        - Show cluster status"
+	@echo "  make kind/wait          - Wait for resources to be ready"
+	@echo "  make kind/stop          - Stop Kind cluster"
+	@echo "  make kind/start         - Start Kind cluster"
+	@echo "  make kind/cleanup       - Delete Kind cluster"
+	@echo ""
+	@echo "GKE Cluster:"
+	@echo "  make gke/setup          - Full GKE setup (auth + registry)"
+	@echo "  make gke/full-setup     - Full setup including cluster creation"
+	@echo "  make gke/deploy         - Deploy to GKE with Helm"
+	@echo "  make gke/status         - Show GKE status"
+	@echo "  make gke/cleanup        - Delete GKE cluster"
 	@echo ""
 	@echo "Observability:"
-	@echo "  make infra/setup            - Add Helm repositories"
-	@echo "  make infra/deploy           - Deploy full infra stack (Prometheus + Alloy + NATS + Loki)"
-	@echo "  make infra/deploy-prometheus - Deploy Prometheus stack only"
-	@echo "  make infra/deploy-alloy     - Deploy Grafana Alloy only"
-	@echo "  make infra/deploy-nats      - Deploy NATS only"
-	@echo "  make infra/deploy-loki      - Deploy Loki logging stack"
-	@echo "  make infra/deploy-tempo     - Deploy Tempo tracing"
-	@echo "  make infra/deploy-alerts    - Deploy alerting rules"
-	@echo "  make infra/status           - Show infra pods status"
-	@echo "  make infra/port-forward-grafana    - Port-forward Grafana to localhost:3000"
-	@echo "  make infra/port-forward-prometheus - Port-forward Prometheus to localhost:9090"
-	@echo "  make infra/port-forward-nats       - Port-forward NATS monitoring to localhost:8222"
-	@echo "  make infra/cleanup          - Remove infra stack"
+	@echo "  make infra/deploy       - Deploy full observability stack"
+	@echo "  make infra/status       - Show infra pods status"
+	@echo "  make infra/cleanup      - Remove observability stack"
 	@echo ""
-	@echo "  make help                   - Show this help message"
+	@echo "Helm:"
+	@echo "  make helm/template-kind - Show Kind templates"
+	@echo "  make helm/template-gke  - Show GKE templates"
+	@echo "  make helm/uninstall     - Uninstall Helm release"

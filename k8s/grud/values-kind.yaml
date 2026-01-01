@@ -1,0 +1,42 @@
+# Kind cluster values
+global:
+  environment: kind
+  namespace: grud
+
+studentService:
+  enabled: true
+  replicaCount: 2
+  config:
+    env: kind
+
+projectService:
+  enabled: true
+  replicaCount: 2
+  config:
+    env: kind
+
+adminPanel:
+  enabled: true
+  replicaCount: 2
+
+studentDb:
+  enabled: true
+  replicaCount: 1
+  nodeSelector:
+    node-type: db
+  tolerations:
+    - key: workload
+      operator: Equal
+      value: db
+      effect: NoSchedule
+
+projectDb:
+  enabled: true
+  replicaCount: 1
+  nodeSelector:
+    node-type: db
+  tolerations:
+    - key: workload
+      operator: Equal
+      value: db
+      effect: NoSchedule

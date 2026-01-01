@@ -1,0 +1,84 @@
+{{- if .Values.projectDb.enabled }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: project-db-app
+  namespace: {{ .Values.global.namespace }}
+type: Opaque
+stringData:
+  dbname: {{ .Values.projectDb.credentials.database }}
+  username: {{ .Values.projectDb.credentials.username }}
+  password: {{ .Values.projectDb.credentials.password }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: project-db
+  namespace: {{ .Values.global.namespace }}
+spec:
+  clusterIP: None
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    app: project-db
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: project-db
+  namespace: {{ .Values.global.namespace }}
+spec:
+  serviceName: project-db
+  replicas: {{ .Values.projectDb.replicaCount }}
+  selector:
+    matchLabels:
+      app: project-db
+  template:
+    metadata:
+      labels:
+        app: project-db
+    spec:
+      {{- if .Values.projectDb.tolerations }}
+      tolerations:
+        {{- toYaml .Values.projectDb.tolerations | nindent 8 }}
+      {{- end }}
+      {{- if .Values.projectDb.nodeSelector }}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-type
+                    operator: In
+                    values:
+                      - {{ index .Values.projectDb.nodeSelector "node-type" }}
+      {{- end }}
+      containers:
+        - name: postgres
+          image: {{ .Values.projectDb.image.repository }}:{{ .Values.projectDb.image.tag }}
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: {{ .Values.projectDb.credentials.database }}
+            - name: POSTGRES_USER
+              value: {{ .Values.projectDb.credentials.username }}
+            - name: POSTGRES_PASSWORD
+              value: {{ .Values.projectDb.credentials.password }}
+          resources:
+            {{- toYaml .Values.projectDb.resources | nindent 12 }}
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: {{ .Values.projectDb.storage.storageClassName }}
+        resources:
+          requests:
+            storage: {{ .Values.projectDb.storage.size }}
+{{- end }}

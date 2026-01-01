@@ -1,0 +1,84 @@
+{{- if .Values.studentDb.enabled }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: student-db-app
+  namespace: {{ .Values.global.namespace }}
+type: Opaque
+stringData:
+  dbname: {{ .Values.studentDb.credentials.database }}
+  username: {{ .Values.studentDb.credentials.username }}
+  password: {{ .Values.studentDb.credentials.password }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: student-db
+  namespace: {{ .Values.global.namespace }}
+spec:
+  clusterIP: None
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    app: student-db
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: student-db
+  namespace: {{ .Values.global.namespace }}
+spec:
+  serviceName: student-db
+  replicas: {{ .Values.studentDb.replicaCount }}
+  selector:
+    matchLabels:
+      app: student-db
+  template:
+    metadata:
+      labels:
+        app: student-db
+    spec:
+      {{- if .Values.studentDb.tolerations }}
+      tolerations:
+        {{- toYaml .Values.studentDb.tolerations | nindent 8 }}
+      {{- end }}
+      {{- if .Values.studentDb.nodeSelector }}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-type
+                    operator: In
+                    values:
+                      - {{ index .Values.studentDb.nodeSelector "node-type" }}
+      {{- end }}
+      containers:
+        - name: postgres
+          image: {{ .Values.studentDb.image.repository }}:{{ .Values.studentDb.image.tag }}
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: {{ .Values.studentDb.credentials.database }}
+            - name: POSTGRES_USER
+              value: {{ .Values.studentDb.credentials.username }}
+            - name: POSTGRES_PASSWORD
+              value: {{ .Values.studentDb.credentials.password }}
+          resources:
+            {{- toYaml .Values.studentDb.resources | nindent 12 }}
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: {{ .Values.studentDb.storage.storageClassName }}
+        resources:
+          requests:
+            storage: {{ .Values.studentDb.storage.size }}
+{{- end }}

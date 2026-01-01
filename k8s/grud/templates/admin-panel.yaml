@@ -1,0 +1,68 @@
+{{- if .Values.adminPanel.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: admin-panel-config
+  namespace: {{ .Values.global.namespace }}
+data:
+  VITE_API_URL: "http://localhost:8080"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-panel
+  namespace: {{ .Values.global.namespace }}
+spec:
+  type: {{ .Values.adminPanel.service.type }}
+  ports:
+    - port: {{ .Values.adminPanel.service.port }}
+      targetPort: 80
+      {{- if eq .Values.adminPanel.service.type "NodePort" }}
+      nodePort: {{ .Values.adminPanel.service.nodePort }}
+      {{- end }}
+  selector:
+    app: admin-panel
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-panel
+  namespace: {{ .Values.global.namespace }}
+spec:
+  replicas: {{ .Values.adminPanel.replicaCount }}
+  selector:
+    matchLabels:
+      app: admin-panel
+  template:
+    metadata:
+      labels:
+        app: admin-panel
+    spec:
+      {{- if .Values.adminPanel.tolerations }}
+      tolerations:
+        {{- toYaml .Values.adminPanel.tolerations | nindent 8 }}
+      {{- end }}
+      {{- if .Values.adminPanel.nodeSelector }}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-type
+                    operator: In
+                    values:
+                      - {{ index .Values.adminPanel.nodeSelector "node-type" }}
+      {{- end }}
+      containers:
+        - name: admin-panel
+          image: {{ .Values.adminPanel.image.repository }}:{{ .Values.adminPanel.image.tag }}
+          imagePullPolicy: {{ .Values.adminPanel.image.pullPolicy }}
+          ports:
+            - containerPort: 80
+          envFrom:
+            - configMapRef:
+                name: admin-panel-config
+          resources:
+            {{- toYaml .Values.adminPanel.resources | nindent 12 }}
+{{- end }}

@@ -1,0 +1,125 @@
+{{- if .Values.projectService.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: project-service-config
+  namespace: {{ .Values.global.namespace }}
+data:
+  ENV: {{ .Values.projectService.config.env | quote }}
+  GRPC_PORT: {{ .Values.projectService.config.grpcPort | quote }}
+  NATS_URL: {{ .Values.projectService.config.natsUrl | quote }}
+  NATS_SUBJECT: {{ .Values.projectService.config.natsSubject | quote }}
+  OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.projectService.config.otelEndpoint | quote }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: project-service-file-config
+  namespace: {{ .Values.global.namespace }}
+data:
+  config.{{ .Values.projectService.config.env }}.yaml: |
+    env: {{ .Values.projectService.config.env }}
+    database:
+      host: {{ .Values.projectService.database.host }}
+      port: {{ .Values.projectService.database.port | quote }}
+      name: {{ .Values.projectService.database.name }}
+    grpc:
+      port: {{ .Values.projectService.config.grpcPort | quote }}
+    nats:
+      url: {{ .Values.projectService.config.natsUrl }}
+      subject: {{ .Values.projectService.config.natsSubject }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: project-service
+  namespace: {{ .Values.global.namespace }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 50052
+      targetPort: 50052
+      name: grpc
+  selector:
+    app: project-service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: project-service
+  namespace: {{ .Values.global.namespace }}
+spec:
+  replicas: {{ .Values.projectService.replicaCount }}
+  selector:
+    matchLabels:
+      app: project-service
+  template:
+    metadata:
+      labels:
+        app: project-service
+    spec:
+      {{- if .Values.projectService.tolerations }}
+      tolerations:
+        {{- toYaml .Values.projectService.tolerations | nindent 8 }}
+      {{- end }}
+      {{- if .Values.projectService.nodeSelector }}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-type
+                    operator: In
+                    values:
+                      - {{ index .Values.projectService.nodeSelector "node-type" }}
+      {{- end }}
+      containers:
+        - name: project-service
+          image: {{ .Values.projectService.image.repository }}
+          imagePullPolicy: {{ .Values.projectService.image.pullPolicy }}
+          ports:
+            - containerPort: 50052
+              name: grpc
+          envFrom:
+            - configMapRef:
+                name: project-service-config
+          env:
+            - name: ENV
+              value: {{ .Values.projectService.config.env | quote }}
+            - name: GRPC_PORT
+              value: {{ .Values.projectService.config.grpcPort | quote }}
+            - name: DB_HOST
+              value: {{ .Values.projectService.database.host }}
+            - name: DB_PORT
+              value: {{ .Values.projectService.database.port | quote }}
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.projectService.database.secretName }}
+                  key: dbname
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.projectService.database.secretName }}
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.projectService.database.secretName }}
+                  key: password
+          resources:
+            {{- toYaml .Values.projectService.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /configs
+              readOnly: true
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65532
+      volumes:
+        - name: config
+          configMap:
+            name: project-service-file-config
+{{- end }}
