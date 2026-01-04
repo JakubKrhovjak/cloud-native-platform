@@ -189,7 +189,7 @@ Ko resolves `image: ko://...` references before applying:
 
 ```yaml
 # In deployment.yaml:
-image: ko://student-service/cmd/server
+image: ko://student-service/cmd/student-service
 
 # Ko resolves to:
 image: kind.local/student-service-abc123@sha256:xyz...
@@ -344,7 +344,7 @@ go mod tidy -C student-service
 go mod tidy -C project-service
 
 # Test Ko build
-ko build --local ./student-service/cmd/server
+ko build --local ./student-service/cmd/student-service
 ```
 
 ### Database Connection Issues

@@ -48,7 +48,7 @@ func Load() (*Config, error) {
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath("/configs")                           // Kubernetes mount
 	viper.AddConfigPath("./services/student-service/configs") // IDE from root
-	viper.AddConfigPath("../configs")                         // IDE from cmd/server
+	viper.AddConfigPath("../configs")                         // IDE from cmd/
 
 	// Try to read config file (optional - will use ENV if not found)
 	if err := viper.ReadInConfig(); err != nil {

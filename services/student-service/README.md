@@ -137,14 +137,14 @@ export PORT=8080
 ### Spuštění aplikace
 
 ```bash
-go run cmd/server/main.go
+go run cmd/student-service/main.go
 ```
 
 ### Build
 
 ```bash
-go build -o server cmd/server/main.go
-./server
+go build -o student-service cmd/student-service/main.go
+./student-service
 ```
 
 ## Konfigurace

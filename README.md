@@ -277,7 +277,7 @@ export DB_USER=postgres
 export DB_PASSWORD=postgres
 export DB_NAME=university
 export PORT=8080
-go run cmd/server/main.go
+go run cmd/student-service/main.go
 ```
 
 ### Project Service
@@ -291,7 +291,7 @@ export DB_USER=postgres
 export DB_PASSWORD=postgres
 export DB_NAME=projects
 export PORT=8081
-go run cmd/server/main.go
+go run cmd/project-service/main.go
 ```
 
 ## Go Workspace

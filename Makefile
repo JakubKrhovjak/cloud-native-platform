@@ -24,13 +24,13 @@ build: build-student build-project ## Build all services
 build-student: ## Build student-service
 	@echo "🔨 Building student-service $(VERSION) ($(GIT_COMMIT))..."
 	@mkdir -p bin
-	@cd services/student-service && go build -ldflags="$(STUDENT_LDFLAGS)" -o ../../bin/student-service ./cmd/server
+	@cd services/student-service && go build -ldflags="$(STUDENT_LDFLAGS)" -o ../../bin/student-service ./cmd/student-service
 	@echo "✅ student-service → bin/student-service"
 
 build-project: ## Build project-service
 	@echo "🔨 Building project-service $(VERSION) ($(GIT_COMMIT))..."
 	@mkdir -p bin
-	@cd services/project-service && go build -ldflags="$(PROJECT_LDFLAGS)" -o ../../bin/project-service ./cmd/server
+	@cd services/project-service && go build -ldflags="$(PROJECT_LDFLAGS)" -o ../../bin/project-service ./cmd/project-service
 	@echo "✅ project-service → bin/project-service"
 
 version: ## Show version info
@@ -57,8 +57,8 @@ kind/setup: ## Create Kind cluster
 kind/deploy: ## Deploy to Kind with Helm
 	@echo "🚀 Deploying to Kind with Helm..."
 	@echo "📦 Building Go services with ko..."
-	@cd services/student-service && KO_DOCKER_REPO=kind.local KIND_CLUSTER_NAME=grud-cluster ko build --bare ./cmd/server 2>&1 | grep "Loading" | sed 's/.*Loading //' > /tmp/student-image.txt
-	@cd services/project-service && KO_DOCKER_REPO=kind.local KIND_CLUSTER_NAME=grud-cluster ko build --bare ./cmd/server 2>&1 | grep "Loading" | sed 's/.*Loading //' > /tmp/project-image.txt
+	@cd services/student-service && KO_DOCKER_REPO=kind.local KIND_CLUSTER_NAME=grud-cluster ko build --bare ./cmd/student-service 2>&1 | grep "Loading" | sed 's/.*Loading //' > /tmp/student-image.txt
+	@cd services/project-service && KO_DOCKER_REPO=kind.local KIND_CLUSTER_NAME=grud-cluster ko build --bare ./cmd/project-service 2>&1 | grep "Loading" | sed 's/.*Loading //' > /tmp/project-image.txt
 	@echo "📦 Building admin-panel..."
 	@docker build -t admin-panel:latest services/admin
 	@kind load docker-image admin-panel:latest --name grud-cluster

@@ -17,11 +17,11 @@ docker-compose up postgres postgres_projects -d
 # 2. Spusť project-service v IDE
 cd project-service
 # IDE automaticky načte .env.local (nebo přidej run configuration)
-go run ./cmd/server
+go run ./cmd/project-service
 
 # 3. Spusť student-service v IDE
 cd student-service
-go run ./cmd/server
+go run ./cmd/student-service
 ```
 
 ### Pro mě (Docker QA Testing)

@@ -18,7 +18,7 @@ studentService:
   enabled: true
   replicaCount: 1
   image:
-    repository: ko://student-service/cmd/server
+    repository: ko://student-service/cmd/student-service
     pullPolicy: IfNotPresent
   resources:
     limits:
@@ -56,7 +56,7 @@ projectService:
   enabled: true
   replicaCount: 1
   image:
-    repository: ko://project-service/cmd/server
+    repository: ko://project-service/cmd/project-service
     pullPolicy: IfNotPresent
   resources:
     limits:

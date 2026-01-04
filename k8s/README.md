@@ -104,12 +104,12 @@ k8s/
 │
 ├── student-service/
 │   ├── configmap.yaml
-│   ├── deployment.yaml         # Ko image: ko://student-service/cmd/server
+│   ├── deployment.yaml         # Ko image: ko://student-service/cmd/student-service
 │   └── service.yaml
 │
 ├── project-service/
 │   ├── configmap.yaml
-│   ├── deployment.yaml         # Ko image: ko://project-service/cmd/server
+│   ├── deployment.yaml         # Ko image: ko://project-service/cmd/project-service
 │   └── service.yaml
 │
 ├── postgres/
@@ -130,7 +130,7 @@ Ko resolves `image: ko://...` references:
 
 ```yaml
 # In deployment.yaml
-image: ko://student-service/cmd/server
+image: ko://student-service/cmd/student-service
 
 # Ko builds and replaces with
 image: kind.local/student-service-abc123@sha256:xyz...
@@ -268,7 +268,7 @@ kubectl describe pod -n grud <pod-name>
 kubectl get clusters -n grud
 
 # Ko build test
-ko build --local ./student-service/cmd/server
+ko build --local ./student-service/cmd/student-service
 ```
 
 ## Scripts vs Kustomize

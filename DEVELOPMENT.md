@@ -17,12 +17,12 @@ When creating a run configuration in GoLand:
 
 2. **Package path** (for student-service):
    ```
-   grud/services/student-service/cmd/server
+   grud/services/student-service/cmd/student-service
    ```
 
 3. **Package path** (for project-service):
    ```
-   grud/services/project-service/cmd/server
+   grud/services/project-service/cmd/project-service
    ```
 
 4. **Environment Variables** (REQUIRED):
@@ -87,7 +87,7 @@ The application automatically searches these paths:
 1. `./configs` (for Docker/K8s runtime)
 2. `./services/<service-name>/configs` (for IDE from root)
 3. `./services/<service-name>/configs` (legacy path support)
-4. `../configs` (for IDE from cmd/server)
+4. `../configs` (for IDE from cmd/)
 5. `../../configs` (for other locations)
 
 ## Project Structure
@@ -96,11 +96,11 @@ The application automatically searches these paths:
 grud/
 ├── services/                    # Microservices
 │   ├── student-service/
-│   │   ├── cmd/server/         # Main entry point
-│   │   ├── internal/           # Internal packages
-│   │   └── configs/            # Service configs
+│   │   ├── cmd/student-service/  # Main entry point
+│   │   ├── internal/             # Internal packages
+│   │   └── configs/              # Service configs
 │   └── project-service/
-│       ├── cmd/server/
+│       ├── cmd/project-service/
 │       ├── internal/
 │       └── configs/
 ├── api/                        # Shared protobuf definitions
