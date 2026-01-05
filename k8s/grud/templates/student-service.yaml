@@ -1,6 +1,16 @@
 {{- if .Values.studentService.enabled }}
 ---
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: student-service
+  namespace: {{ .Values.global.namespace }}
+  {{- if .Values.studentService.serviceAccount.gcpServiceAccount }}
+  annotations:
+    iam.gke.io/gcp-service-account: {{ .Values.studentService.serviceAccount.gcpServiceAccount }}
+  {{- end }}
+---
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: student-service-config
@@ -33,7 +43,11 @@ data:
     server:
       port: {{ .Values.studentService.config.serverPort | quote }}
     database:
+      {{- if .Values.cloudSql.enabled }}
+      host: {{ .Values.cloudSql.privateIp | quote }}
+      {{- else }}
       host: {{ .Values.studentService.database.host }}
+      {{- end }}
       port: {{ .Values.studentService.database.port | quote }}
       name: {{ .Values.studentService.database.name }}
     project_service:
@@ -41,18 +55,46 @@ data:
     nats:
       url: {{ .Values.studentService.config.natsUrl }}
       subject: {{ .Values.studentService.config.natsSubject }}
+{{- if .Values.ingress.enabled }}
+---
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: student-service-backend-config
+  namespace: {{ .Values.global.namespace }}
+spec:
+  healthCheck:
+    type: HTTP
+    port: 8080
+    requestPath: /health
+    checkIntervalSec: 15
+    timeoutSec: 5
+    healthyThreshold: 1
+    unhealthyThreshold: 2
+{{- end }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: student-service
   namespace: {{ .Values.global.namespace }}
+  {{- if .Values.ingress.enabled }}
+  annotations:
+    cloud.google.com/neg: '{"ingress": true}'
+    cloud.google.com/backend-config: '{"default": "student-service-backend-config"}'
+  {{- end }}
 spec:
+  {{- if .Values.ingress.enabled }}
+  type: ClusterIP
+  {{- else }}
   type: NodePort
+  {{- end }}
   ports:
     - port: 8080
       targetPort: 8080
+      {{- if not .Values.ingress.enabled }}
       nodePort: 30080
+      {{- end }}
       name: http
   selector:
     app: student-service
@@ -87,6 +129,7 @@ spec:
                     values:
                       - {{ index .Values.studentService.nodeSelector "node-type" }}
       {{- end }}
+      serviceAccountName: student-service
       containers:
         - name: student-service
           image: {{ .Values.studentService.image.repository }}
@@ -101,7 +144,11 @@ spec:
             - name: ENV
               value: {{ .Values.studentService.config.env | quote }}
             - name: DB_HOST
+              {{- if .Values.cloudSql.enabled }}
+              value: {{ .Values.cloudSql.privateIp | quote }}
+              {{- else }}
               value: {{ .Values.studentService.database.host }}
+              {{- end }}
             - name: DB_PORT
               value: {{ .Values.studentService.database.port | quote }}
             - name: DB_NAME

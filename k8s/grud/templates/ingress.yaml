@@ -1,0 +1,69 @@
+{{- if .Values.ingress.enabled }}
+{{- if .Values.ingress.host }}
+---
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: grud-managed-cert
+  namespace: {{ .Values.global.anamespace }}
+spec:
+  domains:
+    - {{ .Values.ingress.host }}
+{{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grud-ingress
+  namespace: {{ .Values.global.namespace }}
+  annotations:
+    {{- if eq .Values.global.environment "gcp-gke" }}
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "grud-ingress-ip"
+    {{- if .Values.ingress.host }}
+    networking.gke.io/managed-certificates: "grud-managed-cert"
+    {{- end }}
+    {{- end }}
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  rules:
+    {{- if .Values.ingress.host }}
+    - host: {{ .Values.ingress.host }}
+      http:
+    {{- else }}
+    - http:
+    {{- end }}
+        paths:
+          # Student Service API
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: student-service
+                port:
+                  number: 8080
+          - path: /auth
+            pathType: Prefix
+            backend:
+              service:
+                name: student-service
+                port:
+                  number: 8080
+          # Health check
+          - path: /health
+            pathType: Prefix
+            backend:
+              service:
+                name: student-service
+                port:
+                  number: 8080
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- toYaml .Values.ingress.tls | nindent 4 }}
+  {{- end }}
+{{- end }}

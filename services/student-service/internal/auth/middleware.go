@@ -67,12 +67,15 @@ func SetAuthCookie(w http.ResponseWriter, token string) {
 		sameSite = http.SameSiteLaxMode // Allow testing from Postman
 	}
 
+	// Secure cookies require HTTPS - enable for production environments
+	secure := env == "production" || env == "prod" || env == "gcp-gke"
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     "token",
 		Value:    token,
-		HttpOnly: true,           // XSS protection
-		Secure:   env != "local", // HTTPS only (except local dev)
-		SameSite: sameSite,       // CSRF protection
+		HttpOnly: true,     // XSS protection
+		Secure:   secure,   // HTTPS only in production
+		SameSite: sameSite, // CSRF protection
 		Path:     "/",
 		MaxAge:   900, // 15 minutes
 	})

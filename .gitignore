@@ -35,3 +35,9 @@ Thumbs.db
 
 # Generated protobuf files (old locations - can be removed after cleanup)
 */pkg/gen/
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/.terraform.lock.hcl

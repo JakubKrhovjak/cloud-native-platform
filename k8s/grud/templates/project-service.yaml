@@ -1,6 +1,16 @@
 {{- if .Values.projectService.enabled }}
 ---
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: project-service
+  namespace: {{ .Values.global.namespace }}
+  {{- if .Values.projectService.serviceAccount.gcpServiceAccount }}
+  annotations:
+    iam.gke.io/gcp-service-account: {{ .Values.projectService.serviceAccount.gcpServiceAccount }}
+  {{- end }}
+---
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: project-service-config
@@ -21,7 +31,11 @@ data:
   config.{{ .Values.projectService.config.env }}.yaml: |
     env: {{ .Values.projectService.config.env }}
     database:
+      {{- if .Values.cloudSql.enabled }}
+      host: {{ .Values.cloudSql.privateIp | quote }}
+      {{- else }}
       host: {{ .Values.projectService.database.host }}
+      {{- end }}
       port: {{ .Values.projectService.database.port | quote }}
       name: {{ .Values.projectService.database.name }}
     grpc:
@@ -74,6 +88,7 @@ spec:
                     values:
                       - {{ index .Values.projectService.nodeSelector "node-type" }}
       {{- end }}
+      serviceAccountName: project-service
       containers:
         - name: project-service
           image: {{ .Values.projectService.image.repository }}
@@ -90,7 +105,11 @@ spec:
             - name: GRPC_PORT
               value: {{ .Values.projectService.config.grpcPort | quote }}
             - name: DB_HOST
+              {{- if .Values.cloudSql.enabled }}
+              value: {{ .Values.cloudSql.privateIp | quote }}
+              {{- else }}
               value: {{ .Values.projectService.database.host }}
+              {{- end }}
             - name: DB_PORT
               value: {{ .Values.projectService.database.port | quote }}
             - name: DB_NAME

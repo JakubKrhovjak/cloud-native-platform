@@ -5,12 +5,21 @@ global:
   environment: kind
   namespace: grud
 
+# Cloud SQL (disabled for Kind - using local PostgreSQL)
+cloudSql:
+  enabled: false
+  connectionName: ""  # Set in values-gke.yaml: project:region:instance
+
+# Ingress (disabled for Kind - using NodePort)
+ingress:
+  enabled: false
+
 # Student Service
 studentService:
   enabled: true
   replicaCount: 1
   image:
-    repository: ko://student-service/cmd/server
+    repository: ko://student-service/cmd/student-service
     pullPolicy: IfNotPresent
   resources:
     limits:
@@ -40,13 +49,15 @@ studentService:
     secretName: student-db-app
   auth:
     jwtSecret: "super-secret-jwt-key-change-in-production"
+  serviceAccount:
+    gcpServiceAccount: ""  # Set in values-gke.yaml
 
 # Project Service
 projectService:
   enabled: true
   replicaCount: 1
   image:
-    repository: ko://project-service/cmd/server
+    repository: ko://project-service/cmd/project-service
     pullPolicy: IfNotPresent
   resources:
     limits:
@@ -73,6 +84,8 @@ projectService:
     port: "5432"
     name: projects
     secretName: project-db-app
+  serviceAccount:
+    gcpServiceAccount: ""  # Set in values-gke.yaml
 
 # Admin Panel
 adminPanel:

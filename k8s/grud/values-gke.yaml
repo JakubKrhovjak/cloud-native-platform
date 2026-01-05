@@ -5,6 +5,31 @@ global:
   environment: gcp-gke
   namespace: grud
 
+# Cloud SQL configuration
+cloudSql:
+  enabled: true
+  # Private IP is passed from Terraform via Makefile
+  # Get with: cd terraform && terraform output cloudsql_private_ip
+  privateIp: ""  # Set by: --set cloudSql.privateIp=$(terraform output -raw cloudsql_private_ip)
+  # Student database
+  studentDatabase: university
+  studentUser: student_user
+  studentPassword: student_password_change_me
+  # Project database
+  projectDatabase: projects
+  projectUser: project_user
+  projectPassword: project_password_change_me
+
+# Ingress for external access
+ingress:
+  enabled: true
+  host: grudapp.com
+  annotations: {}
+  # For HTTPS, configure managed certificate:
+  # annotations:
+  #   networking.gke.io/managed-certificates: grud-cert
+  tls: []
+
 studentService:
   enabled: true
   replicaCount: 2
@@ -17,14 +42,19 @@ studentService:
     requests:
       cpu: 50m
       memory: 64Mi
-  # No node selector/tolerations for GKE (runs on any node)
-  nodeSelector: {}
-  tolerations: []
+  nodeSelector:
+    node-type: app
+  tolerations:
+    - key: "workload"
+      operator: "Equal"
+      value: "app"
+      effect: "NoSchedule"
   database:
-    # TODO: Update with Cloud SQL connection
-    host: student-db.grud.svc.cluster.local
     port: "5432"
     name: university
+    secretName: student-db-credentials
+  serviceAccount:
+    gcpServiceAccount: student-service@rugged-abacus-483006-r5.iam.gserviceaccount.com
 
 projectService:
   enabled: true
@@ -38,13 +68,19 @@ projectService:
     requests:
       cpu: 50m
       memory: 64Mi
-  nodeSelector: {}
-  tolerations: []
+  nodeSelector:
+    node-type: app
+  tolerations:
+    - key: "workload"
+      operator: "Equal"
+      value: "app"
+      effect: "NoSchedule"
   database:
-    # TODO: Update with Cloud SQL connection
-    host: project-db.grud.svc.cluster.local
     port: "5432"
     name: projects
+    secretName: project-db-credentials
+  serviceAccount:
+    gcpServiceAccount: project-service@rugged-abacus-483006-r5.iam.gserviceaccount.com
 
 # Disabled for GKE
 adminPanel:

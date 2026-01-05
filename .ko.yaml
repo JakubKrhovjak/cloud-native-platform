@@ -1,6 +1,6 @@
 # Ko configuration for building Go applications without Docker
 # Ko builds Go binaries and creates container images directly
-# Usage: ko build ./services/student-service/cmd/server
+# Usage: ko build ./services/student-service/cmd/student-service
 
 # Base image for Go applications
 defaultBaseImage: cgr.dev/chainguard/static:latest
@@ -8,7 +8,7 @@ defaultBaseImage: cgr.dev/chainguard/static:latest
 # Build configuration
 builds:
   - id: student-service
-    main: ./services/student-service/cmd/server
+    main: ./services/student-service/cmd/student-service
     env:
       - CGO_ENABLED=0
       - GOOS=linux
@@ -19,7 +19,7 @@ builds:
       - -s -w
 
   - id: project-service
-    main: ./services/project-service/cmd/server
+    main: ./services/project-service/cmd/project-service
     env:
       - CGO_ENABLED=0
       - GOOS=linux

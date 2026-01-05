@@ -1,4 +1,4 @@
-.PHONY: build build-student build-project version test kind/setup kind/deploy kind/status kind/wait kind/stop kind/start kind/cleanup gke/auth gke/enable-apis gke/create-registry gke/create-cluster gke/connect gke/deploy gke/status gke/delete-cluster helm/template-kind helm/template-gke helm/uninstall infra/setup infra/deploy infra/deploy-prometheus infra/deploy-alloy infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts infra/status infra/cleanup help
+.PHONY: build build-student build-project version test kind/setup kind/deploy kind/status kind/wait kind/stop kind/start kind/cleanup gke/auth gke/connect gke/deploy gke/status gke/full-deploy gke/ingress gke/resources gke/clean gke/prometheus gke/grafana tf/init tf/plan tf/apply tf/destroy tf/output tf/fmt tf/validate helm/template-kind helm/template-gke helm/uninstall infra/setup infra/deploy infra/deploy-gke infra/deploy-prometheus infra/deploy-prometheus-gke infra/deploy-alloy infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts infra/status infra/cleanup help
 
 # =============================================================================
 # Build Configuration
@@ -24,13 +24,13 @@ build: build-student build-project ## Build all services
 build-student: ## Build student-service
 	@echo "🔨 Building student-service $(VERSION) ($(GIT_COMMIT))..."
 	@mkdir -p bin
-	@cd services/student-service && go build -ldflags="$(STUDENT_LDFLAGS)" -o ../../bin/student-service ./cmd/server
+	@cd services/student-service && go build -ldflags="$(STUDENT_LDFLAGS)" -o ../../bin/student-service ./cmd/student-service
 	@echo "✅ student-service → bin/student-service"
 
 build-project: ## Build project-service
 	@echo "🔨 Building project-service $(VERSION) ($(GIT_COMMIT))..."
 	@mkdir -p bin
-	@cd services/project-service && go build -ldflags="$(PROJECT_LDFLAGS)" -o ../../bin/project-service ./cmd/server
+	@cd services/project-service && go build -ldflags="$(PROJECT_LDFLAGS)" -o ../../bin/project-service ./cmd/project-service
 	@echo "✅ project-service → bin/project-service"
 
 version: ## Show version info
@@ -57,8 +57,8 @@ kind/setup: ## Create Kind cluster
 kind/deploy: ## Deploy to Kind with Helm
 	@echo "🚀 Deploying to Kind with Helm..."
 	@echo "📦 Building Go services with ko..."
-	@cd services/student-service && KO_DOCKER_REPO=kind.local KIND_CLUSTER_NAME=grud-cluster ko build --bare ./cmd/server 2>&1 | grep "Loading" | sed 's/.*Loading //' > /tmp/student-image.txt
-	@cd services/project-service && KO_DOCKER_REPO=kind.local KIND_CLUSTER_NAME=grud-cluster ko build --bare ./cmd/server 2>&1 | grep "Loading" | sed 's/.*Loading //' > /tmp/project-image.txt
+	@cd services/student-service && KO_DOCKER_REPO=kind.local KIND_CLUSTER_NAME=grud-cluster ko build --bare ./cmd/student-service 2>&1 | grep "Loading" | sed 's/.*Loading //' > /tmp/student-image.txt
+	@cd services/project-service && KO_DOCKER_REPO=kind.local KIND_CLUSTER_NAME=grud-cluster ko build --bare ./cmd/project-service 2>&1 | grep "Loading" | sed 's/.*Loading //' > /tmp/project-image.txt
 	@echo "📦 Building admin-panel..."
 	@docker build -t admin-panel:latest services/admin
 	@kind load docker-image admin-panel:latest --name grud-cluster
@@ -112,10 +112,11 @@ kind/cleanup: ## Delete Kind cluster
 	@./scripts/cleanup.sh
 
 # =============================================================================
-# GKE Cluster
+# GKE Cluster (infrastructure via Terraform)
 # =============================================================================
 GCP_PROJECT := rugged-abacus-483006-r5
 GCP_REGION := europe-west1
+GCP_ZONE := europe-west1-b
 GKE_CLUSTER := grud-cluster
 GKE_REGISTRY := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/grud
 
@@ -126,54 +127,33 @@ gke/auth: ## Authenticate with GCP
 	@gcloud auth configure-docker $(GCP_REGION)-docker.pkg.dev
 	@echo "✅ GCP authentication complete"
 
-gke/enable-apis: ## Enable required GCP APIs
-	@echo "🔧 Enabling required APIs..."
-	@gcloud services enable container.googleapis.com --project=$(GCP_PROJECT)
-	@gcloud services enable artifactregistry.googleapis.com --project=$(GCP_PROJECT)
-	@echo "✅ APIs enabled"
-
-gke/create-registry: ## Create Artifact Registry repository
-	@echo "📦 Creating Artifact Registry..."
-	@gcloud artifacts repositories create grud \
-		--repository-format=docker \
-		--location=$(GCP_REGION) \
-		--description="GRUD container images" || echo "Repository already exists"
-	@echo "✅ Artifact Registry ready"
-
-gke/create-cluster: ## Create GKE Standard cluster
-	@echo "🚀 Creating GKE Standard cluster..."
-	@gcloud container clusters create $(GKE_CLUSTER) \
-		--region=$(GCP_REGION) \
-		--project=$(GCP_PROJECT) \
-		--num-nodes=1 \
-		--machine-type=e2-small \
-		--disk-size=20GB
-	@echo "✅ GKE cluster created"
-
-gke/connect: ## Connect to existing GKE cluster
+gke/connect: ## Connect to GKE cluster
 	@echo "🔗 Connecting to GKE cluster..."
 	@gcloud container clusters get-credentials $(GKE_CLUSTER) \
-		--region=$(GCP_REGION) \
+		--zone=$(GCP_ZONE) \
 		--project=$(GCP_PROJECT)
 	@echo "✅ Connected to $(GKE_CLUSTER)"
 
-gke/setup: gke/auth gke/create-registry ## Full GKE setup (auth + registry)
-	@echo "✅ GKE setup complete"
+gke/build: ## Build and push images to Artifact Registry
+	@echo "📦 Building and pushing images to Artifact Registry..."
+	@KO_DOCKER_REPO=$(GKE_REGISTRY)/student-service ko build --bare -t latest ./services/student-service/cmd/student-service
+	@KO_DOCKER_REPO=$(GKE_REGISTRY)/project-service ko build --bare -t latest ./services/project-service/cmd/project-service
+	@echo "✅ Images pushed to $(GKE_REGISTRY)"
 
-gke/full-setup: gke/auth gke/enable-apis gke/create-registry gke/create-cluster gke/connect ## Full GKE setup including cluster creation
-	@echo "✅ GKE full setup complete"
-
-gke/deploy: gke/connect ## Deploy to GKE with Helm
+gke/deploy: gke/connect gke/build  ## Deploy to GKE with Helm
 	@echo "🚀 Deploying to GKE with Helm..."
-	@helm upgrade --install grud k8s/grud \
+	@CLOUDSQL_IP=$$(cd $(TF_DIR) && terraform output -raw cloudsql_private_ip) && \
+	helm upgrade --install grud k8s/grud \
 		-n grud --create-namespace \
 		-f k8s/grud/values-gke.yaml \
 		--set studentService.image.repository=$(GKE_REGISTRY)/student-service \
 		--set projectService.image.repository=$(GKE_REGISTRY)/project-service \
+		--set cloudSql.privateIp=$$CLOUDSQL_IP \
 		--wait
+	@kubectl rollout restart deployment -n grud
 	@echo "✅ Deployed to GKE"
 
-gke/status: gke/connect ## Show GKE cluster status
+gke/status: ## Show GKE cluster status
 	@echo "📋 GKE Cluster Status"
 	@echo ""
 	@echo "Nodes:"
@@ -188,13 +168,111 @@ gke/status: gke/connect ## Show GKE cluster status
 	@echo "Services:"
 	@kubectl get services -n grud
 
-gke/cleanup: ## Delete GKE cluster
-	@echo "🗑️  Deleting GKE cluster..."
-	@gcloud container clusters delete $(GKE_CLUSTER) \
-		--region=$(GCP_REGION) \
-		--project=$(GCP_PROJECT) \
-		--quiet
-	@echo "✅ GKE cluster deleted"
+gke/resources: ## Show resource utilization for grud namespace and nodes
+	@echo "📊 Resource Utilization"
+	@echo ""
+	@echo "=== Node Resources ==="
+	@kubectl top nodes
+	@echo ""
+	@echo "=== Pod Resources (grud namespace) ==="
+	@kubectl top pods -n grud --containers
+	@echo ""
+	@echo "=== Resource Requests/Limits ==="
+	@kubectl get pods -n grud -o custom-columns="\
+NAME:.metadata.name,\
+CPU_REQ:.spec.containers[*].resources.requests.cpu,\
+CPU_LIM:.spec.containers[*].resources.limits.cpu,\
+MEM_REQ:.spec.containers[*].resources.requests.memory,\
+MEM_LIM:.spec.containers[*].resources.limits.memory"
+
+gke/clean: ## Clean uninstall grud helm release and all pods
+	@echo "🧹 Cleaning grud namespace..."
+	@helm uninstall grud -n grud --wait 2>/dev/null || true
+	@echo "✅ Cleanup complete"
+
+gke/prometheus: ## Port-forward Prometheus (localhost:9090)
+	@echo "📊 Port-forwarding Prometheus to localhost:9090..."
+	@kubectl port-forward -n infra svc/prometheus-kube-prometheus-prometheus 9090:9090
+
+gke/grafana: ## Port-forward Grafana (localhost:3000)
+	@echo "📈 Port-forwarding Grafana to localhost:3000..."
+	@kubectl port-forward -n infra svc/prometheus-grafana 3000:80
+
+gke/full-deploy: ## Full GKE deployment (terraform + helm)
+	@$(MAKE) tf/init
+	@$(MAKE) tf/plan
+	@$(MAKE) tf/apply
+	@$(MAKE) gke/connect
+	@$(MAKE) infra/setup
+	@$(MAKE) infra/deploy-gke
+	@$(MAKE) gke/deploy
+	@echo "✅ Full GKE deployment complete"
+
+# =============================================================================
+# Terraform
+# =============================================================================
+TF_DIR := terraform
+
+tf/init: ## Initialize Terraform
+	@echo "🔧 Initializing Terraform..."
+	@cd $(TF_DIR) && terraform init
+	@echo "✅ Terraform initialized"
+
+tf/plan: ## Plan Terraform changes
+	@echo "📋 Planning Terraform changes..."
+	@cd $(TF_DIR) && terraform plan
+
+tf/apply: ## Apply Terraform configuration
+	@echo "🚀 Applying Terraform configuration..."
+	@cd $(TF_DIR) && terraform apply -auto-approve
+	@echo "✅ Terraform applied"
+
+tf/destroy: ## Destroy Terraform resources
+	@echo "🗑️  Destroying Terraform resources..."
+	@cd $(TF_DIR) && terraform destroy -auto-approve
+
+tf/output: ## Show Terraform outputs
+	@cd $(TF_DIR) && terraform output
+
+gke/ingress: ## Show Ingress status and external IP
+	@echo "=== Reserved Static IPs (Terraform) ==="
+	@cd $(TF_DIR) && terraform output ingress_ip 2>/dev/null || echo "Not created yet"
+	@cd $(TF_DIR) && terraform output grafana_ip 2>/dev/null || echo "Not created yet"
+	@echo ""
+	@echo "=== App Ingress (grud namespace) ==="
+	@kubectl get ingress -n grud 2>/dev/null || echo "No ingress found"
+	@echo ""
+	@echo "=== Grafana Ingress (infra namespace) ==="
+	@kubectl get ingress -n infra 2>/dev/null || echo "No ingress found"
+	@echo ""
+	@echo "URLs (after deployment):"
+	@echo "  API:     http://$$(cd $(TF_DIR) && terraform output -raw ingress_ip 2>/dev/null)/api"
+	@echo "  Grafana: http://$$(cd $(TF_DIR) && terraform output -raw grafana_ip 2>/dev/null)"
+
+gcp/resources: ## List all GCP resources in project
+	@echo "=== GKE Clusters ==="
+	@gcloud container clusters list --project=$(GCP_PROJECT) 2>/dev/null || echo "None"
+	@echo ""
+	@echo "=== Cloud SQL Instances ==="
+	@gcloud sql instances list --project=$(GCP_PROJECT) 2>/dev/null || echo "None"
+	@echo ""
+	@echo "=== Compute Instances (VMs) ==="
+	@gcloud compute instances list --project=$(GCP_PROJECT) 2>/dev/null || echo "None"
+	@echo ""
+	@echo "=== VPC Networks ==="
+	@gcloud compute networks list --project=$(GCP_PROJECT) 2>/dev/null
+	@echo ""
+	@echo "=== Artifact Registry ==="
+	@gcloud artifacts repositories list --project=$(GCP_PROJECT) --location=$(GCP_REGION) 2>/dev/null || echo "None"
+	@echo ""
+	@echo "=== Service Accounts (app) ==="
+	@gcloud iam service-accounts list --project=$(GCP_PROJECT) --filter="email~student-service OR email~project-service" 2>/dev/null || echo "None"
+
+tf/fmt: ## Format Terraform files
+	@cd $(TF_DIR) && terraform fmt -recursive
+
+tf/validate: ## Validate Terraform configuration
+	@cd $(TF_DIR) && terraform validate
 
 # =============================================================================
 # Helm Utilities
@@ -220,16 +298,30 @@ infra/setup: ## Add Helm repositories
 	@helm repo update
 	@echo "✅ Helm repositories added"
 
-infra/deploy-prometheus: ## Deploy Prometheus stack
+infra/deploy-prometheus: ## Deploy Prometheus stack (Kind)
 	@echo "🔥 Deploying Prometheus stack..."
 	@kubectl create namespace infra --dry-run=client -o yaml | kubectl apply -f -
 	@helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
 		-n infra \
 		-f k8s/infra/prometheus-values.yaml \
 		--wait
-	@echo "📊 Deploying Grafana dashboards..."
+	@echo "📊 Deploying Grafana dashboards and datasources..."
 	@kubectl apply -f k8s/infra/grafana-dashboard-configmap.yaml
+	@kubectl apply -f k8s/infra/grafana-datasources.yaml
 	@echo "✅ Prometheus stack deployed"
+
+infra/deploy-prometheus-gke: ## Deploy Prometheus stack (GKE with Ingress)
+	@echo "🔥 Deploying Prometheus stack for GKE..."
+	@kubectl create namespace infra --dry-run=client -o yaml | kubectl apply -f -
+	@helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
+		-n infra \
+		-f k8s/infra/prometheus-values.yaml \
+		-f k8s/infra/prometheus-values-gke.yaml \
+		--wait
+	@echo "📊 Deploying Grafana dashboards and datasources..."
+	@kubectl apply -f k8s/infra/grafana-dashboard-configmap.yaml
+	@kubectl apply -f k8s/infra/grafana-datasources.yaml
+	@echo "✅ Prometheus stack deployed with Ingress"
 
 infra/deploy-alloy: ## Deploy Grafana Alloy
 	@echo "📡 Deploying Grafana Alloy..."
@@ -269,12 +361,19 @@ infra/deploy-alerts: ## Deploy alerting rules
 	@kubectl apply -f k8s/infra/alerting-rules.yaml
 	@echo "✅ Alerting rules deployed"
 
-infra/deploy: infra/setup infra/deploy-prometheus infra/deploy-alloy infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts ## Deploy full observability stack
+infra/deploy: infra/setup infra/deploy-prometheus infra/deploy-alloy infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts ## Deploy full observability stack (Kind)
 	@echo "✅ Full observability stack deployed"
+
+infra/deploy-gke: infra/setup infra/deploy-prometheus-gke infra/deploy-alloy infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts ## Deploy full observability stack (GKE)
+	@echo "✅ Full observability stack deployed for GKE"
 
 infra/status: ## Show infra pods status
 	@echo "📊 Observability stack status:"
 	@kubectl get pods -n infra
+
+infra/resources: ## Show infra node resource utilization
+	@echo "📊 Infra node resource utilization:"
+	@kubectl describe node -l node-type=infra | grep -A10 "Allocated resources:"
 
 infra/cleanup: ## Remove observability stack
 	@echo "🧹 Cleaning up observability stack..."
@@ -312,6 +411,10 @@ help: ## Show this help
 	@echo "  make gke/full-setup     - Full setup including cluster creation"
 	@echo "  make gke/deploy         - Deploy to GKE with Helm"
 	@echo "  make gke/status         - Show GKE status"
+	@echo "  make gke/resources      - Show resource utilization"
+	@echo "  make gke/clean          - Clean uninstall helm release"
+	@echo "  make gke/prometheus     - Port-forward Prometheus (localhost:9090)"
+	@echo "  make gke/grafana        - Port-forward Grafana (localhost:3000)"
 	@echo "  make gke/cleanup        - Delete GKE cluster"
 	@echo ""
 	@echo "Observability:"
