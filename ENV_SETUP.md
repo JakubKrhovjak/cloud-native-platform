@@ -1,104 +1,295 @@
-# Environment Setup Guide
+# Environment Configuration Guide
 
-## 📋 Available Environments
+## Available Environments
 
-- **local** - Pro development v IDE (localhost)
-- **qa** - Pro testování v Dockeru (docker hostnames)
-- **prod** - Pro production (nastaví se při deployi)
+- **local** - Local IDE development (localhost, Docker Compose databases)
+- **kind** - Kind Kubernetes cluster (local development)
+- **gke** - Google Kubernetes Engine (production)
 
-## 🚀 Quick Start
+## Configuration Files
 
-### Pro tebe (IDE Development - local profile)
+Each service has YAML configuration files in `services/<service-name>/configs/`:
+
+```
+services/
+├── student-service/configs/
+│   ├── config.local.yaml      # IDE development
+│   └── config.kind.yaml       # Kind cluster (mounted via ConfigMap)
+└── project-service/configs/
+    ├── config.local.yaml
+    └── config.kind.yaml
+```
+
+## Environment Variable: ENV
+
+The `ENV` variable determines which config file to load:
+- `ENV=local` → loads `config.local.yaml`
+- `ENV=kind` → loads `config.kind.yaml`
+- Default: `local`
+
+## Local Development (IDE)
+
+### Configuration
+
+**student-service** (`config.local.yaml`):
+```yaml
+server:
+  port: 8080
+  shutdownTimeout: 30s
+
+database:
+  host: localhost
+  port: 5439
+  user: postgres
+  password: postgres
+  database: university
+
+projectService:
+  grpcAddress: localhost:9090
+
+nats:
+  url: nats://localhost:4222
+
+otel:
+  endpoint: http://localhost:4317
+  insecure: true
+```
+
+**project-service** (`config.local.yaml`):
+```yaml
+server:
+  httpPort: 8081
+  grpcPort: 9090
+
+database:
+  host: localhost
+  port: 5440
+  user: postgres
+  password: postgres
+  database: projects
+
+nats:
+  url: nats://localhost:4222
+  subject: student.viewed
+
+otel:
+  endpoint: http://localhost:4317
+  insecure: true
+```
+
+### Start Dependencies
 
 ```bash
-# 1. Spusť databáze
-docker-compose up postgres postgres_projects -d
-
-# 2. Spusť project-service v IDE
-cd project-service
-# IDE automaticky načte .env.local (nebo přidej run configuration)
-go run ./cmd/server
-
-# 3. Spusť student-service v IDE
-cd student-service
-go run ./cmd/server
+# Start PostgreSQL databases and NATS
+docker-compose up postgres postgres_projects nats -d
 ```
 
-### Pro mě (Docker QA Testing)
+### Environment Variables (IDE)
+
+Set in GoLand/IntelliJ run configuration:
+```
+ENV=local
+JWT_SECRET=your-secret-key-change-this-in-production
+```
+
+## Kind Cluster
+
+### Configuration
+
+In Kind, services use Kubernetes service DNS names:
+
+**student-service**:
+- Database: `student-db-rw.grud.svc.cluster.local:5432`
+- Project service gRPC: `project-service.grud.svc.cluster.local:9090`
+- NATS: `nats://nats.infra.svc.cluster.local:4222`
+- OTEL: `alloy.infra.svc.cluster.local:4317`
+
+**project-service**:
+- Database: `project-db-rw.grud.svc.cluster.local:5432`
+- NATS: `nats://nats.infra.svc.cluster.local:4222`
+- OTEL: `alloy.infra.svc.cluster.local:4317`
+
+### ConfigMaps
+
+Configuration is injected via Kubernetes ConfigMaps:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: student-service-config
+data:
+  config.yaml: |
+    server:
+      port: 8080
+    database:
+      host: student-db-rw
+      port: 5432
+      # ...
+```
+
+Helm values in `k8s/grud/values-kind.yaml` control these configurations.
+
+## GKE (Production)
+
+### Configuration
+
+In GKE, services use:
+- **CloudSQL**: Via Cloud SQL Proxy sidecar
+- **Managed NATS**: Kubernetes service
+- **Grafana Cloud**: Remote OTEL endpoint
+
+See `k8s/grud/values-gke.yaml` for production Helm values.
+
+### Secrets Management
+
+Secrets are stored in Kubernetes Secrets (or GCP Secret Manager):
+- Database passwords
+- JWT secret
+- TLS certificates
 
 ```bash
-# Spustí všechno v Dockeru s QA profilem
-ENV=qa docker-compose up -d
-
-# Nebo bez ENV (defaultně použije qa)
-docker-compose up -d
+kubectl create secret generic student-db-secret \
+  -n grud \
+  --from-literal=password=<generated-password>
 ```
 
-## 📁 Structure
+## Configuration Hierarchy
 
-```
-project-service/
-├── .env.local       ← localhost URLs (pro IDE)
-├── .env.qa          ← docker URLs (pro Docker)
-└── .env.example     ← template
+Configuration values are loaded in this order (later overrides earlier):
 
-student-service/
-├── .env.local       ← localhost URLs (pro IDE)
-├── .env.qa          ← docker URLs (pro Docker)
-└── .env.example     ← template
-```
+1. **Default values** in code
+2. **YAML config file** (`config.{env}.yaml`)
+3. **Environment variables** (e.g., `JWT_SECRET`)
+4. **Kubernetes Secrets** (mounted as files or env vars)
 
-## 🔧 Configuration Differences
+## Key Differences Between Environments
 
-| Config | Local (IDE) | QA (Docker) |
-|--------|-------------|-------------|
-| **DB Host** | `localhost:5439/5440` | `postgres:5432` |
-| **Project Service** | `http://localhost:8081` | `http://project_api:8081` |
-| **gRPC** | `localhost:9090` | `project_api:9090` |
+| Configuration | Local (IDE) | Kind | GKE |
+|---------------|-------------|------|-----|
+| **Database Host** | `localhost:5439/5440` | `student-db-rw:5432` | Cloud SQL Proxy |
+| **gRPC** | `localhost:9090` | `project-service:9090` | Internal LB |
+| **NATS** | `localhost:4222` | `nats.infra:4222` | Managed NATS |
+| **OTEL** | `localhost:4317` | `alloy.infra:4317` | Grafana Cloud |
+| **TLS** | No | No | Yes (Ingress) |
+| **Cookies** | Not secure | Not secure | Secure + SameSite |
 
-## 💡 Tips
+## Switching Environments
 
-### Spustit s jiným profilem
+### From Local to Kind
+
 ```bash
-# Local profile
-ENV=local docker-compose up -d
+# Deploy to Kind
+make kind/setup
+make infra/deploy
+make kind/deploy
 
-# QA profile (default)
-docker-compose up -d
+# Services automatically use Kind configuration
 ```
 
-### Změnit config
-```bash
-# Pro local development (IDE)
-vim project-service/.env.local
+### From Kind to GKE
 
-# Pro Docker testing
-vim project-service/.env.qa
+```bash
+# Create GKE cluster
+cd terraform
+terraform apply
+
+# Deploy services
+cd ..
+make gke/deploy
 ```
 
-## 🎯 Best Practices
+Helm automatically uses the correct values file based on the target cluster.
 
-✅ **DO:**
-- Commit `.env.local` and `.env.qa` (non-sensitive defaults)
-- Use `.env.local` when running in IDE
-- Use `.env.qa` for Docker testing
+## Environment Variables Reference
 
-❌ **DON'T:**
-- Don't commit `.env` or `*.env.prod`
-- Don't hardcode URLs in code
-- Don't mix local and docker hostnames
+### Required for All Environments
 
-## 🐛 Troubleshooting
+- `ENV` - Environment name (local/kind/gke)
+- `JWT_SECRET` - JWT signing secret (must be same across all instances)
 
-### "Connection refused" v IDE
-→ Používáš `.env.local`? Mělo by být `localhost` ne `project_api`
+### Optional
 
-### "No such host" v Dockeru
-→ Docker používá `.env.qa`? Mělo by být `project_api` ne `localhost`
+- `LOG_LEVEL` - Log level (debug/info/warn/error), default: info
+- `OTEL_SERVICE_NAME` - Override service name for telemetry
+- `OTEL_ENVIRONMENT` - Override environment for telemetry
 
-### Změnit mezi profily
+## Debugging Configuration
+
+### Print Active Configuration
+
+Services log configuration on startup (with secrets redacted):
+
 ```bash
-# Restartuj s novým profilem
-ENV=local docker-compose down
-ENV=local docker-compose up -d
+# Local
+go run ./services/student-service/cmd/server
+
+# Kind
+kubectl logs -n grud -l app=student-service | grep config
+```
+
+### Verify ConfigMap
+
+```bash
+# View ConfigMap
+kubectl get configmap student-service-config -n grud -o yaml
+
+# Verify mounted config in pod
+kubectl exec -n grud student-service-xxxx -- cat /etc/config/config.yaml
+```
+
+## Best Practices
+
+1. **Never commit secrets** - Use `.gitignore` for `.env.prod`
+2. **Use different JWT secrets** per environment
+3. **Rotate secrets regularly** in production
+4. **Keep local config in sync** with Kind/GKE structure
+5. **Use CloudSQL Proxy** in GKE, never direct connections
+6. **Enable secure cookies** only in production (HTTPS)
+
+## Troubleshooting
+
+### Config file not found
+
+```bash
+# Check ENV variable
+echo $ENV
+
+# Verify file exists
+ls services/student-service/configs/
+
+# Check search paths in logs
+```
+
+### Database connection refused
+
+```bash
+# Local: Check Docker
+docker ps | grep postgres
+
+# Kind: Check database pods
+kubectl get pods -n grud -l app=student-db
+
+# Test connection
+psql -h localhost -p 5439 -U postgres -d university
+```
+
+### Wrong NATS endpoint
+
+```bash
+# Check NATS URL in config
+kubectl get configmap student-service-config -n grud -o yaml | grep nats
+
+# Verify NATS is running
+kubectl get pods -n infra -l app=nats
+```
+
+### OTEL not receiving traces
+
+```bash
+# Check OTEL endpoint in config
+kubectl get configmap student-service-config -n grud -o yaml | grep otel
+
+# Check Alloy logs
+kubectl logs -n infra -l app.kubernetes.io/name=alloy
 ```
