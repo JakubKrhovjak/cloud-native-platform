@@ -1,4 +1,4 @@
-.PHONY: build build-student build-project version test kind/setup kind/deploy kind/status kind/wait kind/stop kind/start kind/cleanup gke/auth gke/connect gke/deploy gke/status gke/full-deploy gke/ingress gke/resources gke/clean gke/prometheus gke/grafana tf/init tf/plan tf/apply tf/destroy tf/output tf/fmt tf/validate helm/template-kind helm/template-gke helm/uninstall infra/setup infra/deploy infra/deploy-gke infra/deploy-prometheus infra/deploy-prometheus-gke infra/deploy-alloy infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts infra/status infra/cleanup help
+.PHONY: build build-student build-project version test kind/setup kind/deploy kind/status kind/wait kind/stop kind/start kind/cleanup gke/auth gke/connect gke/deploy gke/status gke/full-deploy gke/ingress gke/resources gke/clean gke/prometheus gke/grafana tf/init tf/plan tf/apply tf/destroy tf/output tf/fmt tf/validate helm/template-kind helm/template-gke helm/uninstall infra/setup infra/deploy infra/deploy-gke infra/deploy-prometheus infra/deploy-prometheus-gke infra/deploy-alloy infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts infra/status infra/cleanup secrets/generate-kind secrets/list-kind secrets/list-gke secrets/view-gke help
 
 # =============================================================================
 # Build Configuration
@@ -387,6 +387,32 @@ infra/cleanup: ## Remove observability stack
 	@echo "✅ Cleanup complete"
 
 # =============================================================================
+# Secret Management
+# =============================================================================
+secrets/generate-kind: ## Generate secrets for Kind cluster
+	@echo "🔐 Generating secrets for Kind cluster..."
+	@./scripts/generate-secrets.sh kind
+	@echo "✅ Secrets generated for Kind"
+
+secrets/list-kind: ## List secrets in Kind cluster
+	@echo "📋 Secrets in Kind cluster:"
+	@kubectl get secrets -n grud -l app=grud,component=secrets
+
+secrets/list-gke: ## List secrets in Google Secret Manager
+	@echo "📋 Secrets in Google Secret Manager:"
+	@gcloud secrets list --filter="name:grud-"
+
+secrets/view-gke: ## View secret values in Google Secret Manager (for debugging)
+	@echo "🔍 JWT Secret:"
+	@gcloud secrets versions access latest --secret=grud-jwt-secret
+	@echo ""
+	@echo "🔍 Student DB Credentials:"
+	@gcloud secrets versions access latest --secret=grud-student-db-credentials | jq
+	@echo ""
+	@echo "🔍 Project DB Credentials:"
+	@gcloud secrets versions access latest --secret=grud-project-db-credentials | jq
+
+# =============================================================================
 # Help
 # =============================================================================
 help: ## Show this help
@@ -421,6 +447,14 @@ help: ## Show this help
 	@echo "  make infra/deploy       - Deploy full observability stack"
 	@echo "  make infra/status       - Show infra pods status"
 	@echo "  make infra/cleanup      - Remove observability stack"
+	@echo ""
+	@echo "Secret Management:"
+	@echo "  make secrets/generate-kind - Generate secrets for Kind"
+	@echo "  make secrets/list-kind     - List secrets in Kind cluster"
+	@echo "  make secrets/list-gke      - List secrets in Google Secret Manager"
+	@echo "  make secrets/view-gke      - View secret values in GSM (debug)"
+	@echo ""
+	@echo "  Note: GKE secrets are managed by Terraform (see terraform/secrets.tf)"
 	@echo ""
 	@echo "Helm:"
 	@echo "  make helm/template-kind - Show Kind templates"

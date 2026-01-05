@@ -51,3 +51,24 @@ output "ingress_ip" {
   value       = data.google_compute_global_address.ingress_ip.address
 }
 
+# Secrets
+output "jwt_secret_name" {
+  description = "Google Secret Manager JWT secret name"
+  value       = google_secret_manager_secret.jwt_secret.secret_id
+}
+
+output "student_db_secret_name" {
+  description = "Google Secret Manager student DB secret name"
+  value       = google_secret_manager_secret.student_db_credentials.secret_id
+}
+
+output "project_db_secret_name" {
+  description = "Google Secret Manager project DB secret name"
+  value       = google_secret_manager_secret.project_db_credentials.secret_id
+}
+
+output "external_secrets_namespace" {
+  description = "External Secrets Operator namespace"
+  value       = kubernetes_namespace.external_secrets.metadata[0].name
+}
+
