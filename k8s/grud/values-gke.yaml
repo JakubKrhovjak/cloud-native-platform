@@ -1,7 +1,16 @@
 # GKE cluster values
 global:
-  environment: gke
+  environment: gcp-gke
   namespace: grud
+
+# Ingress configuration
+ingress:
+  enabled: true
+  host: grudapp.com
+  className: ""
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "grud-ingress-ip"
 
 # Cloud SQL configuration
 cloudSql:

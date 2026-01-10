@@ -5,7 +5,7 @@ apiVersion: networking.gke.io/v1
 kind: ManagedCertificate
 metadata:
   name: grud-managed-cert
-  namespace: {{ .Values.global.anamespace }}
+  namespace: {{ .Values.global.namespace }}
 spec:
   domains:
     - {{ .Values.ingress.host }}
