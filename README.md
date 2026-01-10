@@ -63,9 +63,9 @@ The platform consists of three microservices communicating via HTTP, gRPC, and N
 ### Infrastructure
 - Kubernetes + Helm
 - Ko (container builder)
-- Kind (local development)
-- GKE (production via Terraform)
-- CloudNativePG (HA PostgreSQL)
+- Kind (local development) + CloudNativePG
+- GKE (production via Terraform) + Cloud SQL
+- Google Secret Manager + External Secrets Operator
 
 ### Observability
 - OpenTelemetry (traces + metrics)
@@ -149,11 +149,14 @@ grud/
 │   │   └── values-gke.yaml    # GKE config
 │   └── infra/                 # Infrastructure (Prometheus, Grafana, NATS, Loki)
 │
-├── terraform/                 # GKE infrastructure
-│   ├── main.tf
-│   ├── gke.tf
-│   ├── database.tf
-│   └── variables.tf
+├── terraform/                 # GKE infrastructure (Terraform)
+│   ├── gke.tf                # GKE cluster and node pools
+│   ├── cloudsql.tf           # Cloud SQL PostgreSQL
+│   ├── secrets.tf            # Google Secret Manager
+│   ├── helm.tf               # External Secrets Operator
+│   ├── vpc.tf                # VPC network
+│   ├── iam.tf                # Service accounts
+│   └── variables.tf          # Configuration variables
 │
 ├── scripts/                   # Deployment scripts
 │   ├── kind-setup.sh
@@ -488,18 +491,38 @@ make kind/deploy           # Deploy services
 **Secret Management**: Kubernetes Secrets generated locally
 
 ### 2. Google Kubernetes Engine (GKE)
-```bash
-cd terraform
-terraform init
-terraform apply      # Create GKE + Cloud SQL + Secrets + External Secrets Operator
 
-cd ..
-make gke/deploy      # Deploy services with Helm
+```bash
+# 1. Deploy infrastructure with Terraform
+make tf/init
+make tf/apply        # Creates: GKE + Cloud SQL + Secrets + External Secrets Operator
+
+# 2. Connect to cluster
+make gke/connect
+
+# 3. Deploy observability stack (Prometheus, Grafana, NATS, etc.)
+make infra/deploy-gke
+
+# 4. Deploy application services
+make gke/deploy
+
+# Or do everything in one command:
+make gke/full-deploy
 ```
 
-**Secret Management**: Google Secret Manager + External Secrets Operator (managed by Terraform)
+**Features**:
+- Cloud SQL PostgreSQL with private IP (VPC peering)
+- Google Secret Manager + External Secrets Operator
+- GCE Ingress with static IP and managed SSL certificate
+- Artifact Registry for container images
+- Workload Identity for secure GCP API access
 
-See [terraform/README.md](terraform/README.md) for GKE deployment guide and [SECRETS.md](SECRETS.md) for detailed secret management documentation.
+**Access Services**:
+- API: `http://grudapp.com/api/students` (after DNS setup)
+- Grafana: `make gke/grafana` (port-forward to localhost:3000)
+- Prometheus: `make gke/prometheus` (port-forward to localhost:9090)
+
+See [terraform/README.md](terraform/README.md) for detailed GKE deployment guide and [SECRETS.md](SECRETS.md) for secret management documentation.
 
 ### 3. Docker Compose (Legacy)
 ```bash

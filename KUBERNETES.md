@@ -1,6 +1,8 @@
-# Kubernetes Deployment
+# Kubernetes Deployment (Kind)
 
-Deploy GRUD microservices on Kind cluster using **Kustomize + Ko** - declarative, GitOps-friendly approach.
+Deploy GRUD microservices on **Kind cluster** for local development using Kustomize + Ko.
+
+For **GKE production deployment**, see [terraform/README.md](terraform/README.md).
 
 ## Quick Start (3 commands)
 
@@ -464,13 +466,35 @@ make dev               # Setup + operator + deploy-dev + wait
 make prod              # Setup + operator + deploy-prod + wait
 ```
 
-## Next Steps
+## GKE Deployment
+
+For production deployment on Google Kubernetes Engine, see [terraform/README.md](terraform/README.md).
+
+Key differences from Kind:
+- **Database**: Cloud SQL PostgreSQL (instead of CloudNativePG)
+- **Secrets**: Google Secret Manager + External Secrets Operator
+- **Ingress**: GCE Ingress with static IP and managed SSL
+- **Node Pools**: Separate infra and app pools with taints
+
+Quick GKE deployment:
+
+```bash
+# Full deployment (Terraform + infrastructure + application)
+make gke/full-deploy
+
+# Or step by step:
+make tf/apply           # Deploy GKE + Cloud SQL + Secrets
+make gke/connect        # Get cluster credentials
+make infra/deploy-gke   # Deploy observability stack
+make gke/deploy         # Deploy application
+```
+
+## Next Steps (Kind)
 
 1. **Add monitoring**: Deploy Prometheus/Grafana on infra node
 2. **Add ingress**: Replace NodePort with Ingress controller
 3. **Add TLS**: Use cert-manager for HTTPS
 4. **GitOps**: Connect to ArgoCD or Flux
-5. **Helm**: Convert to Helm charts for easier distribution
 
 ## References
 
