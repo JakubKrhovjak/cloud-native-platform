@@ -3,17 +3,44 @@ global:
   environment: kind
   namespace: grud
 
+# Secret management
+secrets:
+  # For Kind: create simple Kubernetes Secrets
+  createKubernetesSecrets: true
+  useExternalSecrets: false
+
+  # Default values for Kind (will be auto-generated if empty)
+  jwtSecret: ""  # Leave empty to auto-generate
+
+databases:
+  student:
+    username: app
+    password: ""  # Leave empty to auto-generate
+    database: university
+    host: student-db-rw
+    port: 5432
+
+  project:
+    username: app
+    password: ""  # Leave empty to auto-generate
+    database: projects
+    host: project-db-rw
+    port: 5432
+
 studentService:
   enabled: true
   replicaCount: 2
   config:
     env: kind
+  # Use secrets for sensitive data
+  useSecrets: true
 
 projectService:
   enabled: true
   replicaCount: 2
   config:
     env: kind
+  useSecrets: true
 
 adminPanel:
   enabled: true

@@ -1,91 +1,90 @@
 # GKE cluster values
-# Databases and admin-panel disabled - using Cloud SQL
-
 global:
   environment: gcp-gke
   namespace: grud
 
-# Cloud SQL configuration
-cloudSql:
-  enabled: true
-  # Private IP is passed from Terraform via Makefile
-  # Get with: cd terraform && terraform output cloudsql_private_ip
-  privateIp: ""  # Set by: --set cloudSql.privateIp=$(terraform output -raw cloudsql_private_ip)
-  # Student database
-  studentDatabase: university
-  studentUser: student_user
-  studentPassword: student_password_change_me
-  # Project database
-  projectDatabase: projects
-  projectUser: project_user
-  projectPassword: project_password_change_me
-
-# Ingress for external access
+# Ingress configuration
 ingress:
   enabled: true
   host: grudapp.com
-  annotations: {}
-  # For HTTPS, configure managed certificate:
-  # annotations:
-  #   networking.gke.io/managed-certificates: grud-cert
-  tls: []
+  className: ""
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "grud-ingress-ip"
+
+# Cloud SQL configuration
+cloudSql:
+  enabled: true
+  privateIp: ""  # Set via --set cloudSql.privateIp
+
+# Secret management - use Google Secret Manager
+secrets:
+  # For GKE: use External Secrets Operator with Google Secret Manager
+  createKubernetesSecrets: false
+  useExternalSecrets: true
+
+  # Google Secret Manager configuration
+  gcp:
+    projectId: ""  # Set via --set or environment variable
+    clusterLocation: europe-west1
+    clusterName: grud-cluster
+    serviceAccountName: grud-secrets-sa
+
+    # Secret names in Google Secret Manager
+    jwtSecretName: grud-jwt-secret
+    studentDbSecretName: grud-student-db-credentials
+    projectDbSecretName: grud-project-db-credentials
+
+databases:
+  student:
+    # For GKE, these are loaded from Google Secret Manager
+    host: ""  # Cloud SQL proxy or IP
+    port: 5432
+
+  project:
+    host: ""  # Cloud SQL proxy or IP
+    port: 5432
 
 studentService:
   enabled: true
   replicaCount: 2
   config:
-    env: gcp-gke
+    env: gke
+  useSecrets: true
   resources:
-    limits:
-      cpu: 200m
-      memory: 256Mi
     requests:
-      cpu: 50m
-      memory: 64Mi
-  nodeSelector:
-    node-type: app
-  tolerations:
-    - key: "workload"
-      operator: "Equal"
-      value: "app"
-      effect: "NoSchedule"
-  database:
-    port: "5432"
-    name: university
-    secretName: student-db-credentials
-  serviceAccount:
-    gcpServiceAccount: student-service@rugged-abacus-483006-r5.iam.gserviceaccount.com
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
 
 projectService:
   enabled: true
   replicaCount: 2
   config:
-    env: gcp-gke
+    env: gke
+  useSecrets: true
   resources:
-    limits:
-      cpu: 200m
-      memory: 256Mi
     requests:
-      cpu: 50m
-      memory: 64Mi
-  nodeSelector:
-    node-type: app
-  tolerations:
-    - key: "workload"
-      operator: "Equal"
-      value: "app"
-      effect: "NoSchedule"
-  database:
-    port: "5432"
-    name: projects
-    secretName: project-db-credentials
-  serviceAccount:
-    gcpServiceAccount: project-service@rugged-abacus-483006-r5.iam.gserviceaccount.com
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
 
-# Disabled for GKE
 adminPanel:
-  enabled: false
+  enabled: true
+  replicaCount: 0
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
 
+# For GKE, databases are managed via Cloud SQL
 studentDb:
   enabled: false
 

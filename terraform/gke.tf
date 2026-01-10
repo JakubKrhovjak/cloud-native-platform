@@ -58,7 +58,7 @@ resource "google_container_node_pool" "infra" {
   name       = "infra-pool"
   location   = var.zone
   cluster    = google_container_cluster.primary.name
-  node_count = 2  # Increased for monitoring stack + NATS
+  node_count = 3  # Increased for monitoring stack + NATS
 
   node_config {
     machine_type = var.infra_machine_type

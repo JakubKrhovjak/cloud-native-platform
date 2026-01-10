@@ -1,4 +1,4 @@
-.PHONY: build build-student build-project version test kind/setup kind/deploy kind/status kind/wait kind/stop kind/start kind/cleanup gke/auth gke/connect gke/deploy gke/status gke/full-deploy gke/ingress gke/resources gke/clean gke/prometheus gke/grafana tf/init tf/plan tf/apply tf/destroy tf/output tf/fmt tf/validate helm/template-kind helm/template-gke helm/uninstall infra/setup infra/deploy infra/deploy-gke infra/deploy-prometheus infra/deploy-prometheus-gke infra/deploy-alloy infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts infra/status infra/cleanup help
+.PHONY: build build-student build-project version test kind/setup kind/deploy kind/status kind/wait kind/stop kind/start kind/cleanup gke/auth gke/connect gke/deploy gke/status gke/full-deploy gke/ingress gke/resources gke/clean gke/prometheus gke/grafana tf/init tf/plan tf/apply tf/destroy tf/output tf/fmt tf/validate helm/template-kind helm/template-gke helm/uninstall infra/setup infra/deploy infra/deploy-gke infra/deploy-prometheus infra/deploy-prometheus-gke infra/deploy-alloy infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts infra/status infra/cleanup secrets/generate-kind secrets/list-kind secrets/list-gke secrets/view-gke help
 
 # =============================================================================
 # Build Configuration
@@ -140,7 +140,9 @@ gke/build: ## Build and push images to Artifact Registry
 	@KO_DOCKER_REPO=$(GKE_REGISTRY)/project-service ko build --bare -t latest ./services/project-service/cmd/project-service
 	@echo "✅ Images pushed to $(GKE_REGISTRY)"
 
-gke/deploy: gke/connect gke/build  ## Deploy to GKE with Helm
+gke/deploy: gke/build  ## Deploy to GKE with Helm
+	@echo "🔗 Connecting to GKE cluster..."
+	@gcloud container clusters get-credentials $(GKE_CLUSTER) --zone=$(GCP_ZONE) --project=$(GCP_PROJECT)
 	@echo "🚀 Deploying to GKE with Helm..."
 	@CLOUDSQL_IP=$$(cd $(TF_DIR) && terraform output -raw cloudsql_private_ip) && \
 	helm upgrade --install grud k8s/grud \
@@ -149,6 +151,8 @@ gke/deploy: gke/connect gke/build  ## Deploy to GKE with Helm
 		--set studentService.image.repository=$(GKE_REGISTRY)/student-service \
 		--set projectService.image.repository=$(GKE_REGISTRY)/project-service \
 		--set cloudSql.privateIp=$$CLOUDSQL_IP \
+		--set secrets.gcp.projectId=$(GCP_PROJECT) \
+		--set secrets.gcp.clusterLocation=$(GCP_ZONE) \
 		--wait
 	@kubectl rollout restart deployment -n grud
 	@echo "✅ Deployed to GKE"
@@ -364,7 +368,15 @@ infra/deploy-alerts: ## Deploy alerting rules
 infra/deploy: infra/setup infra/deploy-prometheus infra/deploy-alloy infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts ## Deploy full observability stack (Kind)
 	@echo "✅ Full observability stack deployed"
 
-infra/deploy-gke: infra/setup infra/deploy-prometheus-gke infra/deploy-alloy infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts ## Deploy full observability stack (GKE)
+infra/deploy-gke: infra/setup ## Deploy full observability stack (GKE)
+	@echo "🔗 Connecting to GKE cluster..."
+	@gcloud container clusters get-credentials $(GKE_CLUSTER) --zone=$(GCP_ZONE) --project=$(GCP_PROJECT)
+	@$(MAKE) infra/deploy-prometheus-gke
+	@$(MAKE) infra/deploy-alloy
+	@$(MAKE) infra/deploy-nats
+	@$(MAKE) infra/deploy-loki
+	@$(MAKE) infra/deploy-tempo
+	@$(MAKE) infra/deploy-alerts
 	@echo "✅ Full observability stack deployed for GKE"
 
 infra/status: ## Show infra pods status
@@ -383,8 +395,33 @@ infra/cleanup: ## Remove observability stack
 	@helm uninstall alloy -n infra 2>/dev/null || true
 	@kubectl delete -f k8s/infra/nats.yaml 2>/dev/null || true
 	@kubectl delete -f k8s/infra/alerting-rules.yaml 2>/dev/null || true
-	@kubectl delete namespace infra 2>/dev/null || true
 	@echo "✅ Cleanup complete"
+
+# =============================================================================
+# Secret Management
+# =============================================================================
+secrets/generate-kind: ## Generate secrets for Kind cluster
+	@echo "🔐 Generating secrets for Kind cluster..."
+	@./scripts/generate-secrets.sh kind
+	@echo "✅ Secrets generated for Kind"
+
+secrets/list-kind: ## List secrets in Kind cluster
+	@echo "📋 Secrets in Kind cluster:"
+	@kubectl get secrets -n grud -l app=grud,component=secrets
+
+secrets/list-gke: ## List secrets in Google Secret Manager
+	@echo "📋 Secrets in Google Secret Manager:"
+	@gcloud secrets list --filter="name:grud-"
+
+secrets/view-gke: ## View secret values in Google Secret Manager (for debugging)
+	@echo "🔍 JWT Secret:"
+	@gcloud secrets versions access latest --secret=grud-jwt-secret
+	@echo ""
+	@echo "🔍 Student DB Credentials:"
+	@gcloud secrets versions access latest --secret=grud-student-db-credentials | jq
+	@echo ""
+	@echo "🔍 Project DB Credentials:"
+	@gcloud secrets versions access latest --secret=grud-project-db-credentials | jq
 
 # =============================================================================
 # Help
@@ -421,6 +458,14 @@ help: ## Show this help
 	@echo "  make infra/deploy       - Deploy full observability stack"
 	@echo "  make infra/status       - Show infra pods status"
 	@echo "  make infra/cleanup      - Remove observability stack"
+	@echo ""
+	@echo "Secret Management:"
+	@echo "  make secrets/generate-kind - Generate secrets for Kind"
+	@echo "  make secrets/list-kind     - List secrets in Kind cluster"
+	@echo "  make secrets/list-gke      - List secrets in Google Secret Manager"
+	@echo "  make secrets/view-gke      - View secret values in GSM (debug)"
+	@echo ""
+	@echo "  Note: GKE secrets are managed by Terraform (see terraform/secrets.tf)"
 	@echo ""
 	@echo "Helm:"
 	@echo "  make helm/template-kind - Show Kind templates"

@@ -5,10 +5,9 @@ kind: ServiceAccount
 metadata:
   name: student-service
   namespace: {{ .Values.global.namespace }}
-  {{- if .Values.studentService.serviceAccount.gcpServiceAccount }}
-  annotations:
-    iam.gke.io/gcp-service-account: {{ .Values.studentService.serviceAccount.gcpServiceAccount }}
-  {{- end }}
+  labels:
+    app: grud
+    component: student-service
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -22,15 +21,6 @@ data:
   NATS_URL: {{ .Values.studentService.config.natsUrl | quote }}
   NATS_SUBJECT: {{ .Values.studentService.config.natsSubject | quote }}
   OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.studentService.config.otelEndpoint | quote }}
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: student-service-secrets
-  namespace: {{ .Values.global.namespace }}
-type: Opaque
-stringData:
-  jwt-secret: {{ .Values.studentService.auth.jwtSecret | quote }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -154,22 +144,22 @@ spec:
             - name: DB_NAME
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.studentService.database.secretName }}
-                  key: dbname
+                  name: student-db-secret
+                  key: database
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.studentService.database.secretName }}
+                  name: student-db-secret
                   key: username
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.studentService.database.secretName }}
+                  name: student-db-secret
                   key: password
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: student-service-secrets
+                  name: jwt-secret
                   key: jwt-secret
           resources:
             {{- toYaml .Values.studentService.resources | nindent 12 }}

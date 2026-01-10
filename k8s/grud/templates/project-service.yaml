@@ -5,10 +5,9 @@ kind: ServiceAccount
 metadata:
   name: project-service
   namespace: {{ .Values.global.namespace }}
-  {{- if .Values.projectService.serviceAccount.gcpServiceAccount }}
-  annotations:
-    iam.gke.io/gcp-service-account: {{ .Values.projectService.serviceAccount.gcpServiceAccount }}
-  {{- end }}
+  labels:
+    app: grud
+    component: project-service
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -115,17 +114,17 @@ spec:
             - name: DB_NAME
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.projectService.database.secretName }}
-                  key: dbname
+                  name: project-db-secret
+                  key: database
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.projectService.database.secretName }}
+                  name: project-db-secret
                   key: username
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.projectService.database.secretName }}
+                  name: project-db-secret
                   key: password
           resources:
             {{- toYaml .Values.projectService.resources | nindent 12 }}

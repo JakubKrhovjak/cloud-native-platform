@@ -7,6 +7,7 @@ disk_size_gb = 20
 
 # Infra node pool (1 node for observability: Prometheus, Grafana, Loki, Tempo, NATS)
 infra_machine_type = "e2-medium"
+infra_node_count     = 2
 
 # App node pool (2 nodes for services: student-service, project-service)
 app_node_count     = 1

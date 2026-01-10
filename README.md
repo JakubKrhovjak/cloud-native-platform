@@ -479,22 +479,27 @@ Structured JSON logs are collected by Loki:
 
 ### 1. Local Development (Kind)
 ```bash
-make kind/setup      # Create Kind cluster
-make infra/deploy    # Deploy infrastructure
-make kind/deploy     # Deploy services
+make kind/setup            # Create Kind cluster
+make secrets/generate-kind # Generate secrets
+make infra/deploy          # Deploy infrastructure
+make kind/deploy           # Deploy services
 ```
+
+**Secret Management**: Kubernetes Secrets generated locally
 
 ### 2. Google Kubernetes Engine (GKE)
 ```bash
 cd terraform
 terraform init
-terraform apply      # Create GKE cluster + Cloud SQL
+terraform apply      # Create GKE + Cloud SQL + Secrets + External Secrets Operator
 
 cd ..
 make gke/deploy      # Deploy services with Helm
 ```
 
-See [terraform/README.md](terraform/README.md) for GKE deployment guide.
+**Secret Management**: Google Secret Manager + External Secrets Operator (managed by Terraform)
+
+See [terraform/README.md](terraform/README.md) for GKE deployment guide and [SECRETS.md](SECRETS.md) for detailed secret management documentation.
 
 ### 3. Docker Compose (Legacy)
 ```bash
@@ -540,6 +545,16 @@ make gke/deploy          # Deploy services
 make gke/status          # Show status
 make gke/delete-cluster  # Delete cluster
 ```
+
+### Secret Management
+```bash
+make secrets/generate-kind  # Generate secrets for Kind
+make secrets/list-kind      # List Kind secrets
+make secrets/list-gke       # List GKE secrets
+make secrets/view-gke       # View GKE secret values
+```
+
+Note: GKE secrets are managed by Terraform. See [SECRETS.md](SECRETS.md) for details.
 
 ## Database Access
 

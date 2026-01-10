@@ -24,14 +24,9 @@ output "configure_docker_command" {
   value       = "gcloud auth configure-docker ${var.region}-docker.pkg.dev"
 }
 
-output "student_service_sa" {
-  description = "Student service GCP service account email"
-  value       = google_service_account.student_service.email
-}
-
-output "project_service_sa" {
-  description = "Project service GCP service account email"
-  value       = google_service_account.project_service.email
+output "secrets_operator_sa" {
+  description = "Secrets operator GCP service account email"
+  value       = google_service_account.secrets_operator.email
 }
 
 # Cloud SQL
@@ -49,5 +44,26 @@ output "cloudsql_private_ip" {
 output "ingress_ip" {
   description = "Static IP for application Ingress"
   value       = data.google_compute_global_address.ingress_ip.address
+}
+
+# Secrets
+output "jwt_secret_name" {
+  description = "Google Secret Manager JWT secret name"
+  value       = google_secret_manager_secret.jwt_secret.secret_id
+}
+
+output "student_db_secret_name" {
+  description = "Google Secret Manager student DB secret name"
+  value       = google_secret_manager_secret.student_db_credentials.secret_id
+}
+
+output "project_db_secret_name" {
+  description = "Google Secret Manager project DB secret name"
+  value       = google_secret_manager_secret.project_db_credentials.secret_id
+}
+
+output "external_secrets_namespace" {
+  description = "External Secrets Operator namespace"
+  value       = kubernetes_namespace.external_secrets.metadata[0].name
 }
 

@@ -33,6 +33,12 @@ variable "disk_size_gb" {
   default     = 20
 }
 
+# App node pool - for application workloads (student-service, project-service)
+variable "infra_node_count" {
+  description = "Number of app nodes"
+  type        = number
+}
+
 # Infra node pool - for observability stack (Prometheus, Grafana, Loki, Tempo, NATS)
 variable "infra_machine_type" {
   description = "Machine type for infra node"
@@ -44,7 +50,6 @@ variable "infra_machine_type" {
 variable "app_node_count" {
   description = "Number of app nodes"
   type        = number
-  default     = 1
 }
 
 variable "app_machine_type" {
