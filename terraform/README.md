@@ -116,22 +116,100 @@ make infra/deploy-gke
 make gke/deploy
 ```
 
+## Execution Order
+
+Terraform creates resources in dependency order. Here's how they relate:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ STEP 1: APIs (apis.tf)                                                      │
+│ Enable GCP APIs - must run first                                            │
+│   • container.googleapis.com (GKE)                                          │
+│   • compute.googleapis.com (VPC, Firewall)                                  │
+│   • sqladmin.googleapis.com (Cloud SQL)                                     │
+│   • secretmanager.googleapis.com (Secrets)                                  │
+│   • artifactregistry.googleapis.com (Images)                                │
+│   • servicenetworking.googleapis.com (VPC Peering)                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ STEP 2: VPC Network (vpc.tf)                                                │
+│ Network infrastructure for all resources                                    │
+│   • VPC Network                                                             │
+│   • Subnet (10.0.0.0/24) + Pod/Service ranges                               │
+│   • Cloud Router + NAT (outbound internet for private nodes)                │
+│   • Firewall rules                                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                    ┌───────────────┼───────────────┬───────────────┐
+                    ▼               ▼               ▼               ▼
+┌───────────────────────┐ ┌─────────────────┐ ┌─────────────┐ ┌─────────────┐
+│ STEP 3a: Cloud SQL    │ │ STEP 3b: GKE    │ │ STEP 3c:    │ │ STEP 4:     │
+│ (cloudsql.tf)         │ │ (gke.tf)        │ │ Registry    │ │ Secrets     │
+│                       │ │                 │ │ (registry.tf│ │ (secrets.tf)│
+│ • VPC Peering         │ │ • Cluster       │ │             │ │             │
+│ • PostgreSQL instance │ │ • Infra pool    │ │ • Artifact  │ │ • GSM       │
+│ • Databases           │ │ • App pool      │ │   Registry  │ │ • Passwords │
+│ • Users               │ │                 │ │             │ │             │
+└───────────────────────┘ └─────────────────┘ └─────────────┘ └─────────────┘
+        │                         │                                   │
+        │                         │                                   │
+        │                         ▼                                   ▼
+        │               ┌─────────────────────────────────────────────────────┐
+        │               │ STEP 5: IAM (iam.tf)                                │
+        │               │ Service accounts and permissions                    │
+        │               │   • GCP Service Account for ESO                     │
+        │               │   • Workload Identity binding                       │
+        │               │   • Secret Manager access grants                    │
+        │               └─────────────────────────────────────────────────────┘
+        │                         │
+        │                         ▼
+        │               ┌─────────────────────────────────────────────────────┐
+        │               │ STEP 6: Helm (helm.tf)                              │
+        │               │ Deploy to GKE cluster                               │
+        │               │   • External Secrets Operator namespace             │
+        │               │   • External Secrets Operator Helm release          │
+        │               └─────────────────────────────────────────────────────┘
+        │                         │
+        ▼                         ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ AFTER TERRAFORM: Application Deployment (make gke/deploy)                   │
+│   • Build images with Ko → push to Artifact Registry                        │
+│   • Helm install grud chart                                                 │
+│   • SecretStore + ExternalSecret resources created                          │
+│   • ESO syncs GSM secrets → Kubernetes Secrets                              │
+│   • Pods connect to Cloud SQL via private IP                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Key Dependencies
+
+| Resource | Depends On | Used By |
+|----------|------------|---------|
+| VPC | compute API | GKE, Cloud SQL |
+| Cloud SQL | VPC, VPC Peering, sqladmin API | Application pods |
+| GKE | VPC, container API | Helm, Applications |
+| Secrets | secret_manager API | Cloud SQL users, IAM |
+| IAM | Secrets, GKE SA | External Secrets Operator |
+| Helm | GKE cluster ready | Application deployment |
+
 ## File Structure
 
 | File | Description |
 |------|-------------|
-| `apis.tf` | Enable required GCP APIs |
-| `cloudsql.tf` | Cloud SQL PostgreSQL instance and databases |
-| `gke.tf` | GKE cluster and node pools |
-| `helm.tf` | External Secrets Operator Helm release |
-| `iam.tf` | Service accounts and IAM bindings |
-| `ingress.tf` | Static IP addresses for Ingress |
+| `apis.tf` | Enable required GCP APIs (Step 1) |
+| `vpc.tf` | VPC network and subnets (Step 2) |
+| `cloudsql.tf` | Cloud SQL PostgreSQL instance and databases (Step 3a) |
+| `gke.tf` | GKE cluster and node pools (Step 3b) |
+| `registry.tf` | Artifact Registry for container images (Step 3c) |
+| `secrets.tf` | Google Secret Manager secrets (Step 4) |
+| `iam.tf` | Service accounts and IAM bindings (Step 5) |
+| `helm.tf` | External Secrets Operator Helm release (Step 6) |
+| `ingress.tf` | Static IP addresses for Ingress (data source) |
 | `outputs.tf` | Terraform outputs |
-| `registry.tf` | Artifact Registry for container images |
-| `secrets.tf` | Google Secret Manager secrets |
 | `variables.tf` | Input variables |
 | `versions.tf` | Provider version constraints |
-| `vpc.tf` | VPC network and subnets |
 
 ## Terraform Resources
 

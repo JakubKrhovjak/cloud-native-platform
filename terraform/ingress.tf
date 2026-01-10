@@ -1,19 +1,29 @@
-# Static IP for Ingress
-# This ensures the external IP doesn't change on redeploy
-
 # =============================================================================
-# Application Ingress IP (grudapp.com)
+# Static IP for Ingress (managed separately from Terraform lifecycle)
 # =============================================================================
-# This IP is managed OUTSIDE of terraform destroy/apply cycle.
-# It must exist before running terraform apply.
+# The static IP is created ONCE manually and referenced here as a data source.
+# This prevents the IP from being destroyed/recreated on terraform destroy.
 #
-# Create once manually:
+# Dependencies:
+#   apis.tf (compute API)
+#   Manual: gcloud compute addresses create grud-ingress-ip --global
+#
+# This is used by:
+#   → GKE Ingress (kubernetes.io/ingress.global-static-ip-name annotation)
+#   → DNS (grudapp.com A record points to this IP)
+#
+# Why data source instead of resource?
+#   - Static IP should survive terraform destroy
+#   - DNS points to this IP (changing it = downtime)
+#   - Once created, it never needs to change
+#
+# Initial setup (run once):
 #   gcloud compute addresses create grud-ingress-ip --global
 #
-# Or import existing:
+# To import existing IP:
 #   terraform import google_compute_global_address.ingress_ip grud-ingress-ip
-#
-# This data source references the existing IP (doesn't create/destroy it)
+# =============================================================================
+
 data "google_compute_global_address" "ingress_ip" {
   name = "grud-ingress-ip"
 }
