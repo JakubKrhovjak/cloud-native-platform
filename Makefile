@@ -140,7 +140,9 @@ gke/build: ## Build and push images to Artifact Registry
 	@KO_DOCKER_REPO=$(GKE_REGISTRY)/project-service ko build --bare -t latest ./services/project-service/cmd/project-service
 	@echo "✅ Images pushed to $(GKE_REGISTRY)"
 
-gke/deploy: gke/connect gke/build  ## Deploy to GKE with Helm
+gke/deploy: gke/build  ## Deploy to GKE with Helm
+	@echo "🔗 Connecting to GKE cluster..."
+	@gcloud container clusters get-credentials $(GKE_CLUSTER) --zone=$(GCP_ZONE) --project=$(GCP_PROJECT)
 	@echo "🚀 Deploying to GKE with Helm..."
 	@CLOUDSQL_IP=$$(cd $(TF_DIR) && terraform output -raw cloudsql_private_ip) && \
 	helm upgrade --install grud k8s/grud \
@@ -364,7 +366,15 @@ infra/deploy-alerts: ## Deploy alerting rules
 infra/deploy: infra/setup infra/deploy-prometheus infra/deploy-alloy infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts ## Deploy full observability stack (Kind)
 	@echo "✅ Full observability stack deployed"
 
-infra/deploy-gke: infra/setup infra/deploy-prometheus-gke infra/deploy-alloy infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts ## Deploy full observability stack (GKE)
+infra/deploy-gke: infra/setup ## Deploy full observability stack (GKE)
+	@echo "🔗 Connecting to GKE cluster..."
+	@gcloud container clusters get-credentials $(GKE_CLUSTER) --zone=$(GCP_ZONE) --project=$(GCP_PROJECT)
+	@$(MAKE) infra/deploy-prometheus-gke
+	@$(MAKE) infra/deploy-alloy
+	@$(MAKE) infra/deploy-nats
+	@$(MAKE) infra/deploy-loki
+	@$(MAKE) infra/deploy-tempo
+	@$(MAKE) infra/deploy-alerts
 	@echo "✅ Full observability stack deployed for GKE"
 
 infra/status: ## Show infra pods status
