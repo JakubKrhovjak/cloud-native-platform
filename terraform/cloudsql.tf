@@ -68,16 +68,16 @@ resource "google_sql_database" "projects" {
   instance = google_sql_database_instance.postgres.name
 }
 
-# User for student-service
+# User for student-service (university database)
 resource "google_sql_user" "student_user" {
   name     = "student_user"
   instance = google_sql_database_instance.postgres.name
-  password = var.db_password_student
+  password = random_password.student_db_password.result
 }
 
-# User for project-service
+# User for project-service (projects database)
 resource "google_sql_user" "project_user" {
   name     = "project_user"
   instance = google_sql_database_instance.postgres.name
-  password = var.db_password_project
+  password = random_password.project_db_password.result
 }

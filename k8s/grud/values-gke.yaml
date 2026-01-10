@@ -3,6 +3,11 @@ global:
   environment: gke
   namespace: grud
 
+# Cloud SQL configuration
+cloudSql:
+  enabled: true
+  privateIp: ""  # Set via --set cloudSql.privateIp
+
 # Secret management - use Google Secret Manager
 secrets:
   # For GKE: use External Secrets Operator with Google Secret Manager
@@ -33,35 +38,35 @@ databases:
 
 studentService:
   enabled: true
-  replicaCount: 3
+  replicaCount: 2
   config:
     env: gke
   useSecrets: true
   resources:
     requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
       memory: "512Mi"
       cpu: "500m"
-    limits:
-      memory: "1Gi"
-      cpu: "1000m"
 
 projectService:
   enabled: true
-  replicaCount: 3
+  replicaCount: 2
   config:
     env: gke
   useSecrets: true
   resources:
     requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
       memory: "512Mi"
       cpu: "500m"
-    limits:
-      memory: "1Gi"
-      cpu: "1000m"
 
 adminPanel:
   enabled: true
-  replicaCount: 3
+  replicaCount: 0
   resources:
     requests:
       memory: "256Mi"

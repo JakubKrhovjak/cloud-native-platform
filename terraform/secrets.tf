@@ -66,25 +66,29 @@ resource "random_password" "jwt_secret" {
 }
 
 resource "random_password" "student_db_password" {
-  length  = 32
-  special = true
+  length           = 32
+  special          = true
+  override_special = "_-"  # URL-safe special characters only
 
   lifecycle {
     ignore_changes = [
       length,
       special,
+      override_special,
     ]
   }
 }
 
 resource "random_password" "project_db_password" {
-  length  = 32
-  special = true
+  length           = 32
+  special          = true
+  override_special = "_-"  # URL-safe special characters only
 
   lifecycle {
     ignore_changes = [
       length,
       special,
+      override_special,
     ]
   }
 }
@@ -99,7 +103,7 @@ resource "google_secret_manager_secret_version" "jwt_secret" {
 resource "google_secret_manager_secret_version" "student_db_credentials" {
   secret = google_secret_manager_secret.student_db_credentials.id
   secret_data = jsonencode({
-    username = "app"
+    username = "student_user"
     password = random_password.student_db_password.result
     database = "university"
   })
@@ -109,7 +113,7 @@ resource "google_secret_manager_secret_version" "student_db_credentials" {
 resource "google_secret_manager_secret_version" "project_db_credentials" {
   secret = google_secret_manager_secret.project_db_credentials.id
   secret_data = jsonencode({
-    username = "app"
+    username = "project_user"
     password = random_password.project_db_password.result
     database = "projects"
   })

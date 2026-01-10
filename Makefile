@@ -151,6 +151,8 @@ gke/deploy: gke/build  ## Deploy to GKE with Helm
 		--set studentService.image.repository=$(GKE_REGISTRY)/student-service \
 		--set projectService.image.repository=$(GKE_REGISTRY)/project-service \
 		--set cloudSql.privateIp=$$CLOUDSQL_IP \
+		--set secrets.gcp.projectId=$(GCP_PROJECT) \
+		--set secrets.gcp.clusterLocation=$(GCP_ZONE) \
 		--wait
 	@kubectl rollout restart deployment -n grud
 	@echo "✅ Deployed to GKE"
