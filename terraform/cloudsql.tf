@@ -18,18 +18,6 @@
 #   4. GKE pods can reach Cloud SQL via private IP
 # =============================================================================
 
-# Enable Cloud SQL Admin API
-resource "google_project_service" "sqladmin" {
-  service            = "sqladmin.googleapis.com"
-  disable_on_destroy = false
-}
-
-# Enable Service Networking API (for VPC peering)
-resource "google_project_service" "servicenetworking" {
-  service            = "servicenetworking.googleapis.com"
-  disable_on_destroy = false
-}
-
 # Reserve IP range for Google managed services (Cloud SQL, Memorystore, etc.)
 # This range will be used by VPC peering - Cloud SQL gets IP from this range
 # Depends on: VPC network (vpc.tf)

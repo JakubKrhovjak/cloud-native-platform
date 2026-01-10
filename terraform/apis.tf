@@ -31,3 +31,15 @@ resource "google_project_service" "secret_manager" {
   service            = "secretmanager.googleapis.com"
   disable_on_destroy = false
 }
+
+# Required for: Cloud SQL instance (cloudsql.tf)
+resource "google_project_service" "sqladmin" {
+  service            = "sqladmin.googleapis.com"
+  disable_on_destroy = false
+}
+
+# Required for: VPC Peering to Cloud SQL (cloudsql.tf)
+resource "google_project_service" "servicenetworking" {
+  service            = "servicenetworking.googleapis.com"
+  disable_on_destroy = false
+}
