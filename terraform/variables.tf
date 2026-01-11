@@ -93,10 +93,6 @@ variable "master_authorized_networks" {
     {
       cidr_block   = "10.0.0.0/24"
       display_name = "VPC subnet"
-    },
-    {
-      cidr_block   = "141.170.140.27/32"
-      display_name = "Jakub home"
     }
   ]
 }
@@ -112,4 +108,11 @@ variable "db_password_project" {
   description = "Password for project_user"
   type        = string
   sensitive   = true
+}
+
+# Connect Gateway
+variable "connect_gateway_users" {
+  description = "List of users/service accounts for Connect Gateway access (format: user:email or serviceAccount:email)"
+  type        = list(string)
+  default     = ["user:cloudarunning@gmail.com"]
 }

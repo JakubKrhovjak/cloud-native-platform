@@ -83,3 +83,14 @@ output "dns_zone_name" {
   value       = google_dns_managed_zone.grudapp.name
 }
 
+# Connect Gateway
+output "connect_gateway_context" {
+  description = "kubectl context name for Connect Gateway access"
+  value       = "connectgateway_${var.project_id}_${var.region}_${google_gke_hub_membership.primary.membership_id}"
+}
+
+output "connect_gateway_command" {
+  description = "Command to use Connect Gateway context"
+  value       = "kubectl config use-context connectgateway_${var.project_id}_${var.region}_${google_gke_hub_membership.primary.membership_id}"
+}
+

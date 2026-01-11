@@ -128,12 +128,12 @@ gke/auth: ## Authenticate with GCP
 	@gcloud auth configure-docker $(GCP_REGION)-docker.pkg.dev
 	@echo "✅ GCP authentication complete"
 
-gke/connect: ## Connect to GKE cluster
-	@echo "🔗 Connecting to GKE cluster..."
-	@gcloud container clusters get-credentials $(GKE_CLUSTER) \
-		--zone=$(GCP_ZONE) \
+gke/connect: ## Connect to GKE cluster via Connect Gateway
+	@echo "🔗 Connecting to GKE cluster via Connect Gateway..."
+	@gcloud container fleet memberships get-credentials $(GKE_CLUSTER) \
+		--location=$(GCP_REGION) \
 		--project=$(GCP_PROJECT)
-	@echo "✅ Connected to $(GKE_CLUSTER)"
+	@echo "✅ Connected to $(GKE_CLUSTER) via Connect Gateway"
 
 gke/build: ## Build and push images to Artifact Registry
 	@echo "📦 Building and pushing images to Artifact Registry..."
@@ -142,8 +142,8 @@ gke/build: ## Build and push images to Artifact Registry
 	@echo "✅ Images pushed to $(GKE_REGISTRY)"
 
 gke/deploy: gke/build  ## Deploy to GKE with Helm
-	@echo "🔗 Connecting to GKE cluster..."
-	@gcloud container clusters get-credentials $(GKE_CLUSTER) --zone=$(GCP_ZONE) --project=$(GCP_PROJECT)
+	@echo "🔗 Connecting to GKE cluster via Connect Gateway..."
+	@gcloud container fleet memberships get-credentials $(GKE_CLUSTER) --location=$(GCP_REGION) --project=$(GCP_PROJECT)
 	@echo "🚀 Deploying to GKE with Helm..."
 	@CLOUDSQL_IP=$$(cd $(TF_DIR) && terraform output -raw cloudsql_private_ip) && \
 	helm upgrade --install grud k8s/grud \
@@ -370,8 +370,8 @@ infra/deploy: infra/setup infra/deploy-prometheus infra/deploy-alloy infra/deplo
 	@echo "✅ Full observability stack deployed"
 
 infra/deploy-gke: infra/setup ## Deploy full observability stack (GKE)
-	@echo "🔗 Connecting to GKE cluster..."
-	@gcloud container clusters get-credentials $(GKE_CLUSTER) --zone=$(GCP_ZONE) --project=$(GCP_PROJECT)
+	@echo "🔗 Connecting to GKE cluster via Connect Gateway..."
+	@gcloud container fleet memberships get-credentials $(GKE_CLUSTER) --location=$(GCP_REGION) --project=$(GCP_PROJECT)
 	@$(MAKE) infra/deploy-prometheus-gke
 	@$(MAKE) infra/deploy-alloy
 	@$(MAKE) infra/deploy-nats
@@ -445,15 +445,16 @@ help: ## Show this help
 	@echo "  make kind/cleanup       - Delete Kind cluster"
 	@echo ""
 	@echo "GKE Cluster:"
-	@echo "  make gke/setup          - Full GKE setup (auth + registry)"
-	@echo "  make gke/full-setup     - Full setup including cluster creation"
-	@echo "  make gke/deploy         - Deploy to GKE with Helm"
+	@echo "  make gke/auth           - Authenticate with GCP"
+	@echo "  make gke/connect        - Connect to GKE via Connect Gateway"
+	@echo "  make gke/deploy         - Build and deploy to GKE with Helm"
+	@echo "  make gke/full-deploy    - Full GKE deployment (terraform + helm)"
 	@echo "  make gke/status         - Show GKE status"
 	@echo "  make gke/resources      - Show resource utilization"
+	@echo "  make gke/ingress        - Show Ingress status and IPs"
 	@echo "  make gke/clean          - Clean uninstall helm release"
 	@echo "  make gke/prometheus     - Port-forward Prometheus (localhost:9090)"
 	@echo "  make gke/grafana        - Port-forward Grafana (localhost:3000)"
-	@echo "  make gke/cleanup        - Delete GKE cluster"
 	@echo ""
 	@echo "Observability:"
 	@echo "  make infra/deploy       - Deploy full observability stack"
