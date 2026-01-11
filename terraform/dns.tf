@@ -35,11 +35,11 @@ resource "google_dns_record_set" "root" {
   rrdatas      = [data.google_compute_global_address.ingress_ip.address]
 }
 
-# Grafana subdomain
+# Grafana subdomain - points to Grafana LoadBalancer (separate from main ingress)
 resource "google_dns_record_set" "grafana" {
   name         = "grafana.${google_dns_managed_zone.grudapp.dns_name}"
   managed_zone = google_dns_managed_zone.grudapp.name
   type         = "A"
   ttl          = 300
-  rrdatas      = [data.google_compute_global_address.ingress_ip.address]
+  rrdatas      = [google_compute_address.grafana_ip.address]
 }

@@ -4,6 +4,7 @@ global:
   namespace: grud
 
 # Ingress configuration
+# Grafana has its own LoadBalancer (not part of this ingress)
 ingress:
   enabled: true
   host: grudapp.com
@@ -11,8 +12,6 @@ ingress:
   annotations:
     kubernetes.io/ingress.class: "gce"
     kubernetes.io/ingress.global-static-ip-name: "grud-ingress-ip"
-  grafana:
-    enabled: true
 
 # Cloud SQL configuration
 cloudSql:

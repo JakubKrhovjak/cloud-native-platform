@@ -27,3 +27,13 @@
 data "google_compute_global_address" "ingress_ip" {
   name = "grud-ingress-ip"
 }
+
+# Static IP for Grafana LoadBalancer
+resource "google_compute_address" "grafana_ip" {
+  name         = "grafana-lb-ip"
+  region       = var.region
+  address_type = "EXTERNAL"
+  network_tier = "PREMIUM"
+
+  depends_on = [google_project_service.compute]
+}

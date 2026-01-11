@@ -11,22 +11,6 @@ metadata:
 spec:
   domains:
     - {{ .Values.ingress.host }}
-    {{- if .Values.ingress.grafana.enabled }}
-    - grafana.{{ .Values.ingress.host }}
-    {{- end }}
-{{- end }}
-{{- if .Values.ingress.grafana.enabled }}
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: grafana-external
-  namespace: {{ .Values.global.namespace }}
-spec:
-  type: ExternalName
-  externalName: prometheus-grafana.infra.svc.cluster.local
-  ports:
-    - port: 80
 {{- end }}
 ---
 apiVersion: networking.k8s.io/v1
@@ -78,18 +62,6 @@ spec:
                 name: student-service
                 port:
                   number: 8080
-    {{- if .Values.ingress.grafana.enabled }}
-    - host: grafana.{{ .Values.ingress.host }}
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: grafana-external
-                port:
-                  number: 80
-    {{- end }}
   {{- if .Values.ingress.tls }}
   tls:
     {{- toYaml .Values.ingress.tls | nindent 4 }}

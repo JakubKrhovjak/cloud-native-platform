@@ -68,10 +68,9 @@ grafana:
       value: "infra"
       effect: "NoSchedule"
 
-  # Service configuration
+  # Service configuration - LoadBalancer for external access
   service:
-    type: NodePort
-    nodePort: 30300
+    type: LoadBalancer
     port: 80
 
   # Security context to fix permission issues

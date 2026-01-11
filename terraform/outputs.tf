@@ -46,6 +46,11 @@ output "ingress_ip" {
   value       = data.google_compute_global_address.ingress_ip.address
 }
 
+output "grafana_ip" {
+  description = "Static IP for Grafana LoadBalancer"
+  value       = google_compute_address.grafana_ip.address
+}
+
 # Secrets
 output "jwt_secret_name" {
   description = "Google Secret Manager JWT secret name"
