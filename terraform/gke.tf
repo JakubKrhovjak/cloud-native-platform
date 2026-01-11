@@ -75,6 +75,12 @@ resource "google_container_cluster" "primary" {
     }
   }
 
+  # Security Posture - vulnerability scanning and compliance
+  security_posture_config {
+    mode               = "BASIC"
+    vulnerability_mode = "VULNERABILITY_BASIC"
+  }
+
   depends_on = [google_project_service.container]
 }
 
