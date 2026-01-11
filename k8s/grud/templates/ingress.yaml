@@ -6,6 +6,8 @@ kind: ManagedCertificate
 metadata:
   name: grud-managed-cert
   namespace: {{ .Values.global.namespace }}
+  annotations:
+    helm.sh/resource-policy: keep
 spec:
   domains:
     - {{ .Values.ingress.host }}
@@ -39,7 +41,6 @@ spec:
     - http:
     {{- end }}
         paths:
-          # Student Service API
           - path: /api
             pathType: Prefix
             backend:
@@ -54,7 +55,6 @@ spec:
                 name: student-service
                 port:
                   number: 8080
-          # Health check
           - path: /health
             pathType: Prefix
             backend:

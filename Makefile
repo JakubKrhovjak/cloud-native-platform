@@ -123,6 +123,7 @@ GKE_REGISTRY := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/grud
 gke/auth: ## Authenticate with GCP
 	@echo "🔐 Authenticating with GCP..."
 	@gcloud auth login
+	@gcloud auth application-default login
 	@gcloud config set project $(GCP_PROJECT)
 	@gcloud auth configure-docker $(GCP_REGION)-docker.pkg.dev
 	@echo "✅ GCP authentication complete"

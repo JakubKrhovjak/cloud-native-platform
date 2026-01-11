@@ -11,6 +11,13 @@ prometheus:
     retention: 7d
     # Enable remote write receiver for Tempo metrics-generator
     enableRemoteWriteReceiver: true
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
     storageSpec:
       volumeClaimTemplate:
         spec:
@@ -44,6 +51,14 @@ grafana:
   enabled: true
   adminPassword: admin # Change this in production!
 
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
   # Schedule on infra node
   nodeSelector:
     node-type: infra
@@ -53,10 +68,9 @@ grafana:
       value: "infra"
       effect: "NoSchedule"
 
-  # Service configuration
+  # Service configuration - ClusterIP (accessed via Nginx Ingress with TLS)
   service:
-    type: NodePort
-    nodePort: 30300
+    type: ClusterIP
     port: 80
 
   # Security context to fix permission issues
@@ -81,6 +95,13 @@ grafana:
 # Alertmanager
 alertmanager:
   alertmanagerSpec:
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+      requests:
+        cpu: 50m
+        memory: 64Mi
     nodeSelector:
       node-type: infra
     tolerations:
@@ -140,6 +161,13 @@ prometheus-node-exporter:
 
 # Kube State Metrics
 kube-state-metrics:
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
   nodeSelector:
     node-type: infra
   tolerations:
@@ -150,6 +178,13 @@ kube-state-metrics:
 
 # Prometheus Operator
 prometheusOperator:
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
   nodeSelector:
     node-type: infra
   tolerations:

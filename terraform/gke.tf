@@ -67,6 +67,20 @@ resource "google_container_cluster" "primary" {
   # Dataplane V2 (eBPF/Cilium) - better networking
   datapath_provider = "ADVANCED_DATAPATH"
 
+  # Disable GKE managed monitoring - we use our own Prometheus stack
+  monitoring_config {
+    enable_components = []
+    managed_prometheus {
+      enabled = false
+    }
+  }
+
+  # Security Posture - vulnerability scanning and compliance
+  security_posture_config {
+    mode               = "BASIC"
+    vulnerability_mode = "VULNERABILITY_BASIC"
+  }
+
   depends_on = [google_project_service.container]
 }
 

@@ -20,5 +20,23 @@ resource "google_artifact_registry_repository" "grud" {
   description   = "GRUD container images"
   format        = "DOCKER"
 
-  depends_on = [google_project_service.artifact_registry]
+  # Vulnerability scanning - scans images on push
+  docker_config {
+    immutable_tags = false
+  }
+
+  depends_on = [
+    google_project_service.artifact_registry,
+    google_project_service.containeranalysis,
+    google_project_service.containerscanning
+  ]
+}
+
+# Enable vulnerability scanning for the project
+resource "google_project_service_identity" "containerscanning" {
+  provider = google-beta
+  project  = var.project_id
+  service  = "containerscanning.googleapis.com"
+
+  depends_on = [google_project_service.containerscanning]
 }

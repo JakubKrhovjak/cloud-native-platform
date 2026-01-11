@@ -46,6 +46,11 @@ output "ingress_ip" {
   value       = data.google_compute_global_address.ingress_ip.address
 }
 
+output "grafana_ip" {
+  description = "Static IP for Grafana GCE Ingress"
+  value       = data.google_compute_global_address.grafana_ip.address
+}
+
 # Secrets
 output "jwt_secret_name" {
   description = "Google Secret Manager JWT secret name"
@@ -65,5 +70,16 @@ output "project_db_secret_name" {
 output "external_secrets_namespace" {
   description = "External Secrets Operator namespace"
   value       = kubernetes_namespace.external_secrets.metadata[0].name
+}
+
+# DNS
+output "dns_nameservers" {
+  description = "Nameservers to configure in Squarespace"
+  value       = google_dns_managed_zone.grudapp.name_servers
+}
+
+output "dns_zone_name" {
+  description = "DNS zone name"
+  value       = google_dns_managed_zone.grudapp.name
 }
 
