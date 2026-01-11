@@ -26,6 +26,10 @@ spec:
     timeoutSec: 5
     healthyThreshold: 1
     unhealthyThreshold: 2
+  iap:
+    enabled: true
+    oauthclientCredentials:
+      secretName: grafana-iap-secret
 ---
 apiVersion: v1
 kind: Service

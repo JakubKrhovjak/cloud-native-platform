@@ -55,3 +55,9 @@ resource "google_project_service" "containerscanning" {
   service            = "containerscanning.googleapis.com"
   disable_on_destroy = false
 }
+
+# Required for: Cloud Identity-Aware Proxy (iap.tf)
+resource "google_project_service" "iap" {
+  service            = "iap.googleapis.com"
+  disable_on_destroy = false
+}
