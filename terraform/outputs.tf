@@ -67,3 +67,14 @@ output "external_secrets_namespace" {
   value       = kubernetes_namespace.external_secrets.metadata[0].name
 }
 
+# DNS
+output "dns_nameservers" {
+  description = "Nameservers to configure in Squarespace"
+  value       = google_dns_managed_zone.grudapp.name_servers
+}
+
+output "dns_zone_name" {
+  description = "DNS zone name"
+  value       = google_dns_managed_zone.grudapp.name
+}
+

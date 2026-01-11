@@ -13,7 +13,7 @@ cloudSql:
 # Ingress (disabled for Kind - using NodePort)
 ingress:
   enabled: false
-  observability:
+  grafana:
     enabled: false
 
 # Student Service

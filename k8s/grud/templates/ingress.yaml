@@ -11,14 +11,11 @@ metadata:
 spec:
   domains:
     - {{ .Values.ingress.host }}
-    {{- if .Values.ingress.observability.enabled }}
+    {{- if .Values.ingress.grafana.enabled }}
     - grafana.{{ .Values.ingress.host }}
-    - prometheus.{{ .Values.ingress.host }}
-    - alertmanager.{{ .Values.ingress.host }}
-    - alloy.{{ .Values.ingress.host }}
     {{- end }}
 {{- end }}
-{{- if .Values.ingress.observability.enabled }}
+{{- if .Values.ingress.grafana.enabled }}
 ---
 apiVersion: v1
 kind: Service
@@ -30,39 +27,6 @@ spec:
   externalName: prometheus-grafana.infra.svc.cluster.local
   ports:
     - port: 80
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: prometheus-external
-  namespace: {{ .Values.global.namespace }}
-spec:
-  type: ExternalName
-  externalName: prometheus-kube-prometheus-prometheus.infra.svc.cluster.local
-  ports:
-    - port: 9090
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: alertmanager-external
-  namespace: {{ .Values.global.namespace }}
-spec:
-  type: ExternalName
-  externalName: prometheus-kube-prometheus-alertmanager.infra.svc.cluster.local
-  ports:
-    - port: 9093
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: alloy-external
-  namespace: {{ .Values.global.namespace }}
-spec:
-  type: ExternalName
-  externalName: alloy.infra.svc.cluster.local
-  ports:
-    - port: 12345
 {{- end }}
 ---
 apiVersion: networking.k8s.io/v1
@@ -93,7 +57,6 @@ spec:
     - http:
     {{- end }}
         paths:
-          # Student Service API
           - path: /api
             pathType: Prefix
             backend:
@@ -108,7 +71,6 @@ spec:
                 name: student-service
                 port:
                   number: 8080
-          # Health check
           - path: /health
             pathType: Prefix
             backend:
@@ -116,7 +78,7 @@ spec:
                 name: student-service
                 port:
                   number: 8080
-    {{- if .Values.ingress.observability.enabled }}
+    {{- if .Values.ingress.grafana.enabled }}
     - host: grafana.{{ .Values.ingress.host }}
       http:
         paths:
@@ -127,36 +89,6 @@ spec:
                 name: grafana-external
                 port:
                   number: 80
-    - host: prometheus.{{ .Values.ingress.host }}
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: prometheus-external
-                port:
-                  number: 9090
-    - host: alertmanager.{{ .Values.ingress.host }}
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: alertmanager-external
-                port:
-                  number: 9093
-    - host: alloy.{{ .Values.ingress.host }}
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: alloy-external
-                port:
-                  number: 12345
     {{- end }}
   {{- if .Values.ingress.tls }}
   tls:
