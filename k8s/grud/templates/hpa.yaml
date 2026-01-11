@@ -1,0 +1,108 @@
+# HPA (Horizontal Pod Autoscaler) for application services
+# Best practices:
+#   - CPU target: 70% (scale before saturation)
+#   - Min replicas: 2 (high availability)
+#   - Scale down stabilization: 300s (prevent flapping)
+{{- if .Values.studentService.enabled }}
+{{- if .Values.studentService.hpa.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: student-service-hpa
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: student-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: student-service
+  minReplicas: {{ .Values.studentService.hpa.minReplicas }}
+  maxReplicas: {{ .Values.studentService.hpa.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.studentService.hpa.targetCPUUtilization }}
+    {{- if .Values.studentService.hpa.targetMemoryUtilization }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.studentService.hpa.targetMemoryUtilization }}
+    {{- end }}
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+        - type: Pods
+          value: 2
+          periodSeconds: 15
+      selectPolicy: Max
+{{- end }}
+{{- end }}
+
+{{- if .Values.projectService.enabled }}
+{{- if .Values.projectService.hpa.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: project-service-hpa
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: project-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: project-service
+  minReplicas: {{ .Values.projectService.hpa.minReplicas }}
+  maxReplicas: {{ .Values.projectService.hpa.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.projectService.hpa.targetCPUUtilization }}
+    {{- if .Values.projectService.hpa.targetMemoryUtilization }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.projectService.hpa.targetMemoryUtilization }}
+    {{- end }}
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+        - type: Pods
+          value: 2
+          periodSeconds: 15
+      selectPolicy: Max
+{{- end }}
+{{- end }}

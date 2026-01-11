@@ -59,6 +59,13 @@ studentService:
     limits:
       memory: "512Mi"
       cpu: "500m"
+  # HPA - Horizontal Pod Autoscaler
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
 
 projectService:
   enabled: true
@@ -73,6 +80,13 @@ projectService:
     limits:
       memory: "512Mi"
       cpu: "500m"
+  # HPA - Horizontal Pod Autoscaler
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
 
 adminPanel:
   enabled: true

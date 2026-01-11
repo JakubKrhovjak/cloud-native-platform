@@ -72,6 +72,7 @@ grafana:
   service:
     type: LoadBalancer
     port: 80
+    loadBalancerIP: "34.22.250.3"  # Static IP from Terraform
 
   # Security context to fix permission issues
   securityContext:

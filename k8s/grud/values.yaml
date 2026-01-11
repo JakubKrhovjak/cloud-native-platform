@@ -30,6 +30,13 @@ studentService:
     requests:
       cpu: 100m
       memory: 128Mi
+  # HPA - disabled by default for local development
+  hpa:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
   nodeSelector:
     node-type: app
   tolerations:
@@ -68,6 +75,13 @@ projectService:
     requests:
       cpu: 100m
       memory: 128Mi
+  # HPA - disabled by default for local development
+  hpa:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
   nodeSelector:
     node-type: app
   tolerations:
