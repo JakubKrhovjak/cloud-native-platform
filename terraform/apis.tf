@@ -43,3 +43,15 @@ resource "google_project_service" "servicenetworking" {
   service            = "servicenetworking.googleapis.com"
   disable_on_destroy = false
 }
+
+# Required for: Container vulnerability scanning (registry.tf)
+resource "google_project_service" "containeranalysis" {
+  service            = "containeranalysis.googleapis.com"
+  disable_on_destroy = false
+}
+
+# Required for: Container vulnerability scanning (registry.tf)
+resource "google_project_service" "containerscanning" {
+  service            = "containerscanning.googleapis.com"
+  disable_on_destroy = false
+}

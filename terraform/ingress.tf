@@ -27,3 +27,10 @@
 data "google_compute_global_address" "ingress_ip" {
   name = "grud-ingress-ip"
 }
+
+# Static IP for Grafana GCE Ingress (global)
+# Using data source so IP survives terraform destroy
+# Create manually: gcloud compute addresses create grafana-ingress-ip --global
+data "google_compute_global_address" "grafana_ip" {
+  name = "grafana-ingress-ip"
+}

@@ -170,11 +170,11 @@ controller:
     - operator: "Exists"
   resources:
     limits:
-      cpu: 500m
-      memory: 512Mi
+      cpu: 200m
+      memory: 256Mi
     requests:
-      cpu: 100m
-      memory: 128Mi
+      cpu: 50m
+      memory: 64Mi
 
 serviceMonitor:
   enabled: true
