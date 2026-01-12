@@ -9,8 +9,9 @@
 #   Manual: gcloud compute addresses create grud-ingress-ip --global
 #
 # This is used by:
-#   → GKE Ingress (kubernetes.io/ingress.global-static-ip-name annotation)
-#   → DNS (grudapp.com A record points to this IP)
+#   → GKE Ingress for grud app (namespace: grud)
+#   → GKE Ingress for Grafana (namespace: infra)
+#   → DNS (grudapp.com and grafana.grudapp.com point to this IP)
 #
 # Why data source instead of resource?
 #   - Static IP should survive terraform destroy
@@ -26,11 +27,4 @@
 
 data "google_compute_global_address" "ingress_ip" {
   name = "grud-ingress-ip"
-}
-
-# Static IP for Grafana GCE Ingress (global)
-# Using data source so IP survives terraform destroy
-# Create manually: gcloud compute addresses create grafana-ingress-ip --global
-data "google_compute_global_address" "grafana_ip" {
-  name = "grafana-ingress-ip"
 }

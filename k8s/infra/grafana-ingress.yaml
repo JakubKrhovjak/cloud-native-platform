@@ -1,16 +1,4 @@
-# GCE Ingress for Grafana with Google-managed SSL certificate
-# Must be in same namespace as Grafana (infra)
----
-apiVersion: networking.gke.io/v1
-kind: ManagedCertificate
-metadata:
-  name: grafana-managed-cert
-  namespace: infra
-  annotations:
-    helm.sh/resource-policy: keep
-spec:
-  domains:
-    - grafana.grudapp.com
+# GCE Ingress for Grafana with shared SSL certificate (managed in Terraform)
 ---
 apiVersion: cloud.google.com/v1
 kind: BackendConfig
@@ -55,8 +43,8 @@ metadata:
   namespace: infra
   annotations:
     kubernetes.io/ingress.class: "gce"
-    kubernetes.io/ingress.global-static-ip-name: "grafana-ingress-ip"
-    networking.gke.io/managed-certificates: "grafana-managed-cert"
+    kubernetes.io/ingress.global-static-ip-name: "grud-ingress-ip"
+    ingress.gcp.kubernetes.io/pre-shared-cert: "grud-cert"
 spec:
   rules:
     - host: grafana.grudapp.com

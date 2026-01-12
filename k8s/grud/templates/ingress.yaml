@@ -1,17 +1,4 @@
 {{- if .Values.ingress.enabled }}
-{{- if .Values.ingress.host }}
----
-apiVersion: networking.gke.io/v1
-kind: ManagedCertificate
-metadata:
-  name: grud-managed-cert
-  namespace: {{ .Values.global.namespace }}
-  annotations:
-    helm.sh/resource-policy: keep
-spec:
-  domains:
-    - {{ .Values.ingress.host }}
-{{- end }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -22,9 +9,7 @@ metadata:
     {{- if eq .Values.global.environment "gcp-gke" }}
     kubernetes.io/ingress.class: "gce"
     kubernetes.io/ingress.global-static-ip-name: "grud-ingress-ip"
-    {{- if .Values.ingress.host }}
-    networking.gke.io/managed-certificates: "grud-managed-cert"
-    {{- end }}
+    ingress.gcp.kubernetes.io/pre-shared-cert: "grud-cert"
     {{- end }}
     {{- with .Values.ingress.annotations }}
     {{- toYaml . | nindent 4 }}

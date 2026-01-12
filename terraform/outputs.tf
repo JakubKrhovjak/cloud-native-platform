@@ -40,15 +40,10 @@ output "cloudsql_private_ip" {
   value       = google_sql_database_instance.postgres.private_ip_address
 }
 
-# Ingress
+# Ingress (shared by grud app and Grafana)
 output "ingress_ip" {
-  description = "Static IP for application Ingress"
+  description = "Shared static IP for all Ingresses"
   value       = data.google_compute_global_address.ingress_ip.address
-}
-
-output "grafana_ip" {
-  description = "Static IP for Grafana GCE Ingress"
-  value       = data.google_compute_global_address.grafana_ip.address
 }
 
 # Secrets

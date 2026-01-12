@@ -34,31 +34,22 @@ resource "google_dns_record_set" "root" {
   rrdatas      = [data.google_compute_global_address.ingress_ip.address]
 }
 
-# Grafana subdomain
+# Grafana subdomain - shares same LB as main app
 resource "google_dns_record_set" "grafana" {
   name         = "grafana.${google_dns_managed_zone.grudapp.dns_name}"
   managed_zone = google_dns_managed_zone.grudapp.name
   type         = "A"
   ttl          = 300
-  rrdatas      = [data.google_compute_global_address.grafana_ip.address]
+  rrdatas      = [data.google_compute_global_address.ingress_ip.address]
 }
 
 # =============================================================================
-# Google-managed SSL Certificates
+# SSL Certificate (shared by all Ingresses)
 # =============================================================================
-
-resource "google_compute_managed_ssl_certificate" "grudapp" {
-  name = "grudapp-cert"
-
-  managed {
-    domains = ["grudapp.com"]
-  }
-}
-
-resource "google_compute_managed_ssl_certificate" "grafana" {
-  name = "grafana-cert"
+resource "google_compute_managed_ssl_certificate" "grud" {
+  name = "grud-cert"
 
   managed {
-    domains = ["grafana.grudapp.com"]
+    domains = ["grudapp.com", "grafana.grudapp.com"]
   }
 }

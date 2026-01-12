@@ -233,8 +233,7 @@ tf/apply: ## Apply Terraform configuration
 	@cd $(TF_DIR) && terraform import google_dns_managed_zone.grudapp projects/$(GCP_PROJECT)/managedZones/grudapp-zone 2>/dev/null || true
 	@cd $(TF_DIR) && terraform import google_dns_record_set.root $(GCP_PROJECT)/grudapp-zone/grudapp.com./A 2>/dev/null || true
 	@cd $(TF_DIR) && terraform import google_dns_record_set.grafana $(GCP_PROJECT)/grudapp-zone/grafana.grudapp.com./A 2>/dev/null || true
-	@cd $(TF_DIR) && terraform import google_compute_managed_ssl_certificate.grudapp projects/$(GCP_PROJECT)/global/sslCertificates/grudapp-cert 2>/dev/null || true
-	@cd $(TF_DIR) && terraform import google_compute_managed_ssl_certificate.grafana projects/$(GCP_PROJECT)/global/sslCertificates/grafana-cert 2>/dev/null || true
+	@cd $(TF_DIR) && terraform import google_compute_managed_ssl_certificate.grud projects/$(GCP_PROJECT)/global/sslCertificates/grud-cert 2>/dev/null || true
 	@cd $(TF_DIR) && terraform apply -auto-approve
 	@echo "✅ Terraform applied"
 
@@ -244,10 +243,8 @@ tf/destroy: ## Destroy Terraform resources (preserves DNS, certs, IPs)
 	@cd $(TF_DIR) && terraform state rm google_dns_managed_zone.grudapp 2>/dev/null || true
 	@cd $(TF_DIR) && terraform state rm google_dns_record_set.root 2>/dev/null || true
 	@cd $(TF_DIR) && terraform state rm google_dns_record_set.grafana 2>/dev/null || true
-	@cd $(TF_DIR) && terraform state rm google_compute_managed_ssl_certificate.grudapp 2>/dev/null || true
-	@cd $(TF_DIR) && terraform state rm google_compute_managed_ssl_certificate.grafana 2>/dev/null || true
+	@cd $(TF_DIR) && terraform state rm google_compute_managed_ssl_certificate.grud 2>/dev/null || true
 	@cd $(TF_DIR) && terraform state rm 'data.google_compute_global_address.ingress_ip' 2>/dev/null || true
-	@cd $(TF_DIR) && terraform state rm 'data.google_compute_global_address.grafana_ip' 2>/dev/null || true
 	@echo "🚀 Running terraform destroy..."
 	@cd $(TF_DIR) && terraform destroy -auto-approve
 
@@ -255,9 +252,8 @@ tf/output: ## Show Terraform outputs
 	@cd $(TF_DIR) && terraform output
 
 gke/ingress: ## Show Ingress status and external IP
-	@echo "=== Reserved Static IPs (Terraform) ==="
+	@echo "=== Shared Static IP (Terraform) ==="
 	@cd $(TF_DIR) && terraform output ingress_ip 2>/dev/null || echo "Not created yet"
-	@cd $(TF_DIR) && terraform output grafana_ip 2>/dev/null || echo "Not created yet"
 	@echo ""
 	@echo "=== App Ingress (grud namespace) ==="
 	@kubectl get ingress -n grud 2>/dev/null || echo "No ingress found"
@@ -266,8 +262,8 @@ gke/ingress: ## Show Ingress status and external IP
 	@kubectl get ingress -n infra 2>/dev/null || echo "No ingress found"
 	@echo ""
 	@echo "URLs (after deployment):"
-	@echo "  API:     http://$$(cd $(TF_DIR) && terraform output -raw ingress_ip 2>/dev/null)/api"
-	@echo "  Grafana: http://$$(cd $(TF_DIR) && terraform output -raw grafana_ip 2>/dev/null)"
+	@echo "  API:     https://grudapp.com/api"
+	@echo "  Grafana: https://grafana.grudapp.com"
 
 gcp/resources: ## List all GCP resources in project
 	@echo "=== GKE Clusters ==="
