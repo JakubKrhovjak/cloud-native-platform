@@ -1,10 +1,10 @@
 # =============================================================================
 # Cloud DNS Configuration
 # =============================================================================
-# Manages DNS zone and records for grudapp.com
+# Manages DNS zone, records and SSL certificates for grudapp.com
 #
-# These resources have prevent_destroy = true to survive terraform destroy.
-# To actually delete them, remove the lifecycle block first.
+# These resources are protected from terraform destroy via Makefile.
+# The tf/destroy target removes them from state before destroying.
 #
 # After applying, update nameservers in Squarespace to the ones from:
 #   terraform output dns_nameservers
@@ -22,10 +22,6 @@ resource "google_dns_managed_zone" "grudapp" {
   dns_name    = "grudapp.com."
   description = "DNS zone for GRUD application"
 
-  lifecycle {
-    prevent_destroy = true
-  }
-
   depends_on = [google_project_service.dns]
 }
 
@@ -36,10 +32,6 @@ resource "google_dns_record_set" "root" {
   type         = "A"
   ttl          = 300
   rrdatas      = [data.google_compute_global_address.ingress_ip.address]
-
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 # Grafana subdomain
@@ -49,10 +41,6 @@ resource "google_dns_record_set" "grafana" {
   type         = "A"
   ttl          = 300
   rrdatas      = [data.google_compute_global_address.grafana_ip.address]
-
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 # =============================================================================
@@ -65,10 +53,6 @@ resource "google_compute_managed_ssl_certificate" "grudapp" {
   managed {
     domains = ["grudapp.com"]
   }
-
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "google_compute_managed_ssl_certificate" "grafana" {
@@ -76,9 +60,5 @@ resource "google_compute_managed_ssl_certificate" "grafana" {
 
   managed {
     domains = ["grafana.grudapp.com"]
-  }
-
-  lifecycle {
-    prevent_destroy = true
   }
 }

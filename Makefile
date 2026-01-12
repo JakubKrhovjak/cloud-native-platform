@@ -229,11 +229,26 @@ tf/plan: ## Plan Terraform changes
 
 tf/apply: ## Apply Terraform configuration
 	@echo "🚀 Applying Terraform configuration..."
+	@echo "🔄 Importing protected resources if they exist..."
+	@cd $(TF_DIR) && terraform import google_dns_managed_zone.grudapp projects/$(GCP_PROJECT)/managedZones/grudapp-zone 2>/dev/null || true
+	@cd $(TF_DIR) && terraform import google_dns_record_set.root $(GCP_PROJECT)/grudapp-zone/grudapp.com./A 2>/dev/null || true
+	@cd $(TF_DIR) && terraform import google_dns_record_set.grafana $(GCP_PROJECT)/grudapp-zone/grafana.grudapp.com./A 2>/dev/null || true
+	@cd $(TF_DIR) && terraform import google_compute_managed_ssl_certificate.grudapp projects/$(GCP_PROJECT)/global/sslCertificates/grudapp-cert 2>/dev/null || true
+	@cd $(TF_DIR) && terraform import google_compute_managed_ssl_certificate.grafana projects/$(GCP_PROJECT)/global/sslCertificates/grafana-cert 2>/dev/null || true
 	@cd $(TF_DIR) && terraform apply -auto-approve
 	@echo "✅ Terraform applied"
 
-tf/destroy: ## Destroy Terraform resources
+tf/destroy: ## Destroy Terraform resources (preserves DNS, certs, IPs)
 	@echo "🗑️  Destroying Terraform resources..."
+	@echo "🛡️  Removing protected resources from state (DNS, certs, IPs)..."
+	@cd $(TF_DIR) && terraform state rm google_dns_managed_zone.grudapp 2>/dev/null || true
+	@cd $(TF_DIR) && terraform state rm google_dns_record_set.root 2>/dev/null || true
+	@cd $(TF_DIR) && terraform state rm google_dns_record_set.grafana 2>/dev/null || true
+	@cd $(TF_DIR) && terraform state rm google_compute_managed_ssl_certificate.grudapp 2>/dev/null || true
+	@cd $(TF_DIR) && terraform state rm google_compute_managed_ssl_certificate.grafana 2>/dev/null || true
+	@cd $(TF_DIR) && terraform state rm 'data.google_compute_global_address.ingress_ip' 2>/dev/null || true
+	@cd $(TF_DIR) && terraform state rm 'data.google_compute_global_address.grafana_ip' 2>/dev/null || true
+	@echo "🚀 Running terraform destroy..."
 	@cd $(TF_DIR) && terraform destroy -auto-approve
 
 tf/output: ## Show Terraform outputs
