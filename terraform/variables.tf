@@ -93,6 +93,10 @@ variable "master_authorized_networks" {
     {
       cidr_block   = "10.0.0.0/24"
       display_name = "VPC subnet"
+    },
+    {
+      cidr_block   = "141.170.140.27/32"
+      display_name = "Terraform destroy"
     }
   ]
 }
