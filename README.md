@@ -1,4 +1,4 @@
-# GRUD - University Management Platform
+ # GRUD - University Management Platform
 
 Cloud-native microservices platform for university management with observability, distributed tracing, and real-time messaging.
 
@@ -61,7 +61,7 @@ open https://grafana.grudapp.com      # Grafana (IAP protected)
 │                                                                             │
 │  Connect Gateway ──► kubectl/Terraform (IAM auth, no IP whitelist)         │
 │  Cloud IAP ──► Grafana (Google authentication)                             │
-│  GCE Ingress ──► HTTPS with managed certificates                           │
+│  Gateway API ──► HTTPS with managed certificates                           │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -79,7 +79,7 @@ open https://grafana.grudapp.com      # Grafana (IAP protected)
 |---------|-------------|
 | **Connect Gateway** | Access cluster from anywhere without IP whitelisting |
 | **Cloud IAP** | Google authentication for Grafana (fully automated via Terraform) |
-| **HTTPS** | Google-managed SSL certificates |
+| **Gateway API** | HTTPS with Google-managed SSL certificates |
 | **Private Nodes** | GKE nodes have no public IPs |
 | **Workload Identity** | Secure GCP API access without keys |
 | **Secret Manager** | Secrets stored in GSM, synced via External Secrets |
@@ -201,7 +201,6 @@ make gke/auth        # Authenticate with GCP
 make gke/connect     # Connect via Connect Gateway
 make gke/deploy      # Build and deploy
 make gke/status      # Show status
-make gke/ingress     # Show Ingress IPs
 ```
 
 ### Terraform
