@@ -81,6 +81,11 @@ resource "google_container_cluster" "primary" {
     vulnerability_mode = "VULNERABILITY_BASIC"
   }
 
+  # Enable Gateway API
+  gateway_api_config {
+    channel = "CHANNEL_STANDARD"
+  }
+
   depends_on = [google_project_service.container]
 }
 

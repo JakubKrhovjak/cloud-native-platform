@@ -1,0 +1,43 @@
+# =============================================================================
+# BackendConfig for GKE Gateway API
+# =============================================================================
+# BackendConfig defines health checks, timeouts, and security settings.
+# These are associated with Services via annotations and work with Gateway API.
+# =============================================================================
+
+# Student Service backend config
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: student-service-backend-config
+  namespace: grud
+spec:
+  healthCheck:
+    type: HTTP
+    port: 8080
+    requestPath: /health
+    checkIntervalSec: 15
+    timeoutSec: 5
+    healthyThreshold: 1
+    unhealthyThreshold: 2
+  connectionDraining:
+    drainingTimeoutSec: 30
+  timeoutSec: 30
+---
+# Admin Panel backend config
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: admin-panel-backend
+  namespace: grud
+spec:
+  healthCheck:
+    type: HTTP
+    port: 80
+    requestPath: /
+    checkIntervalSec: 15
+    timeoutSec: 5
+    healthyThreshold: 1
+    unhealthyThreshold: 2
+  connectionDraining:
+    drainingTimeoutSec: 30

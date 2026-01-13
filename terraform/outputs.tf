@@ -89,3 +89,14 @@ output "connect_gateway_command" {
   value       = "kubectl config use-context connectgateway_${var.project_id}_${var.region}_${google_gke_hub_membership.primary.membership_id}"
 }
 
+# Certificate Manager (for Gateway API)
+output "cert_dns_auth_record" {
+  description = "DNS CNAME record to add for certificate validation"
+  value       = "CNAME: ${google_certificate_manager_dns_authorization.grudapp.dns_resource_record[0].name} -> ${google_certificate_manager_dns_authorization.grudapp.dns_resource_record[0].data}"
+}
+
+output "certificate_map_name" {
+  description = "Certificate map name for Gateway"
+  value       = google_certificate_manager_certificate_map.grud.name
+}
+

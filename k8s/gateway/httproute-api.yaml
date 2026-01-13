@@ -1,0 +1,39 @@
+# =============================================================================
+# HTTPRoute for Student Service API (grudapp.com)
+# =============================================================================
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: api-route
+  namespace: grud
+spec:
+  parentRefs:
+    - name: grud-gateway
+      namespace: grud
+  hostnames:
+    - "grudapp.com"
+  rules:
+    # /api/* -> student-service
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api
+      backendRefs:
+        - name: student-service
+          port: 8080
+    # /auth/* -> student-service
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /auth
+      backendRefs:
+        - name: student-service
+          port: 8080
+    # /health -> student-service
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /health
+      backendRefs:
+        - name: student-service
+          port: 8080

@@ -1,0 +1,66 @@
+# =============================================================================
+# GKE Gateway - Shared entry point for all services
+# =============================================================================
+# This Gateway handles all external traffic and routes to services via HTTPRoutes.
+# Each namespace has its own HTTPRoute that attaches to this Gateway.
+#
+# GatewayClass: gke-l7-global-external-managed (Google-managed global LB)
+#
+# Prerequisites:
+#   - Gateway API enabled on GKE cluster (terraform: gateway_api_config)
+#   - Certificate Manager certificate map created (terraform: dns.tf)
+#   - Static IP created (grud-ingress-ip)
+#
+# Apply with: kubectl apply -f k8s/gateway/ OR make gke/gateway
+# =============================================================================
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: grud-gateway
+  namespace: grud
+  annotations:
+    # Use Certificate Manager certificate map for TLS
+    networking.gke.io/certmap: grud-certmap
+spec:
+  gatewayClassName: gke-l7-global-external-managed
+  addresses:
+    # Use existing static IP
+    - type: NamedAddress
+      value: grud-ingress-ip
+  listeners:
+    # HTTPS listener for all domains
+    - name: https
+      protocol: HTTPS
+      port: 443
+      allowedRoutes:
+        namespaces:
+          from: All
+    # HTTP listener (for redirect to HTTPS)
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: All
+---
+# HTTP to HTTPS redirect
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: grud-healthcheck-policy
+  namespace: grud
+spec:
+  default:
+    checkIntervalSec: 15
+    timeoutSec: 5
+    healthyThreshold: 1
+    unhealthyThreshold: 2
+    config:
+      type: HTTP
+      httpHealthCheck:
+        port: 8080
+        requestPath: /health
+  targetRef:
+    group: ""
+    kind: Service
+    name: student-service

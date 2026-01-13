@@ -53,7 +53,7 @@ resource "google_dns_record_set" "admin" {
 }
 
 # =============================================================================
-# SSL Certificate (shared by all Ingresses)
+# SSL Certificate (for legacy Ingress - keeping for backwards compatibility)
 # =============================================================================
 resource "google_compute_managed_ssl_certificate" "grud" {
   name = "grud-cert"
@@ -61,4 +61,62 @@ resource "google_compute_managed_ssl_certificate" "grud" {
   managed {
     domains = ["grudapp.com", "grafana.grudapp.com", "admin.grudapp.com"]
   }
+}
+
+# =============================================================================
+# Certificate Manager (for Gateway API)
+# =============================================================================
+# Gateway API uses Certificate Manager instead of compute SSL certificates.
+# This provides more flexibility and supports wildcard certificates.
+
+resource "google_project_service" "certificatemanager" {
+  service            = "certificatemanager.googleapis.com"
+  disable_on_destroy = false
+}
+
+# Certificate Map - associates certificates with Gateway
+resource "google_certificate_manager_certificate_map" "grud" {
+  name        = "grud-certmap"
+  description = "Certificate map for GRUD Gateway"
+
+  depends_on = [google_project_service.certificatemanager]
+}
+
+# DNS Authorization for domain validation (covers root + wildcard)
+resource "google_certificate_manager_dns_authorization" "grudapp" {
+  name        = "grudapp-dns-auth"
+  domain      = "grudapp.com"
+  description = "DNS authorization for grudapp.com and *.grudapp.com"
+
+  depends_on = [google_project_service.certificatemanager]
+}
+
+# Google-managed wildcard certificate
+resource "google_certificate_manager_certificate" "grud" {
+  name        = "grud-gateway-cert"
+  description = "Wildcard certificate for GRUD Gateway"
+
+  managed {
+    domains = ["grudapp.com", "*.grudapp.com"]
+    dns_authorizations = [
+      google_certificate_manager_dns_authorization.grudapp.id
+    ]
+  }
+
+  depends_on = [google_project_service.certificatemanager]
+}
+
+# Map certificate to domains
+resource "google_certificate_manager_certificate_map_entry" "root" {
+  name         = "grud-root-entry"
+  map          = google_certificate_manager_certificate_map.grud.name
+  hostname     = "grudapp.com"
+  certificates = [google_certificate_manager_certificate.grud.id]
+}
+
+resource "google_certificate_manager_certificate_map_entry" "wildcard" {
+  name         = "grud-wildcard-entry"
+  map          = google_certificate_manager_certificate_map.grud.name
+  hostname     = "*.grudapp.com"
+  certificates = [google_certificate_manager_certificate.grud.id]
 }

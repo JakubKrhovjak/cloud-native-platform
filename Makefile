@@ -159,6 +159,8 @@ gke/deploy: gke/build  ## Deploy to GKE with Helm
 		--set secrets.gcp.clusterLocation=$(GCP_ZONE) \
 		--wait
 	@kubectl rollout restart deployment -n grud
+	@echo "🌐 Deploying Gateway API..."
+	@kubectl apply -f k8s/gateway/
 	@echo "✅ Deployed to GKE"
 
 gke/status: ## Show GKE cluster status
@@ -215,6 +217,25 @@ gke/full-deploy: ## Full GKE deployment (terraform + helm)
 	@$(MAKE) infra/deploy-gke
 	@$(MAKE) gke/deploy
 	@echo "✅ Full GKE deployment complete"
+
+gke/gateway: ## Deploy Gateway API resources
+	@echo "🌐 Deploying Gateway API..."
+	@kubectl apply -f k8s/gateway/
+	@echo "✅ Gateway deployed"
+	@echo ""
+	@echo "Check Gateway status:"
+	@echo "  kubectl get gateway -n grud"
+	@echo "  kubectl get httproute -A"
+
+gke/gateway-status: ## Show Gateway and HTTPRoute status
+	@echo "=== Gateway ==="
+	@kubectl get gateway -n grud -o wide
+	@echo ""
+	@echo "=== HTTPRoutes ==="
+	@kubectl get httproute -A
+	@echo ""
+	@echo "=== Gateway Details ==="
+	@kubectl describe gateway grud-gateway -n grud | tail -20
 
 # =============================================================================
 # Terraform

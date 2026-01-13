@@ -1,0 +1,25 @@
+# =============================================================================
+# HTTP to HTTPS Redirect for all domains
+# =============================================================================
+# Redirects all HTTP traffic to HTTPS
+# =============================================================================
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: http-to-https-redirect
+  namespace: grud
+spec:
+  parentRefs:
+    - name: grud-gateway
+      namespace: grud
+      sectionName: http  # Only match HTTP listener
+  hostnames:
+    - "grudapp.com"
+    - "grafana.grudapp.com"
+    - "admin.grudapp.com"
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
