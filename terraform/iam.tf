@@ -25,12 +25,13 @@ resource "google_service_account" "secrets_operator" {
 }
 
 # Workload Identity binding
-# Allows K8s ServiceAccount "grud/grud-secrets-sa" to act as this GCP SA
+# Allows K8s ServiceAccounts to act as this GCP SA
 resource "google_service_account_iam_binding" "secrets_operator_workload_identity" {
   service_account_id = google_service_account.secrets_operator.name
   role               = "roles/iam.workloadIdentityUser"
   members = [
-    "serviceAccount:${var.project_id}.svc.id.goog[grud/grud-secrets-sa]"
+    "serviceAccount:${var.project_id}.svc.id.goog[grud/grud-secrets-sa]",
+    "serviceAccount:${var.project_id}.svc.id.goog[infra/infra-secrets-sa]"
   ]
 }
 
@@ -61,4 +62,20 @@ resource "google_secret_manager_secret_iam_member" "secrets_operator_project_db"
   member    = "serviceAccount:${google_service_account.secrets_operator.email}"
 
   depends_on = [google_secret_manager_secret.project_db_credentials]
+}
+
+# =============================================================================
+# IAP Credentials Secret (manually created, not managed by Terraform)
+# =============================================================================
+# This secret is created manually in GCP Console/CLI to avoid Terraform
+# deleting it on destroy. We only manage the IAM access here.
+
+data "google_secret_manager_secret" "grafana_iap_credentials" {
+  secret_id = "grafana-iap-credentials"
+}
+
+resource "google_secret_manager_secret_iam_member" "secrets_operator_grafana_iap" {
+  secret_id = data.google_secret_manager_secret.grafana_iap_credentials.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.secrets_operator.email}"
 }
