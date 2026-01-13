@@ -67,10 +67,10 @@ resource "google_secret_manager_secret_iam_member" "secrets_operator_project_db"
 # =============================================================================
 # IAP Credentials Secret Access
 # =============================================================================
-# Secret is created in iap.tf, we only manage IAM access here.
+# Secret is managed manually, referenced via data source in iap.tf
 
 resource "google_secret_manager_secret_iam_member" "secrets_operator_grafana_iap" {
-  secret_id = google_secret_manager_secret.grafana_iap_credentials.secret_id
+  secret_id = data.google_secret_manager_secret.grafana_iap_credentials.secret_id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.secrets_operator.email}"
 }

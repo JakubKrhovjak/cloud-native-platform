@@ -136,9 +136,11 @@ gke/connect: ## Connect to GKE cluster via Connect Gateway
 	@echo "✅ Connected to $(GKE_CLUSTER) via Connect Gateway"
 
 gke/build: ## Build and push images to Artifact Registry
-	@echo "📦 Building and pushing images to Artifact Registry..."
-	@KO_DOCKER_REPO=$(GKE_REGISTRY)/student-service ko build --bare -t latest ./services/student-service/cmd/student-service
-	@KO_DOCKER_REPO=$(GKE_REGISTRY)/project-service ko build --bare -t latest ./services/project-service/cmd/project-service
+	@echo "📦 Building and pushing images to Artifact Registry (linux/amd64)..."
+	@KO_DOCKER_REPO=$(GKE_REGISTRY)/student-service ko build --bare -t latest --platform=linux/amd64 ./services/student-service/cmd/student-service
+	@KO_DOCKER_REPO=$(GKE_REGISTRY)/project-service ko build --bare -t latest --platform=linux/amd64 ./services/project-service/cmd/project-service
+	@echo "📦 Building admin-panel via Cloud Build (AMD64)..."
+	@gcloud builds submit services/admin --tag=$(GKE_REGISTRY)/admin-panel:latest --project=$(GCP_PROJECT) --quiet
 	@echo "✅ Images pushed to $(GKE_REGISTRY)"
 
 gke/deploy: gke/build  ## Deploy to GKE with Helm
@@ -151,6 +153,7 @@ gke/deploy: gke/build  ## Deploy to GKE with Helm
 		-f k8s/grud/values-gke.yaml \
 		--set studentService.image.repository=$(GKE_REGISTRY)/student-service \
 		--set projectService.image.repository=$(GKE_REGISTRY)/project-service \
+		--set adminPanel.image.repository=$(GKE_REGISTRY)/admin-panel \
 		--set cloudSql.privateIp=$$CLOUDSQL_IP \
 		--set secrets.gcp.projectId=$(GCP_PROJECT) \
 		--set secrets.gcp.clusterLocation=$(GCP_ZONE) \
@@ -271,8 +274,14 @@ gcp/resources: ## List all GCP resources in project
 	@echo "=== GKE Clusters ==="
 	@gcloud container clusters list --project=$(GCP_PROJECT) 2>/dev/null || echo "None"
 	@echo ""
+	@echo "=== GKE Node Pools ==="
+	@gcloud container node-pools list --cluster=$(GKE_CLUSTER) --zone=$(GCP_ZONE) --project=$(GCP_PROJECT) 2>/dev/null || echo "None"
+	@echo ""
 	@echo "=== Cloud SQL Instances ==="
 	@gcloud sql instances list --project=$(GCP_PROJECT) 2>/dev/null || echo "None"
+	@echo ""
+	@echo "=== Cloud SQL Databases ==="
+	@gcloud sql databases list --instance=grud-postgres --project=$(GCP_PROJECT) 2>/dev/null || echo "None"
 	@echo ""
 	@echo "=== Compute Instances (VMs) ==="
 	@gcloud compute instances list --project=$(GCP_PROJECT) 2>/dev/null || echo "None"
