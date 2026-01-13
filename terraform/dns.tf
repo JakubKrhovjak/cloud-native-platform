@@ -91,6 +91,15 @@ resource "google_certificate_manager_dns_authorization" "grudapp" {
   depends_on = [google_project_service.certificatemanager]
 }
 
+# CNAME record for certificate validation
+resource "google_dns_record_set" "cert_validation" {
+  name         = google_certificate_manager_dns_authorization.grudapp.dns_resource_record[0].name
+  managed_zone = google_dns_managed_zone.grudapp.name
+  type         = google_certificate_manager_dns_authorization.grudapp.dns_resource_record[0].type
+  ttl          = 300
+  rrdatas      = [google_certificate_manager_dns_authorization.grudapp.dns_resource_record[0].data]
+}
+
 # Google-managed wildcard certificate
 resource "google_certificate_manager_certificate" "grud" {
   name        = "grud-gateway-cert"

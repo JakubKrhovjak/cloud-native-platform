@@ -1,37 +1,16 @@
 # =============================================================================
-# Grafana Backend Configuration for GKE Gateway API
+# Grafana Service for GKE Gateway API
 # =============================================================================
-# BackendConfig for health checks and IAP authentication.
-# Routing is handled via Gateway API (k8s/gateway/httproute-grafana.yaml)
+# Service for exposing Grafana via Gateway API.
+# Note: BackendConfig is not compatible with Gateway API.
+# For IAP with Gateway API, use GCPBackendPolicy instead.
 # =============================================================================
 
-apiVersion: cloud.google.com/v1
-kind: BackendConfig
-metadata:
-  name: grafana-backend-config
-  namespace: infra
-spec:
-  healthCheck:
-    type: HTTP
-    port: 3000
-    requestPath: /api/health
-    checkIntervalSec: 15
-    timeoutSec: 5
-    healthyThreshold: 1
-    unhealthyThreshold: 2
-  iap:
-    enabled: true
-    oauthclientCredentials:
-      secretName: grafana-iap-secret
----
-# Service for Gateway API with BackendConfig
 apiVersion: v1
 kind: Service
 metadata:
   name: grafana-gateway
   namespace: infra
-  annotations:
-    cloud.google.com/backend-config: '{"default": "grafana-backend-config"}'
 spec:
   type: ClusterIP
   ports:
