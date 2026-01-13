@@ -1,0 +1,26 @@
+# =============================================================================
+# Health Check Policies for GKE Gateway API
+# =============================================================================
+# Custom health checks for services that don't respond to / healthcheck
+# =============================================================================
+
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: grafana-healthcheck
+  namespace: infra
+spec:
+  default:
+    checkIntervalSec: 15
+    timeoutSec: 5
+    healthyThreshold: 1
+    unhealthyThreshold: 2
+    config:
+      type: HTTP
+      httpHealthCheck:
+        port: 3000
+        requestPath: /api/health
+  targetRef:
+    group: ""
+    kind: Service
+    name: grafana-gateway

@@ -10,6 +10,7 @@ spec:
   parentRefs:
     - name: grud-gateway
       namespace: grud
+      sectionName: https  # Only match HTTPS traffic
   hostnames:
     - "grafana.grudapp.com"
   rules:
