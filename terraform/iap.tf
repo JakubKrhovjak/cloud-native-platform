@@ -3,15 +3,83 @@
 # =============================================================================
 # Protects Grafana with Google authentication.
 #
-# MANUAL STEPS REQUIRED after terraform apply:
+# Prerequisites:
+#   - OAuth consent screen must be configured in GCP Console
+#     (APIs & Services → OAuth consent screen)
+#
+# After terraform apply:
 #   1. Go to: https://console.cloud.google.com/security/iap
-#   2. Configure OAuth consent screen (if not done)
-#   3. Enable IAP for the Grafana backend service
-#   4. Add authorized users (IAP-secured Web App User role)
+#   2. Enable IAP for the Grafana backend service
+#   3. Add authorized users (IAP-secured Web App User role)
 #
 # Dependencies:
 #   apis.tf (IAP API)
 # =============================================================================
+
+# Get project info for brand reference
+data "google_project" "current" {}
+
+# =============================================================================
+# IAP OAuth Brand (OAuth consent screen)
+# =============================================================================
+# Note: If you already have an OAuth consent screen configured,
+# import it: terraform import google_iap_brand.grafana projects/PROJECT_NUMBER/brands/PROJECT_NUMBER
+
+resource "google_iap_brand" "grafana" {
+  support_email     = "cloudarunning@gmail.com"
+  application_title = "GRUD Grafana"
+  project           = data.google_project.current.number
+}
+
+# =============================================================================
+# IAP OAuth Client
+# =============================================================================
+resource "google_iap_client" "grafana" {
+  display_name = "Grafana IAP Client"
+  brand        = google_iap_brand.grafana.name
+}
+
+# =============================================================================
+# Store IAP credentials in Secret Manager
+# =============================================================================
+resource "google_secret_manager_secret" "grafana_iap_credentials" {
+  secret_id = "grafana-iap-credentials"
+
+  replication {
+    auto {}
+  }
+
+  labels = {
+    app       = "grafana"
+    component = "iap"
+  }
+
+  depends_on = [google_project_service.secret_manager]
+}
+
+resource "google_secret_manager_secret_version" "grafana_iap_credentials" {
+  secret      = google_secret_manager_secret.grafana_iap_credentials.id
+  secret_data = jsonencode({
+    client_id     = google_iap_client.grafana.client_id
+    client_secret = google_iap_client.grafana.secret
+  })
+}
+
+# =============================================================================
+# IAP Authorized Users
+# =============================================================================
+# Users who can access Grafana through IAP
+
+resource "google_iap_web_iam_member" "grafana_users" {
+  for_each = toset([
+    "user:cloudarunning@gmail.com",
+    "user:jakub.krhovjak@protonmail.com"
+  ])
+
+  project = var.project_id
+  role    = "roles/iap.httpsResourceAccessor"
+  member  = each.value
+}
 
 # Note: IAP for GKE Ingress backends is configured via BackendConfig
 # in Kubernetes, not directly in Terraform.

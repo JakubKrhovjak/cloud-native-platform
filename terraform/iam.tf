@@ -65,17 +65,12 @@ resource "google_secret_manager_secret_iam_member" "secrets_operator_project_db"
 }
 
 # =============================================================================
-# IAP Credentials Secret (manually created, not managed by Terraform)
+# IAP Credentials Secret Access
 # =============================================================================
-# This secret is created manually in GCP Console/CLI to avoid Terraform
-# deleting it on destroy. We only manage the IAM access here.
-
-data "google_secret_manager_secret" "grafana_iap_credentials" {
-  secret_id = "grafana-iap-credentials"
-}
+# Secret is created in iap.tf, we only manage IAM access here.
 
 resource "google_secret_manager_secret_iam_member" "secrets_operator_grafana_iap" {
-  secret_id = data.google_secret_manager_secret.grafana_iap_credentials.secret_id
+  secret_id = google_secret_manager_secret.grafana_iap_credentials.secret_id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.secrets_operator.email}"
 }
