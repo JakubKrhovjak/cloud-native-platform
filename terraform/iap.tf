@@ -8,6 +8,19 @@
 #       - Requires: GCP Organization, Okta OIDC app
 #       - See: https://cloud.google.com/iam/docs/workforce-identity-federation
 #
+# TODO: Setup Tailscale VPN for private cluster access
+#       - Free for personal use (up to 100 devices)
+#       - Deploy Tailscale operator to GKE
+#       - Use as subnet router for private services
+#       - See: https://tailscale.com/kb/1236/kubernetes-operator
+#
+# TODO: Add Cloud Armor for API protection
+#       - WAF rules (SQL injection, XSS protection)
+#       - Rate limiting per IP
+#       - Optional geo-blocking
+#       - ~$5/month + $0.75/million requests
+#       - See: https://cloud.google.com/armor/docs
+#
 # Prerequisites:
 #   - OAuth consent screen must be configured in GCP Console
 #     (APIs & Services → OAuth consent screen)
