@@ -1,0 +1,23 @@
+# =============================================================================
+# GCPBackendPolicy for Gateway API
+# =============================================================================
+# Configures IAP authentication for Grafana via Gateway API
+# Note: Requires grafana-iap-secret with OAuth credentials
+# =============================================================================
+
+apiVersion: networking.gke.io/v1
+kind: GCPBackendPolicy
+metadata:
+  name: grafana-iap-policy
+  namespace: infra
+spec:
+  default:
+    iap:
+      enabled: true
+      clientID: "966988225682-kulk7ud2oletuctlv880sc0k1k81a9l9.apps.googleusercontent.com"
+      oauth2ClientSecret:
+        name: grafana-iap-secret
+  targetRef:
+    group: ""
+    kind: Service
+    name: grafana-gateway
