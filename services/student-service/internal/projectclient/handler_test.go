@@ -10,7 +10,7 @@ import (
 
 	"student-service/internal/projectclient"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -48,6 +48,8 @@ var _ interface {
 } = (*mockGrpcClient)(nil)
 
 func TestGetMessages(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
 	t.Run("GetMessages_Success", func(t *testing.T) {
 		// Mock data
 		mockMessages := []projectclient.Message{
@@ -69,24 +71,23 @@ func TestGetMessages(t *testing.T) {
 			messages: mockMessages,
 		}
 
-		router := chi.NewRouter()
+		router := gin.New()
 
 		// Create a test handler function that mimics the behavior
-		router.Get("/messages", func(w http.ResponseWriter, r *http.Request) {
-			email := r.URL.Query().Get("email")
+		router.GET("/messages", func(c *gin.Context) {
+			email := c.Query("email")
 			if email == "" {
-				http.Error(w, `{"error":"Email parameter is required"}`, http.StatusBadRequest)
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Email parameter is required"})
 				return
 			}
 
-			messages, err := mockClient.GetMessagesByEmail(r.Context(), email)
+			messages, err := mockClient.GetMessagesByEmail(c.Request.Context(), email)
 			if err != nil {
-				http.Error(w, `{"error":"Failed to fetch messages"}`, http.StatusInternalServerError)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch messages"})
 				return
 			}
 
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(messages)
+			c.JSON(http.StatusOK, messages)
 		})
 
 		req := httptest.NewRequest(http.MethodGet, "/messages?email=test@example.com", nil)
@@ -107,22 +108,21 @@ func TestGetMessages(t *testing.T) {
 	t.Run("GetMessages_MissingEmail", func(t *testing.T) {
 		mockClient := &mockGrpcClient{}
 
-		router := chi.NewRouter()
-		router.Get("/messages", func(w http.ResponseWriter, r *http.Request) {
-			email := r.URL.Query().Get("email")
+		router := gin.New()
+		router.GET("/messages", func(c *gin.Context) {
+			email := c.Query("email")
 			if email == "" {
-				http.Error(w, `{"error":"Email parameter is required"}`, http.StatusBadRequest)
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Email parameter is required"})
 				return
 			}
 
-			messages, err := mockClient.GetMessagesByEmail(r.Context(), email)
+			messages, err := mockClient.GetMessagesByEmail(c.Request.Context(), email)
 			if err != nil {
-				http.Error(w, `{"error":"Failed to fetch messages"}`, http.StatusInternalServerError)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch messages"})
 				return
 			}
 
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(messages)
+			c.JSON(http.StatusOK, messages)
 		})
 
 		req := httptest.NewRequest(http.MethodGet, "/messages", nil)
@@ -138,22 +138,21 @@ func TestGetMessages(t *testing.T) {
 			messages: []projectclient.Message{},
 		}
 
-		router := chi.NewRouter()
-		router.Get("/messages", func(w http.ResponseWriter, r *http.Request) {
-			email := r.URL.Query().Get("email")
+		router := gin.New()
+		router.GET("/messages", func(c *gin.Context) {
+			email := c.Query("email")
 			if email == "" {
-				http.Error(w, `{"error":"Email parameter is required"}`, http.StatusBadRequest)
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Email parameter is required"})
 				return
 			}
 
-			messages, err := mockClient.GetMessagesByEmail(r.Context(), email)
+			messages, err := mockClient.GetMessagesByEmail(c.Request.Context(), email)
 			if err != nil {
-				http.Error(w, `{"error":"Failed to fetch messages"}`, http.StatusInternalServerError)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch messages"})
 				return
 			}
 
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(messages)
+			c.JSON(http.StatusOK, messages)
 		})
 
 		req := httptest.NewRequest(http.MethodGet, "/messages?email=nonexistent@example.com", nil)
@@ -171,6 +170,8 @@ func TestGetMessages(t *testing.T) {
 }
 
 func TestGetAllProjects(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
 	t.Run("GetAllProjects_Success", func(t *testing.T) {
 		// Mock data
 		mockProjects := []projectclient.Project{
@@ -192,18 +193,17 @@ func TestGetAllProjects(t *testing.T) {
 			projects: mockProjects,
 		}
 
-		router := chi.NewRouter()
+		router := gin.New()
 
 		// Create a test handler function that mimics the behavior
-		router.Get("/projects", func(w http.ResponseWriter, r *http.Request) {
-			projects, err := mockClient.GetAllProjects(r.Context())
+		router.GET("/projects", func(c *gin.Context) {
+			projects, err := mockClient.GetAllProjects(c.Request.Context())
 			if err != nil {
-				http.Error(w, `{"error":"Failed to fetch projects"}`, http.StatusInternalServerError)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch projects"})
 				return
 			}
 
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(projects)
+			c.JSON(http.StatusOK, projects)
 		})
 
 		req := httptest.NewRequest(http.MethodGet, "/projects", nil)
@@ -226,16 +226,15 @@ func TestGetAllProjects(t *testing.T) {
 			projects: []projectclient.Project{},
 		}
 
-		router := chi.NewRouter()
-		router.Get("/projects", func(w http.ResponseWriter, r *http.Request) {
-			projects, err := mockClient.GetAllProjects(r.Context())
+		router := gin.New()
+		router.GET("/projects", func(c *gin.Context) {
+			projects, err := mockClient.GetAllProjects(c.Request.Context())
 			if err != nil {
-				http.Error(w, `{"error":"Failed to fetch projects"}`, http.StatusInternalServerError)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch projects"})
 				return
 			}
 
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(projects)
+			c.JSON(http.StatusOK, projects)
 		})
 
 		req := httptest.NewRequest(http.MethodGet, "/projects", nil)

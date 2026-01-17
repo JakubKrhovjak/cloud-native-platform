@@ -15,13 +15,15 @@ import (
 	"student-service/internal/auth"
 	"student-service/internal/student"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 )
 
 func TestAuthService_Shared(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
 	// Set JWT_SECRET for tests
 	os.Setenv("JWT_SECRET", "test-secret-key-for-testing")
 	defer os.Unsetenv("JWT_SECRET")
@@ -39,7 +41,7 @@ func TestAuthService_Shared(t *testing.T) {
 	authService := auth.NewService(authRepo, studentRepo)
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	authHandler := auth.NewHandler(authService, logger)
-	router := chi.NewRouter()
+	router := gin.New()
 	authHandler.RegisterRoutes(router)
 
 	t.Run("Register_Success", func(t *testing.T) {

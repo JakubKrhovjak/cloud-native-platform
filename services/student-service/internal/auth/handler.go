@@ -1,12 +1,11 @@
 package auth
 
 import (
-	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -24,137 +23,129 @@ func NewHandler(service *Service, logger *slog.Logger) *Handler {
 	}
 }
 
-func (h *Handler) RegisterRoutes(router chi.Router) {
-	router.Post("/auth/register", h.Register)
-	router.Post("/auth/login", h.Login)
-	router.Post("/auth/refresh", h.Refresh)
-	router.Post("/auth/logout", h.Logout)
+func (h *Handler) RegisterRoutes(router gin.IRouter) {
+	router.POST("/auth/register", h.Register)
+	router.POST("/auth/login", h.Login)
+	router.POST("/auth/refresh", h.Refresh)
+	router.POST("/auth/logout", h.Logout)
 }
 
-// Register creates a new student account
-func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Register(c *gin.Context) {
 	var req RegisterRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		h.logger.Error("failed to decode request", "error", err)
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+		c.String(http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	if err := h.validator.Struct(req); err != nil {
 		h.logger.Warn("validation failed", "error", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		c.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	resp, err := h.service.Register(r.Context(), req)
+	resp, err := h.service.Register(c.Request.Context(), req)
 	if err != nil {
 		if errors.Is(err, ErrEmailExists) {
-			http.Error(w, err.Error(), http.StatusConflict)
+			c.String(http.StatusConflict, err.Error())
 			return
 		}
 		h.logger.Error("registration failed", "error", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		c.String(http.StatusInternalServerError, "internal server error")
 		return
 	}
 
 	// Set access token in cookie
-	SetAuthCookie(w, resp.AccessToken)
+	SetAuthCookie(c.Writer, resp.AccessToken)
 
 	// Return response with refresh token in body
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(resp)
+	c.JSON(http.StatusCreated, resp)
 }
 
-// Login authenticates a student
-func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Login(c *gin.Context) {
 	var req LoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		h.logger.Error("failed to decode request", "error", err)
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+		c.String(http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	if err := h.validator.Struct(req); err != nil {
 		h.logger.Warn("validation failed", "error", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		c.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	resp, err := h.service.Login(r.Context(), req)
+	resp, err := h.service.Login(c.Request.Context(), req)
 	if err != nil {
 		if errors.Is(err, ErrInvalidCredentials) {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
+			c.String(http.StatusUnauthorized, err.Error())
 			return
 		}
 		h.logger.Error("login failed", "error", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		c.String(http.StatusInternalServerError, "internal server error")
 		return
 	}
 
 	h.logger.Info("student logged in", "email", req.Email)
 
 	// Set access token in cookie
-	SetAuthCookie(w, resp.AccessToken)
+	SetAuthCookie(c.Writer, resp.AccessToken)
 
 	// Return response with refresh token in body
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	c.JSON(http.StatusOK, resp)
 }
 
-// Refresh generates a new access token
-func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Refresh(c *gin.Context) {
 	var req RefreshRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		h.logger.Error("failed to decode request", "error", err)
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+		c.String(http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	if err := h.validator.Struct(req); err != nil {
 		h.logger.Warn("validation failed", "error", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		c.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	resp, err := h.service.RefreshAccessToken(r.Context(), req.RefreshToken)
+	resp, err := h.service.RefreshAccessToken(c.Request.Context(), req.RefreshToken)
 	if err != nil {
 		if errors.Is(err, ErrInvalidRefreshToken) {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
+			c.String(http.StatusUnauthorized, err.Error())
 			return
 		}
 		h.logger.Error("token refresh failed", "error", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		c.String(http.StatusInternalServerError, "internal server error")
 		return
 	}
 
 	// Set new access token in cookie
-	SetAuthCookie(w, resp.AccessToken)
+	SetAuthCookie(c.Writer, resp.AccessToken)
 
 	// Return response with new refresh token
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	c.JSON(http.StatusOK, resp)
 }
 
-// Logout invalidates the refresh token
-func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Logout(c *gin.Context) {
 	var req RefreshRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		h.logger.Error("failed to decode request", "error", err)
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+		c.String(http.StatusBadRequest, "invalid request body")
 		return
 	}
 
-	if err := h.service.Logout(r.Context(), req.RefreshToken); err != nil {
+	if err := h.service.Logout(c.Request.Context(), req.RefreshToken); err != nil {
 		h.logger.Error("logout failed", "error", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		c.String(http.StatusInternalServerError, "internal server error")
 		return
 	}
 
 	// Clear auth cookie
-	ClearAuthCookie(w)
+	ClearAuthCookie(c.Writer)
 
 	h.logger.Info("student logged out")
 
-	w.WriteHeader(http.StatusNoContent)
+	c.Status(http.StatusNoContent)
 }

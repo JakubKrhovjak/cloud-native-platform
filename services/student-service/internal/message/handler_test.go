@@ -19,13 +19,14 @@ import (
 
 	"grud/testing/testnats"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/gin-gonic/gin"
 	"github.com/nats-io/nats.go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func setupTestWithNATSContainer(t *testing.T, natsContainer *testnats.NATSContainer, subject string) (chi.Router, *nats.Conn) {
+func setupTestWithNATSContainer(t *testing.T, natsContainer *testnats.NATSContainer, subject string) (*gin.Engine, *nats.Conn) {
+	gin.SetMode(gin.TestMode)
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 
 	producer, err := messaging.NewProducer(natsContainer.URL, subject, logger)
@@ -35,7 +36,7 @@ func setupTestWithNATSContainer(t *testing.T, natsContainer *testnats.NATSContai
 	mockMetrics := metrics.NewMock()
 	handler := message.NewHandler(service, logger, mockMetrics)
 
-	router := chi.NewRouter()
+	router := gin.New()
 	handler.RegisterRoutes(router)
 
 	nc := natsContainer.Connect(t)
@@ -57,6 +58,10 @@ func TestMessageHandlerWithNATSContainer(t *testing.T) {
 			received <- msg
 		})
 		require.NoError(t, err)
+
+		// Ensure subscriber is ready
+		require.NoError(t, nc.Flush())
+		time.Sleep(50 * time.Millisecond)
 
 		// Create request
 		payload := message.SendMessageRequest{

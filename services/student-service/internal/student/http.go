@@ -1,7 +1,6 @@
 package student
 
 import (
-	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -9,9 +8,7 @@ import (
 
 	"student-service/internal/metrics"
 
-	"grud/common/httputil"
-
-	"github.com/go-chi/chi/v5"
+	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -32,18 +29,18 @@ func NewHandler(service Service, logger *slog.Logger, metrics *metrics.Metrics) 
 	}
 }
 
-func (h *Handler) RegisterRoutes(router chi.Router) {
-	router.Post("/students", h.CreateStudent)
-	router.Get("/students", h.GetAllStudents)
-	router.Get("/students/{id}", h.GetStudent)
-	router.Put("/students/{id}", h.UpdateStudent)
-	router.Delete("/students/{id}", h.DeleteStudent)
+func (h *Handler) RegisterRoutes(router gin.IRouter) {
+	router.POST("/students", h.CreateStudent)
+	router.GET("/students", h.GetAllStudents)
+	router.GET("/students/:id", h.GetStudent)
+	router.PUT("/students/:id", h.UpdateStudent)
+	router.DELETE("/students/:id", h.DeleteStudent)
 }
 
-func (h *Handler) CreateStudent(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) CreateStudent(c *gin.Context) {
 	var student Student
-	if err := json.NewDecoder(r.Body).Decode(&student); err != nil || h.validate.Struct(&student) != nil {
-		httputil.RespondWithError(w, http.StatusBadRequest, "Invalid request")
+	if err := c.ShouldBindJSON(&student); err != nil || h.validate.Struct(&student) != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -52,107 +49,107 @@ func (h *Handler) CreateStudent(w http.ResponseWriter, r *http.Request) {
 	if student.Password == "" {
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("DefaultPassword123!"), bcrypt.DefaultCost)
 		if err != nil {
-			h.logger.ErrorContext(r.Context(), "failed to hash password", "error", err)
-			httputil.RespondWithError(w, http.StatusInternalServerError, "Internal server error")
+			h.logger.ErrorContext(c.Request.Context(), "failed to hash password", "error", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
 		}
 		student.Password = string(hashedPassword)
 	}
 
-	h.logger.InfoContext(r.Context(), "creating student", "email", student.Email)
-	createdStudent, err := h.service.CreateStudent(r.Context(), &student)
+	h.logger.InfoContext(c.Request.Context(), "creating student", "email", student.Email)
+	createdStudent, err := h.service.CreateStudent(c.Request.Context(), &student)
 	if err != nil {
-		h.handleServiceError(w, err)
+		h.handleServiceError(c, err)
 		return
 	}
 
 	// Record metric
-	h.metrics.RecordStudentRegistration(r.Context())
+	h.metrics.RecordStudentRegistration(c.Request.Context())
 
-	httputil.RespondWithJSON(w, http.StatusCreated, createdStudent)
+	c.JSON(http.StatusCreated, createdStudent)
 }
 
-func (h *Handler) GetAllStudents(w http.ResponseWriter, r *http.Request) {
-	h.logger.InfoContext(r.Context(), "fetching all students")
+func (h *Handler) GetAllStudents(c *gin.Context) {
+	h.logger.InfoContext(c.Request.Context(), "fetching all students")
 
-	students, err := h.service.GetAllStudents(r.Context())
+	students, err := h.service.GetAllStudents(c.Request.Context())
 	if err != nil {
-		h.handleServiceError(w, err)
+		h.handleServiceError(c, err)
 		return
 	}
 
 	// Record metric
-	h.metrics.RecordStudentsListViewed(r.Context())
+	h.metrics.RecordStudentsListViewed(c.Request.Context())
 
-	httputil.RespondWithJSON(w, http.StatusOK, students)
+	c.JSON(http.StatusOK, students)
 }
 
-func (h *Handler) GetStudent(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+func (h *Handler) GetStudent(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		httputil.RespondWithError(w, http.StatusBadRequest, "Invalid student ID")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid student ID"})
 		return
 	}
 
-	h.logger.InfoContext(r.Context(), "fetching student by ID")
-	student, err := h.service.GetStudentByID(r.Context(), id)
+	h.logger.InfoContext(c.Request.Context(), "fetching student by ID")
+	student, err := h.service.GetStudentByID(c.Request.Context(), id)
 	if err != nil {
-		h.handleServiceError(w, err)
+		h.handleServiceError(c, err)
 		return
 	}
 
 	// Record metric
-	h.metrics.RecordStudentViewed(r.Context())
+	h.metrics.RecordStudentViewed(c.Request.Context())
 
-	httputil.RespondWithJSON(w, http.StatusOK, student)
+	c.JSON(http.StatusOK, student)
 }
 
-func (h *Handler) UpdateStudent(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+func (h *Handler) UpdateStudent(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
 
 	var student Student
-	if err := json.NewDecoder(r.Body).Decode(&student); err != nil || h.validate.Struct(&student) != nil {
-		httputil.RespondWithError(w, http.StatusBadRequest, "Invalid request")
+	if err := c.ShouldBindJSON(&student); err != nil || h.validate.Struct(&student) != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 	student.ID = id
 
-	h.logger.InfoContext(r.Context(), "updating student", "email", student.Email)
-	if err := h.service.UpdateStudent(r.Context(), &student); err != nil {
-		h.handleServiceError(w, err)
+	h.logger.InfoContext(c.Request.Context(), "updating student", "email", student.Email)
+	if err := h.service.UpdateStudent(c.Request.Context(), &student); err != nil {
+		h.handleServiceError(c, err)
 		return
 	}
 
-	httputil.RespondWithJSON(w, http.StatusOK, student)
+	c.JSON(http.StatusOK, student)
 }
 
-func (h *Handler) DeleteStudent(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+func (h *Handler) DeleteStudent(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		httputil.RespondWithError(w, http.StatusBadRequest, "Invalid student ID")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid student ID"})
 		return
 	}
 
-	h.logger.InfoContext(r.Context(), "deleting student")
-	if err := h.service.DeleteStudent(r.Context(), id); err != nil {
-		h.handleServiceError(w, err)
+	h.logger.InfoContext(c.Request.Context(), "deleting student")
+	if err := h.service.DeleteStudent(c.Request.Context(), id); err != nil {
+		h.handleServiceError(c, err)
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	c.Status(http.StatusNoContent)
 }
 
-func (h *Handler) handleServiceError(w http.ResponseWriter, err error) {
+func (h *Handler) handleServiceError(c *gin.Context, err error) {
 	if errors.Is(err, ErrStudentNotFound) {
 		h.logger.Info("student not found")
-		httputil.RespondWithError(w, http.StatusNotFound, "Student not found")
+		c.JSON(http.StatusNotFound, gin.H{"error": "Student not found"})
 		return
 	}
 	if errors.Is(err, ErrInvalidInput) {
 		h.logger.Info("invalid input")
-		httputil.RespondWithError(w, http.StatusBadRequest, err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	h.logger.Error("internal error")
-	httputil.RespondWithError(w, http.StatusInternalServerError, err.Error())
+	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 }

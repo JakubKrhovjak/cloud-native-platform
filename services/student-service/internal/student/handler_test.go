@@ -15,12 +15,14 @@ import (
 	"student-service/internal/metrics"
 	"student-service/internal/student"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestStudentService_Shared(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
 	pgContainer := testdb.SetupSharedPostgres(t)
 	defer pgContainer.Cleanup(t)
 
@@ -33,7 +35,7 @@ func TestStudentService_Shared(t *testing.T) {
 	service := student.NewService(repo)
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	handler := student.NewHandler(service, logger, mockServiceMetrics)
-	router := chi.NewRouter()
+	router := gin.New()
 	handler.RegisterRoutes(router)
 
 	t.Run("CreateStudent", func(t *testing.T) {

@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+
+	"github.com/gin-gonic/gin"
 )
 
 type contextKey string
@@ -17,32 +19,31 @@ const (
 )
 
 // AuthMiddleware validates JWT from cookie and adds claims to context
-func AuthMiddleware(logger *slog.Logger) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Get token from cookie
-			cookie, err := r.Cookie("token")
-			if err != nil {
-				logger.Warn("no auth cookie found", "path", r.URL.Path)
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
-				return
-			}
+func AuthMiddleware(logger *slog.Logger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Get token from cookie
+		cookie, err := c.Request.Cookie("token")
+		if err != nil {
+			logger.Warn("no auth cookie found", "path", c.Request.URL.Path)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
 
-			// Validate JWT
-			claims, err := ValidateAccessToken(cookie.Value)
-			if err != nil {
-				logger.Warn("invalid token", "error", err)
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
-				return
-			}
+		// Validate JWT
+		claims, err := ValidateAccessToken(cookie.Value)
+		if err != nil {
+			logger.Warn("invalid token", "error", err)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
 
-			// Add claims to context
-			ctx := context.WithValue(r.Context(), StudentIDKey, claims.StudentID)
-			ctx = context.WithValue(ctx, EmailKey, claims.Email)
+		// Add claims to context
+		ctx := context.WithValue(c.Request.Context(), StudentIDKey, claims.StudentID)
+		ctx = context.WithValue(ctx, EmailKey, claims.Email)
+		c.Request = c.Request.WithContext(ctx)
 
-			// Call next handler
-			next.ServeHTTP(w, r.WithContext(ctx))
-		})
+		// Call next handler
+		c.Next()
 	}
 }
 

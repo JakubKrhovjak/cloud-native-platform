@@ -6,9 +6,7 @@ import (
 
 	"student-service/internal/metrics"
 
-	"grud/common/httputil"
-
-	"github.com/go-chi/chi/v5"
+	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
@@ -25,50 +23,50 @@ func NewHandler(grpcClient *GrpcClient, logger *slog.Logger, metrics *metrics.Me
 	}
 }
 
-func (h *Handler) RegisterRoutes(router chi.Router) {
-	router.Get("/projects", h.GetAllProjects)
-	router.Get("/messages", h.GetMessages)
+func (h *Handler) RegisterRoutes(router gin.IRouter) {
+	router.GET("/projects", h.GetAllProjects)
+	router.GET("/messages", h.GetMessages)
 }
 
-func (h *Handler) GetAllProjects(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetAllProjects(c *gin.Context) {
 	if h.grpcClient == nil {
-		httputil.RespondWithError(w, http.StatusServiceUnavailable, "gRPC client not available")
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "gRPC client not available"})
 		return
 	}
 
-	h.logger.InfoContext(r.Context(), "fetching all projects from project-service via gRPC")
-	projects, err := h.grpcClient.GetAllProjects(r.Context())
+	h.logger.InfoContext(c.Request.Context(), "fetching all projects from project-service via gRPC")
+	projects, err := h.grpcClient.GetAllProjects(c.Request.Context())
 	if err != nil {
-		h.logger.ErrorContext(r.Context(), "failed to fetch projects via gRPC", "error", err)
-		httputil.RespondWithError(w, http.StatusInternalServerError, "Failed to fetch projects")
+		h.logger.ErrorContext(c.Request.Context(), "failed to fetch projects via gRPC", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch projects"})
 		return
 	}
 
 	// Record metric
-	h.metrics.RecordProjectsListViewedByStudent(r.Context())
+	h.metrics.RecordProjectsListViewedByStudent(c.Request.Context())
 
-	httputil.RespondWithJSON(w, http.StatusOK, projects)
+	c.JSON(http.StatusOK, projects)
 }
 
-func (h *Handler) GetMessages(w http.ResponseWriter, r *http.Request) {
-	email := r.URL.Query().Get("email")
+func (h *Handler) GetMessages(c *gin.Context) {
+	email := c.Query("email")
 	if email == "" {
-		httputil.RespondWithError(w, http.StatusBadRequest, "Email parameter is required")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email parameter is required"})
 		return
 	}
 
 	if h.grpcClient == nil {
-		httputil.RespondWithError(w, http.StatusServiceUnavailable, "gRPC client not available")
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "gRPC client not available"})
 		return
 	}
 
-	h.logger.InfoContext(r.Context(), "fetching messages from project-service via gRPC", "email", email)
-	messages, err := h.grpcClient.GetMessagesByEmail(r.Context(), email)
+	h.logger.InfoContext(c.Request.Context(), "fetching messages from project-service via gRPC", "email", email)
+	messages, err := h.grpcClient.GetMessagesByEmail(c.Request.Context(), email)
 	if err != nil {
-		h.logger.ErrorContext(r.Context(), "failed to fetch messages via gRPC", "error", err, "email", email)
-		httputil.RespondWithError(w, http.StatusInternalServerError, "Failed to fetch messages")
+		h.logger.ErrorContext(c.Request.Context(), "failed to fetch messages via gRPC", "error", err, "email", email)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch messages"})
 		return
 	}
 
-	httputil.RespondWithJSON(w, http.StatusOK, messages)
+	c.JSON(http.StatusOK, messages)
 }
