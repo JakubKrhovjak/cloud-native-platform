@@ -33,8 +33,8 @@ resource "google_container_cluster" "primary" {
 
   # Use secondary IP ranges from subnet for pods/services
   ip_allocation_policy {
-    cluster_secondary_range_name  = "pods"     # 10.1.0.0/16
-    services_secondary_range_name = "services" # 10.2.0.0/20
+    cluster_secondary_range_name  = "pods"     # 10.100.0.0/16
+    services_secondary_range_name = "services" # 10.101.0.0/20
   }
 
   # Private cluster - nodes have no public IPs

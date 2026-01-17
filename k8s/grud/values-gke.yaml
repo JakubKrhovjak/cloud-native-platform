@@ -59,6 +59,13 @@ studentService:
     limits:
       memory: "512Mi"
       cpu: "500m"
+  nodeSelector:
+    node-type: app
+  tolerations:
+    - key: workload
+      operator: Equal
+      value: app
+      effect: NoSchedule
   # HPA - Horizontal Pod Autoscaler
   hpa:
     enabled: true
@@ -80,6 +87,13 @@ projectService:
     limits:
       memory: "512Mi"
       cpu: "500m"
+  nodeSelector:
+    node-type: app
+  tolerations:
+    - key: workload
+      operator: Equal
+      value: app
+      effect: NoSchedule
   # HPA - Horizontal Pod Autoscaler
   hpa:
     enabled: true
@@ -91,6 +105,8 @@ projectService:
 adminPanel:
   enabled: true
   replicaCount: 1
+  config:
+    apiUrl: "https://grudapp.com"
   ingress:
     enabled: true
     host: admin.grudapp.com
@@ -104,6 +120,13 @@ adminPanel:
     limits:
       memory: "512Mi"
       cpu: "500m"
+  nodeSelector:
+    node-type: app
+  tolerations:
+    - key: workload
+      operator: Equal
+      value: app
+      effect: NoSchedule
 
 # For GKE, databases are managed via Cloud SQL
 studentDb:

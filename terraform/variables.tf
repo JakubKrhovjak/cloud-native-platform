@@ -3,6 +3,12 @@ variable "project_id" {
   type        = string
 }
 
+variable "skip_kubernetes_provider" {
+  description = "Skip kubernetes/helm provider configuration (for bootstrap when GKE doesn't exist)"
+  type        = bool
+  default     = false
+}
+
 variable "region" {
   description = "GCP Region"
   type        = string

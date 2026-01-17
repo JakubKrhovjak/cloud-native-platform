@@ -25,6 +25,7 @@ resource "google_compute_global_address" "private_ip_range" {
   name          = "google-managed-services-range"
   purpose       = "VPC_PEERING"
   address_type  = "INTERNAL"
+  address       = "10.64.0.0"                 # Explicit address to avoid conflicts
   prefix_length = 16                          # /16 = 65,536 IPs
   network       = google_compute_network.vpc.id
 }

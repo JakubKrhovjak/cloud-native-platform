@@ -40,18 +40,27 @@ provider "google-beta" {
   region  = var.region
 }
 
+data "google_client_config" "default" {}
+
+# Data source to look up existing GKE cluster (may not exist during bootstrap)
+data "google_container_cluster" "primary" {
+  count    = var.skip_kubernetes_provider ? 0 : 1
+  name     = var.cluster_name
+  location = var.zone
+}
+
+# Kubernetes/Helm providers - will be invalid during initial bootstrap
+# Use: terraform apply -var="skip_kubernetes_provider=true" for first run
 provider "kubernetes" {
-  host                   = "https://${google_container_cluster.primary.endpoint}"
+  host                   = var.skip_kubernetes_provider ? "https://localhost" : "https://${data.google_container_cluster.primary[0].endpoint}"
   token                  = data.google_client_config.default.access_token
-  cluster_ca_certificate = base64decode(google_container_cluster.primary.master_auth[0].cluster_ca_certificate)
+  cluster_ca_certificate = var.skip_kubernetes_provider ? "" : base64decode(data.google_container_cluster.primary[0].master_auth[0].cluster_ca_certificate)
 }
 
 provider "helm" {
   kubernetes {
-    host                   = "https://${google_container_cluster.primary.endpoint}"
+    host                   = var.skip_kubernetes_provider ? "https://localhost" : "https://${data.google_container_cluster.primary[0].endpoint}"
     token                  = data.google_client_config.default.access_token
-    cluster_ca_certificate = base64decode(google_container_cluster.primary.master_auth[0].cluster_ca_certificate)
+    cluster_ca_certificate = var.skip_kubernetes_provider ? "" : base64decode(data.google_container_cluster.primary[0].master_auth[0].cluster_ca_certificate)
   }
 }
-
-data "google_client_config" "default" {}

@@ -30,12 +30,12 @@ resource "google_compute_subnetwork" "subnet" {
 
   secondary_ip_range {
     range_name    = "pods"
-    ip_cidr_range = "10.1.0.0/16"     # Pod IPs (64k addresses)
+    ip_cidr_range = "10.100.0.0/16"   # Pod IPs (64k addresses) - avoids peering overlap
   }
 
   secondary_ip_range {
     range_name    = "services"
-    ip_cidr_range = "10.2.0.0/20"     # Service IPs (4k addresses)
+    ip_cidr_range = "10.101.0.0/20"   # Service IPs (4k addresses)
   }
 }
 

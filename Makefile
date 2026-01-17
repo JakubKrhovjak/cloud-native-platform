@@ -253,12 +253,21 @@ tf/plan: ## Plan Terraform changes
 
 tf/apply: ## Apply Terraform configuration
 	@echo "🚀 Applying Terraform configuration..."
-	@echo "🔄 Importing protected resources if they exist..."
-	@cd $(TF_DIR) && terraform import google_dns_managed_zone.grudapp projects/$(GCP_PROJECT)/managedZones/grudapp-zone 2>/dev/null || true
-	@cd $(TF_DIR) && terraform import google_dns_record_set.root $(GCP_PROJECT)/grudapp-zone/grudapp.com./A 2>/dev/null || true
-	@cd $(TF_DIR) && terraform import google_dns_record_set.grafana $(GCP_PROJECT)/grudapp-zone/grafana.grudapp.com./A 2>/dev/null || true
-	@cd $(TF_DIR) && terraform import google_dns_record_set.admin $(GCP_PROJECT)/grudapp-zone/admin.grudapp.com./A 2>/dev/null || true
-	@cd $(TF_DIR) && terraform import google_compute_managed_ssl_certificate.grud projects/$(GCP_PROJECT)/global/sslCertificates/grud-cert 2>/dev/null || true
+	@echo "🔄 Importing existing resources if they exist..."
+	@cd $(TF_DIR) && terraform import -var="skip_kubernetes_provider=true" google_dns_managed_zone.grudapp projects/$(GCP_PROJECT)/managedZones/grudapp-zone 2>/dev/null || true
+	@cd $(TF_DIR) && terraform import -var="skip_kubernetes_provider=true" google_dns_record_set.root $(GCP_PROJECT)/grudapp-zone/grudapp.com./A 2>/dev/null || true
+	@cd $(TF_DIR) && terraform import -var="skip_kubernetes_provider=true" google_dns_record_set.grafana $(GCP_PROJECT)/grudapp-zone/grafana.grudapp.com./A 2>/dev/null || true
+	@cd $(TF_DIR) && terraform import -var="skip_kubernetes_provider=true" google_dns_record_set.admin $(GCP_PROJECT)/grudapp-zone/admin.grudapp.com./A 2>/dev/null || true
+	@cd $(TF_DIR) && terraform import -var="skip_kubernetes_provider=true" google_compute_managed_ssl_certificate.grud projects/$(GCP_PROJECT)/global/sslCertificates/grud-cert 2>/dev/null || true
+	@cd $(TF_DIR) && terraform import -var="skip_kubernetes_provider=true" google_certificate_manager_certificate_map.grud projects/$(GCP_PROJECT)/locations/global/certificateMaps/grud-certmap 2>/dev/null || true
+	@cd $(TF_DIR) && terraform import -var="skip_kubernetes_provider=true" google_certificate_manager_dns_authorization.grudapp projects/$(GCP_PROJECT)/locations/global/dnsAuthorizations/grudapp-dns-auth 2>/dev/null || true
+	@cd $(TF_DIR) && terraform import -var="skip_kubernetes_provider=true" google_certificate_manager_certificate.grud projects/$(GCP_PROJECT)/locations/global/certificates/grud-gateway-cert 2>/dev/null || true
+	@cd $(TF_DIR) && terraform import -var="skip_kubernetes_provider=true" google_certificate_manager_certificate_map_entry.root projects/$(GCP_PROJECT)/locations/global/certificateMaps/grud-certmap/certificateMapEntries/grud-root-entry 2>/dev/null || true
+	@cd $(TF_DIR) && terraform import -var="skip_kubernetes_provider=true" google_certificate_manager_certificate_map_entry.wildcard projects/$(GCP_PROJECT)/locations/global/certificateMaps/grud-certmap/certificateMapEntries/grud-wildcard-entry 2>/dev/null || true
+	@cd $(TF_DIR) && terraform import -var="skip_kubernetes_provider=true" google_sql_database_instance.postgres grud-postgres 2>/dev/null || true
+	@echo "📦 Stage 1: Bootstrap (VPC, GKE, Cloud SQL, DNS) - skip k8s providers..."
+	@cd $(TF_DIR) && terraform apply -var="skip_kubernetes_provider=true" -auto-approve
+	@echo "📦 Stage 2: Full apply with k8s providers..."
 	@cd $(TF_DIR) && terraform apply -auto-approve
 	@echo "✅ Terraform applied"
 

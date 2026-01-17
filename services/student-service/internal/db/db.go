@@ -24,7 +24,9 @@ func New(cfg config.DatabaseConfig) *bun.DB {
 		cfg.DBName,
 	)
 
-	return NewWithDSN(dsn)
+	db := NewWithDSN(dsn)
+	configurePool(db, cfg)
+	return db
 }
 
 // NewWithDSN creates a new database connection with a custom DSN (useful for testing)
