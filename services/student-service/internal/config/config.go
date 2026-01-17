@@ -16,7 +16,10 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Port string `mapstructure:"port"`
+	Port         string `mapstructure:"port"`
+	ReadTimeout  int    `mapstructure:"read_timeout_seconds"`
+	WriteTimeout int    `mapstructure:"write_timeout_seconds"`
+	IdleTimeout  int    `mapstructure:"idle_timeout_seconds"`
 }
 
 type ProjectServiceConfig struct {
@@ -24,11 +27,15 @@ type ProjectServiceConfig struct {
 }
 
 type DatabaseConfig struct {
-	Host     string `mapstructure:"host"`
-	Port     string `mapstructure:"port"`
-	User     string `mapstructure:"user"`
-	Password string `mapstructure:"password"`
-	DBName   string `mapstructure:"name"`
+	Host            string `mapstructure:"host"`
+	Port            string `mapstructure:"port"`
+	User            string `mapstructure:"user"`
+	Password        string `mapstructure:"password"`
+	DBName          string `mapstructure:"name"`
+	MaxOpenConns    int    `mapstructure:"max_open_conns"`
+	MaxIdleConns    int    `mapstructure:"max_idle_conns"`
+	ConnMaxLifetime int    `mapstructure:"conn_max_lifetime_seconds"`
+	ConnMaxIdleTime int    `mapstructure:"conn_max_idle_time_seconds"`
 }
 
 type NATSConfig struct {

@@ -176,12 +176,35 @@ func New() *App {
 }
 
 func (a *App) Run() error {
-	a.server = &http.Server{
-		Addr:    fmt.Sprintf(":%s", a.config.Server.Port),
-		Handler: a.router,
+	readTimeout := a.config.Server.ReadTimeout
+	if readTimeout == 0 {
+		readTimeout = 30
 	}
 
-	a.logger.Info("server starting", "port", a.config.Server.Port)
+	writeTimeout := a.config.Server.WriteTimeout
+	if writeTimeout == 0 {
+		writeTimeout = 30
+	}
+
+	idleTimeout := a.config.Server.IdleTimeout
+	if idleTimeout == 0 {
+		idleTimeout = 120
+	}
+
+	a.server = &http.Server{
+		Addr:         fmt.Sprintf(":%s", a.config.Server.Port),
+		Handler:      a.router,
+		ReadTimeout:  time.Duration(readTimeout) * time.Second,
+		WriteTimeout: time.Duration(writeTimeout) * time.Second,
+		IdleTimeout:  time.Duration(idleTimeout) * time.Second,
+	}
+
+	a.logger.Info("server starting",
+		"port", a.config.Server.Port,
+		"read_timeout_seconds", readTimeout,
+		"write_timeout_seconds", writeTimeout,
+		"idle_timeout_seconds", idleTimeout,
+	)
 	return a.server.ListenAndServe()
 }
 

@@ -3,6 +3,9 @@ env: local
 
 server:
   port: "9080"
+  read_timeout_seconds: 30
+  write_timeout_seconds: 30
+  idle_timeout_seconds: 120
 
 database:
   host: localhost
@@ -10,6 +13,10 @@ database:
   user: app
   password: changeme123
   name: university
+  max_open_conns: 25
+  max_idle_conns: 10
+  conn_max_lifetime_seconds: 300
+  conn_max_idle_time_seconds: 60
 
 project_service:
   grpc: localhost:50052
