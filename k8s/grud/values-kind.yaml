@@ -43,6 +43,8 @@ projectService:
   useSecrets: true
 
 adminPanel:
+  config:
+    apiUrl: "http://localhost:8080"
   enabled: true
   replicaCount: 2
 

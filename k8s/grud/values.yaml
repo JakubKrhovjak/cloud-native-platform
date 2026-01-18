@@ -110,8 +110,10 @@ projectService:
 
 # Admin Panel
 adminPanel:
+  config: {}
   enabled: true
   replicaCount: 1
+
   image:
     repository: admin-panel
     tag: latest
