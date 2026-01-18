@@ -6,8 +6,7 @@ metadata:
   name: project-service
   namespace: {{ .Values.global.namespace }}
   labels:
-    app: grud
-    component: project-service
+    {{- include "grud.componentLabels" (dict "componentName" "project-service" "root" .) | nindent 4 }}
 ---
 apiVersion: v1
 kind: ConfigMap

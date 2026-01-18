@@ -48,8 +48,8 @@ alloy:
       // Memory Limiter - prevents OOM during traffic spikes
       otelcol.processor.memory_limiter "default" {
         check_interval = "1s"
-        limit_mib = 200          // Max RAM (current pod limit: 256Mi)
-        spike_limit_mib = 50     // Allow temporary spike above limit
+        limit = "200MiB"          // Max RAM (current pod limit: 256Mi)
+        spike_limit = "50MiB"     // Allow temporary spike above limit
 
         output {
           metrics = [otelcol.processor.batch.default.input]
