@@ -31,3 +31,13 @@ Selector labels
 {{- define "grud.selectorLabels" -}}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+Component labels - combines common labels with component-specific label
+Usage: {{ include "grud.componentLabels" (dict "componentName" "student-service" "root" .) }}
+*/}}
+{{- define "grud.componentLabels" -}}
+{{ include "grud.labels" .root }}
+app: {{ include "grud.name" .root }}
+component: {{ .componentName }}
+{{- end }}

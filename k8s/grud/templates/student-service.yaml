@@ -6,27 +6,30 @@ metadata:
   name: student-service
   namespace: {{ .Values.global.namespace }}
   labels:
-    app: grud
-    component: student-service
+    {{- include "grud.componentLabels" (dict "componentName" "student-service" "root" .) | nindent 4 }}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: student-service-config
   namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "grud.componentLabels" (dict "componentName" "student-service" "root" .) | nindent 4 }}
 data:
-  ENV: {{ .Values.studentService.config.env | quote }}
-  SERVER_PORT: {{ .Values.studentService.config.serverPort | quote }}
-  PROJECT_SERVICE_GRPC: {{ .Values.studentService.config.grpcEndpoint | quote }}
-  NATS_URL: {{ .Values.studentService.config.natsUrl | quote }}
-  NATS_SUBJECT: {{ .Values.studentService.config.natsSubject | quote }}
-  OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.studentService.config.otelEndpoint | quote }}
+  ENV: {{ required "studentService.config.env is required!" .Values.studentService.config.env | quote }}
+  SERVER_PORT: {{ .Values.studentService.config.serverPort | default "8080" | quote }}
+  PROJECT_SERVICE_GRPC: {{ required "studentService.config.grpcEndpoint is required!" .Values.studentService.config.grpcEndpoint | quote }}
+  NATS_URL: {{ required "studentService.config.natsUrl is required!" .Values.studentService.config.natsUrl | quote }}
+  NATS_SUBJECT: {{ .Values.studentService.config.natsSubject | default "student.events" | quote }}
+  OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.studentService.config.otelEndpoint | default "http://alloy.infra:4318" | quote }}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: student-service-file-config
   namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "grud.componentLabels" (dict "componentName" "student-service" "root" .) | nindent 4 }}
 data:
   config.{{ .Values.studentService.config.env }}.yaml: |
     env: {{ .Values.studentService.config.env }}
@@ -58,6 +61,8 @@ kind: Service
 metadata:
   name: student-service
   namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "grud.componentLabels" (dict "componentName" "student-service" "root" .) | nindent 4 }}
 spec:
   type: ClusterIP
   ports:
@@ -72,6 +77,8 @@ kind: Deployment
 metadata:
   name: student-service
   namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "grud.componentLabels" (dict "componentName" "student-service" "root" .) | nindent 4 }}
 spec:
   replicas: {{ .Values.studentService.replicaCount }}
   selector:
@@ -81,6 +88,8 @@ spec:
     metadata:
       labels:
         app: student-service
+        {{- include "grud.labels" . | nindent 8 }}
+        component: student-service
     spec:
       {{- if .Values.studentService.tolerations }}
       tolerations:
@@ -122,17 +131,17 @@ spec:
             - name: DB_NAME
               valueFrom:
                 secretKeyRef:
-                  name: student-db-secret
-                  key: database
+                  name: {{ .Values.studentService.database.secretName }}
+                  key: dbname
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: student-db-secret
+                  name: {{ .Values.studentService.database.secretName }}
                   key: username
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: student-db-secret
+                  name: {{ .Values.studentService.database.secretName }}
                   key: password
             - name: JWT_SECRET
               valueFrom:

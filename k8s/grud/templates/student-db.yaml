@@ -5,6 +5,8 @@ kind: Secret
 metadata:
   name: student-db-app
   namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "grud.componentLabels" (dict "componentName" "student-db" "root" .) | nindent 4 }}
 type: Opaque
 stringData:
   dbname: {{ .Values.studentDb.credentials.database }}
@@ -16,6 +18,8 @@ kind: Service
 metadata:
   name: student-db
   namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "grud.componentLabels" (dict "componentName" "student-db" "root" .) | nindent 4 }}
 spec:
   clusterIP: None
   ports:
@@ -29,6 +33,8 @@ kind: StatefulSet
 metadata:
   name: student-db
   namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "grud.componentLabels" (dict "componentName" "student-db" "root" .) | nindent 4 }}
 spec:
   serviceName: student-db
   replicas: {{ .Values.studentDb.replicaCount }}
@@ -39,6 +45,8 @@ spec:
     metadata:
       labels:
         app: student-db
+        {{- include "grud.labels" . | nindent 8 }}
+        component: student-db
     spec:
       {{- if .Values.studentDb.tolerations }}
       tolerations:

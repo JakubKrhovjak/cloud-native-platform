@@ -38,6 +38,18 @@ if kind get clusters | grep -q "grud-cluster"; then
     kind delete cluster --name grud-cluster
 fi
 
+# Create local registry container if it doesn't exist
+echo -e "${BLUE}📦 Setting up local Docker registry...${NC}"
+if [ ! "$(docker ps -q -f name=kind-registry)" ]; then
+    if [ "$(docker ps -aq -f name=kind-registry)" ]; then
+        docker rm kind-registry
+    fi
+    docker run -d --restart=always -p "127.0.0.1:5001:5000" --name kind-registry registry:2
+    echo -e "${GREEN}✅ Local registry created at localhost:5001${NC}"
+else
+    echo -e "${GREEN}✅ Local registry already running${NC}"
+fi
+
 # Create Kind cluster
 echo -e "${BLUE}📦 Creating Kind cluster with 3 worker nodes...${NC}"
 # Determine the correct path to kind-config.yaml
@@ -50,6 +62,29 @@ else
     exit 1
 fi
 kind create cluster --config "$CONFIG_PATH"
+
+# Connect the registry to the cluster network
+echo -e "${BLUE}🔗 Connecting registry to cluster network...${NC}"
+if [ "$(docker inspect -f='{{json .NetworkSettings.Networks.kind}}' kind-registry)" = 'null' ]; then
+    docker network connect "kind" "kind-registry"
+    echo -e "${GREEN}✅ Registry connected to kind network${NC}"
+else
+    echo -e "${GREEN}✅ Registry already connected${NC}"
+fi
+
+# Document the local registry
+echo -e "${BLUE}📝 Configuring local registry...${NC}"
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: local-registry-hosting
+  namespace: kube-public
+data:
+  localRegistryHosting.v1: |
+    host: "localhost:5001"
+    help: "https://kind.sigs.k8s.io/docs/user/local-registry/"
+EOF
 
 # Wait for cluster to be ready
 echo -e "${BLUE}⏳ Waiting for cluster to be ready...${NC}"

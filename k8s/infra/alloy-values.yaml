@@ -40,45 +40,117 @@ alloy:
           endpoint = "0.0.0.0:4318"
         }
         output {
+          metrics = [otelcol.processor.memory_limiter.default.input]
+          traces  = [otelcol.processor.memory_limiter.default.input]
+        }
+      }
+
+      // Memory Limiter - prevents OOM during traffic spikes
+      otelcol.processor.memory_limiter "default" {
+        check_interval = "1s"
+        limit = "200MiB"          // Max RAM (current pod limit: 256Mi)
+        spike_limit = "50MiB"     // Allow temporary spike above limit
+
+        output {
           metrics = [otelcol.processor.batch.default.input]
           traces  = [otelcol.processor.batch.default.input]
         }
       }
 
+      // Batch Processor - reduces network calls by batching data
       otelcol.processor.batch "default" {
-        timeout = "10s"
-        send_batch_size = 1024
+        timeout = "10s"          // Send batch every 10s even if not full
+        send_batch_size = 1024   // Send when reaching 1024 records
+
         output {
           metrics = [otelcol.exporter.prometheus.default.input]
           traces  = [otelcol.exporter.otlp.tempo.input]
         }
       }
 
+      // ============================================
+      // SAMPLING (commented examples - not active)
+      // ============================================
+      // Uncomment if you need to reduce trace volume
+
+      // Probabilistic Sampling - send X% of all traces
+      // otelcol.processor.probabilistic_sampler "default" {
+      //   sampling_percentage = 10  // Keep only 10% of traces
+      //
+      //   output {
+      //     traces = [otelcol.processor.batch.default.input]
+      //   }
+      // }
+
+      // Tail Sampling - smart sampling (keep errors, slow requests)
+      // otelcol.processor.tail_sampling "default" {
+      //   // Always keep error traces
+      //   policy {
+      //     name = "errors"
+      //     type = "status_code"
+      //     status_code {
+      //       status_codes = ["ERROR"]
+      //     }
+      //   }
+      //
+      //   // Keep slow requests (>1s)
+      //   policy {
+      //     name = "slow-requests"
+      //     type = "latency"
+      //     latency {
+      //       threshold_ms = 1000
+      //     }
+      //   }
+      //
+      //   // Sample 1% of successful fast requests
+      //   policy {
+      //     name = "sample-rest"
+      //     type = "probabilistic"
+      //     probabilistic {
+      //       sampling_percentage = 1
+      //     }
+      //   }
+      //
+      //   output {
+      //     traces = [otelcol.processor.batch.default.input]
+      //   }
+      // }
+
+      // ============================================
+      // PROMETHEUS EXPORTER
+      // ============================================
+      // Converts OTLP metrics → Prometheus format
       otelcol.exporter.prometheus "default" {
-        include_scope_info = true
-        include_target_info = true
-        resource_to_telemetry_conversion = true
+        include_scope_info = true               // Include OTel scope (meter name)
+        include_target_info = true              // Include target info metric
+        resource_to_telemetry_conversion = true // Convert resource attributes → Prometheus labels
+                                                // Example: service.name → service_name label
         forward_to = [prometheus.relabel.add_labels.receiver]
       }
 
+      // ============================================
+      // RELABELING (Cardinality Management)
+      // ============================================
+      // Drop high-cardinality labels before sending to Prometheus
       prometheus.relabel "add_labels" {
         forward_to = [prometheus.remote_write.prometheus.receiver]
 
-        // Drop high-cardinality resource attributes to reduce cardinality
+        // Drop high-cardinality resource attributes
+        // These change on every pod restart → creates orphaned time series
         rule {
-          regex  = "service_instance_id"
+          regex  = "service_instance_id"  // Unique UUID per pod instance
           action = "labeldrop"
         }
         rule {
-          regex  = "host_name"
+          regex  = "host_name"            // Different per Kubernetes node
           action = "labeldrop"
         }
         rule {
-          regex  = "process_pid"
+          regex  = "process_pid"          // Changes on every restart
           action = "labeldrop"
         }
         rule {
-          regex  = "process_executable_.*"
+          regex  = "process_executable_.*"  // Process metadata
           action = "labeldrop"
         }
 
@@ -89,18 +161,53 @@ alloy:
         }
       }
 
+      // ============================================
+      // PROMETHEUS REMOTE WRITE
+      // ============================================
+      // Sends metrics to Prometheus via remote write API
       prometheus.remote_write "prometheus" {
         endpoint {
           url = "http://prometheus-kube-prometheus-prometheus.infra.svc.cluster.local:9090/api/v1/write"
+
+          // Retry & Queue Configuration (commented - using defaults)
+          // Uncomment to customize retry behavior and queue settings
+          //
+          // queue_config {
+          //   capacity = 10000              // Max samples in queue
+          //   max_shards = 5                // Parallel remote write workers
+          //   min_shards = 1
+          //   max_samples_per_send = 1000   // Batch size per request
+          //   batch_send_deadline = "5s"    // Max wait before sending partial batch
+          // }
+          //
+          // metadata_config {
+          //   send = false                  // Don't send metric metadata (saves bandwidth)
+          // }
         }
       }
 
+      // ============================================
+      // TEMPO EXPORTER (Traces)
+      // ============================================
+      // Sends traces to Tempo via OTLP gRPC
       otelcol.exporter.otlp "tempo" {
         client {
           endpoint = "tempo.infra.svc.cluster.local:4317"
           tls {
-            insecure = true
+            insecure = true  // Internal cluster traffic, no TLS needed
           }
+
+          // Retry Configuration (commented - using defaults)
+          // Uncomment to customize retry behavior
+          //
+          // retry_on_failure {
+          //   enabled = true
+          //   initial_interval = "1s"      // Wait 1s before first retry
+          //   max_interval = "30s"         // Max backoff interval
+          //   max_elapsed_time = "5m"      // Give up after 5 minutes
+          // }
+          //
+          // timeout = "10s"  // Per-request timeout
         }
       }
 

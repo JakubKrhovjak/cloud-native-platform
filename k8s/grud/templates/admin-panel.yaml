@@ -5,6 +5,8 @@ kind: ConfigMap
 metadata:
   name: admin-panel-config
   namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "grud.componentLabels" (dict "componentName" "admin-panel" "root" .) | nindent 4 }}
 data:
   VITE_API_URL: {{ .Values.adminPanel.config.apiUrl | default "http://localhost:8080" | quote }}
 ---
@@ -13,6 +15,8 @@ kind: Service
 metadata:
   name: admin-panel
   namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "grud.componentLabels" (dict "componentName" "admin-panel" "root" .) | nindent 4 }}
 spec:
   type: {{ .Values.adminPanel.service.type }}
   ports:
@@ -29,6 +33,8 @@ kind: Deployment
 metadata:
   name: admin-panel
   namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "grud.componentLabels" (dict "componentName" "admin-panel" "root" .) | nindent 4 }}
 spec:
   replicas: {{ .Values.adminPanel.replicaCount }}
   selector:
@@ -38,6 +44,8 @@ spec:
     metadata:
       labels:
         app: admin-panel
+        {{- include "grud.labels" . | nindent 8 }}
+        component: admin-panel
     spec:
       {{- if .Values.adminPanel.tolerations }}
       tolerations:

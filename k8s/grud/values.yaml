@@ -110,8 +110,10 @@ projectService:
 
 # Admin Panel
 adminPanel:
+  config: {}
   enabled: true
   replicaCount: 1
+
   image:
     repository: admin-panel
     tag: latest
@@ -195,3 +197,37 @@ projectDb:
     database: projects
     username: project_user
     password: project_password
+
+# Secret management
+secrets:
+  # For local development: create simple Kubernetes Secrets
+  createKubernetesSecrets: false
+  useExternalSecrets: false
+
+  # JWT secret (optional)
+  jwtSecret: ""
+
+  # GCP configuration (used when useExternalSecrets: true)
+  gcp:
+    projectId: ""
+    clusterLocation: ""
+    clusterName: ""
+    jwtSecretName: ""
+    studentDbSecretName: ""
+    projectDbSecretName: ""
+
+# Database configuration (used by secrets templates)
+databases:
+  student:
+    username: ""
+    password: ""
+    database: "university"
+    host: ""
+    port: 5432
+
+  project:
+    username: ""
+    password: ""
+    database: "projects"
+    host: ""
+    port: 5432

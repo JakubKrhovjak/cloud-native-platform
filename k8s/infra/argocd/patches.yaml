@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-server
+  namespace: infra
+spec:
+  template:
+    spec:
+      nodeSelector:
+        node-type: infra
+      tolerations:
+        - key: workload
+          operator: Equal
+          value: infra
+          effect: NoSchedule
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-repo-server
+  namespace: infra
+spec:
+  template:
+    spec:
+      nodeSelector:
+        node-type: infra
+      tolerations:
+        - key: workload
+          operator: Equal
+          value: infra
+          effect: NoSchedule
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-redis
+  namespace: infra
+spec:
+  template:
+    spec:
+      nodeSelector:
+        node-type: infra
+      tolerations:
+        - key: workload
+          operator: Equal
+          value: infra
+          effect: NoSchedule
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-dex-server
+  namespace: infra
+spec:
+  template:
+    spec:
+      nodeSelector:
+        node-type: infra
+      tolerations:
+        - key: workload
+          operator: Equal
+          value: infra
+          effect: NoSchedule
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-notifications-controller
+  namespace: infra
+spec:
+  template:
+    spec:
+      nodeSelector:
+        node-type: infra
+      tolerations:
+        - key: workload
+          operator: Equal
+          value: infra
+          effect: NoSchedule
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-applicationset-controller
+  namespace: infra
+spec:
+  template:
+    spec:
+      nodeSelector:
+        node-type: infra
+      tolerations:
+        - key: workload
+          operator: Equal
+          value: infra
+          effect: NoSchedule
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: argocd-application-controller
+  namespace: infra
+spec:
+  template:
+    spec:
+      nodeSelector:
+        node-type: infra
+      tolerations:
+        - key: workload
+          operator: Equal
+          value: infra
+          effect: NoSchedule

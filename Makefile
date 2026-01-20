@@ -54,24 +54,31 @@ kind/setup: ## Create Kind cluster
 	@echo "🚀 Creating Kind cluster..."
 	@./scripts/kind-setup.sh
 
-kind/deploy: ## Deploy to Kind with Helm
+kind/build: ## Build and push images to local registry
+	@echo "📦 Building and pushing images to local registry..."
+	@echo "🔨 Building student-service..."
+	@cd services/student-service && KO_DOCKER_REPO=localhost:5001/student-service \
+		ko build --bare --insecure-registry -t latest ./cmd/student-service
+	@echo "🔨 Building project-service..."
+	@cd services/project-service && KO_DOCKER_REPO=localhost:5001/project-service \
+		ko build --bare --insecure-registry -t latest ./cmd/project-service
+	@echo "🔨 Building admin-panel..."
+	@docker build -t localhost:5001/admin-panel:latest services/admin
+	@docker push localhost:5001/admin-panel:latest
+	@echo "✅ All images built and pushed to localhost:5001"
+
+kind/deploy: ## Deploy to Kind with Helm (requires images in local registry)
 	@echo "🚀 Deploying to Kind with Helm..."
-	@echo "📦 Building Go services with ko..."
-	@cd services/student-service && KO_DOCKER_REPO=kind.local KIND_CLUSTER_NAME=grud-cluster ko build --bare ./cmd/student-service 2>&1 | grep "Loading" | sed 's/.*Loading //' > /tmp/student-image.txt
-	@cd services/project-service && KO_DOCKER_REPO=kind.local KIND_CLUSTER_NAME=grud-cluster ko build --bare ./cmd/project-service 2>&1 | grep "Loading" | sed 's/.*Loading //' > /tmp/project-image.txt
-	@echo "📦 Building admin-panel..."
-	@docker build -t admin-panel:latest services/admin
-	@kind load docker-image admin-panel:latest --name grud-cluster
-	@echo "🚀 Deploying with Helm..."
 	@helm upgrade --install grud k8s/grud \
 		-n grud --create-namespace \
 		-f k8s/grud/values-kind.yaml \
-		--set studentService.image.repository=$$(cat /tmp/student-image.txt) \
-		--set projectService.image.repository=$$(cat /tmp/project-image.txt) \
 		--wait
 	@echo "✅ Deployed to Kind"
 
+kind/build-deploy: kind/build kind/deploy ## Build images and deploy to Kind
+
 kind/status: ## Show Kind cluster status
+	@kubectl config use-context kind-$(KIND_CLUSTER_NAME) 2>/dev/null || true
 	@echo "📋 Kind Cluster Status"
 	@echo ""
 	@echo "Nodes:"
@@ -87,6 +94,7 @@ kind/status: ## Show Kind cluster status
 	@kubectl get services -n grud
 
 kind/wait: ## Wait for all resources to be ready
+	@kubectl config use-context kind-$(KIND_CLUSTER_NAME) 2>/dev/null || true
 	@echo "⏳ Waiting for databases..."
 	@kubectl wait --for=condition=Ready pod -l app=student-db -n grud --timeout=300s
 	@kubectl wait --for=condition=Ready pod -l app=project-db -n grud --timeout=300s
@@ -103,7 +111,12 @@ kind/stop: ## Stop Kind cluster (without deleting)
 
 kind/start: ## Start Kind cluster
 	@echo "▶️  Starting Kind cluster..."
+	@if ! docker ps -a --format '{{.Names}}' | grep -q "$(KIND_CLUSTER_NAME)-control-plane"; then \
+		echo "❌ Kind cluster doesn't exist. Run 'make kind/setup' first."; \
+		exit 1; \
+	fi
 	@docker start $(KIND_CLUSTER_NAME)-control-plane $(KIND_CLUSTER_NAME)-worker $(KIND_CLUSTER_NAME)-worker2 $(KIND_CLUSTER_NAME)-worker3 2>/dev/null || true
+	@kubectl config use-context kind-$(KIND_CLUSTER_NAME)
 	@echo "⏳ Waiting for cluster to be ready..."
 	@kubectl wait --for=condition=Ready nodes --all --timeout=120s
 	@echo "✅ Cluster started and ready!"
@@ -273,6 +286,19 @@ tf/apply: ## Apply Terraform configuration
 
 tf/destroy: ## Destroy Terraform resources (preserves DNS, Gateway certs, IPs)
 	@echo "🗑️  Destroying Terraform resources..."
+	@echo "🧹 Cleaning up Kubernetes resources first..."
+	@echo "    - Deleting grud namespace (Gateway API, apps)..."
+	@kubectl delete namespace grud --wait=true --timeout=5m 2>/dev/null || echo "    ⚠️  grud namespace not found (already deleted)"
+	@echo "    - Deleting infra resources (Prometheus, Grafana, Alloy, etc.)..."
+	@kubectl delete namespace infra --wait=true --timeout=5m 2>/dev/null || echo "    ⚠️  infra namespace not found (already deleted)"
+	@echo "    - Waiting for GCP load balancers to cleanup (30s)..."
+	@sleep 30
+	@echo "    - Cleaning up Cloud SQL dependencies..."
+	@echo "      Dropping student_user role from PostgreSQL..."
+	@gcloud sql databases delete university --instance=grud-postgres --quiet 2>/dev/null || echo "      ⚠️  Database already deleted"
+	@gcloud sql databases delete projects --instance=grud-postgres --quiet 2>/dev/null || echo "      ⚠️  Database already deleted"
+	@echo "✅ Kubernetes cleanup complete"
+	@echo ""
 	@echo "🛡️  Removing protected resources from state..."
 	@echo "    - DNS zone and records"
 	@cd $(TF_DIR) && terraform state rm google_dns_managed_zone.grudapp 2>/dev/null || true
@@ -290,7 +316,7 @@ tf/destroy: ## Destroy Terraform resources (preserves DNS, Gateway certs, IPs)
 	@cd $(TF_DIR) && terraform state rm google_certificate_manager_certificate_map_entry.wildcard 2>/dev/null || true
 	@echo "📝 Note: Old Ingress SSL cert (google_compute_managed_ssl_certificate.grud) WILL be deleted"
 	@echo "🚀 Running terraform destroy..."
-	@cd $(TF_DIR) && terraform destroy -auto-approve
+	@cd $(TF_DIR) && terraform destroy -auto-approve -refresh=false
 
 tf/output: ## Show Terraform outputs
 	@cd $(TF_DIR) && terraform output
@@ -427,7 +453,7 @@ infra/deploy-alerts: ## Deploy alerting rules
 	@kubectl apply -f k8s/infra/alerting-rules.yaml
 	@echo "✅ Alerting rules deployed"
 
-infra/deploy: infra/setup infra/deploy-prometheus infra/deploy-alloy infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts ## Deploy full observability stack (Kind)
+infra/deploy: infra/setup infra/deploy-prometheus infra/deploy-alloy infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts argocd/install ## Deploy full observability stack (Kind)
 	@echo "✅ Full observability stack deployed"
 
 infra/deploy-gke: infra/setup ## Deploy full observability stack (GKE)
@@ -439,6 +465,7 @@ infra/deploy-gke: infra/setup ## Deploy full observability stack (GKE)
 	@$(MAKE) infra/deploy-loki
 	@$(MAKE) infra/deploy-tempo
 	@$(MAKE) infra/deploy-alerts
+	@$(MAKE) argocd/install
 	@echo "✅ Full observability stack deployed for GKE"
 
 infra/status: ## Show infra pods status
@@ -451,6 +478,7 @@ infra/resources: ## Show infra node resource utilization
 
 infra/cleanup: ## Remove observability stack
 	@echo "🧹 Cleaning up observability stack..."
+	@$(MAKE) argocd/uninstall
 	@helm uninstall loki -n infra 2>/dev/null || true
 	@helm uninstall tempo -n infra 2>/dev/null || true
 	@helm uninstall prometheus -n infra 2>/dev/null || true
@@ -458,6 +486,70 @@ infra/cleanup: ## Remove observability stack
 	@kubectl delete -f k8s/infra/nats.yaml 2>/dev/null || true
 	@kubectl delete -f k8s/infra/alerting-rules.yaml 2>/dev/null || true
 	@echo "✅ Cleanup complete"
+
+# =============================================================================
+# ArgoCD
+# =============================================================================
+argocd/install: ## Install ArgoCD
+	@echo "🚀 Installing ArgoCD..."
+	@kubectl create namespace infra --dry-run=client -o yaml | kubectl apply -f -
+	@kubectl apply -n infra -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+	@kubectl apply -f k8s/infra/argocd/install.yaml
+	@echo "🔧 Applying node selectors and tolerations..."
+	@kubectl patch deployment argocd-server -n infra -p '{"spec":{"template":{"spec":{"nodeSelector":{"node-type":"infra"},"tolerations":[{"key":"workload","operator":"Equal","value":"infra","effect":"NoSchedule"}]}}}}'
+	@kubectl patch deployment argocd-repo-server -n infra -p '{"spec":{"template":{"spec":{"nodeSelector":{"node-type":"infra"},"tolerations":[{"key":"workload","operator":"Equal","value":"infra","effect":"NoSchedule"}]}}}}'
+	@kubectl patch deployment argocd-redis -n infra -p '{"spec":{"template":{"spec":{"nodeSelector":{"node-type":"infra"},"tolerations":[{"key":"workload","operator":"Equal","value":"infra","effect":"NoSchedule"}]}}}}'
+	@kubectl patch deployment argocd-dex-server -n infra -p '{"spec":{"template":{"spec":{"nodeSelector":{"node-type":"infra"},"tolerations":[{"key":"workload","operator":"Equal","value":"infra","effect":"NoSchedule"}]}}}}'
+	@kubectl patch deployment argocd-notifications-controller -n infra -p '{"spec":{"template":{"spec":{"nodeSelector":{"node-type":"infra"},"tolerations":[{"key":"workload","operator":"Equal","value":"infra","effect":"NoSchedule"}]}}}}'
+	@kubectl patch deployment argocd-applicationset-controller -n infra -p '{"spec":{"template":{"spec":{"nodeSelector":{"node-type":"infra"},"tolerations":[{"key":"workload","operator":"Equal","value":"infra","effect":"NoSchedule"}]}}}}'
+	@kubectl patch statefulset argocd-application-controller -n infra -p '{"spec":{"template":{"spec":{"nodeSelector":{"node-type":"infra"},"tolerations":[{"key":"workload","operator":"Equal","value":"infra","effect":"NoSchedule"}]}}}}'
+	@echo "⏳ Waiting for ArgoCD to be ready..."
+	@kubectl wait --for=condition=available --timeout=300s deployment/argocd-server -n infra
+	@echo "✅ ArgoCD installed successfully"
+	@echo ""
+	@echo "Access ArgoCD:"
+	@echo "  URL: http://localhost:30080"
+	@echo "  Username: admin"
+	@echo "  Password: Run 'make argocd/password'"
+
+argocd/password: ## Get ArgoCD admin password
+	@echo "🔑 ArgoCD Admin Password:"
+	@kubectl -n infra get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+	@echo ""
+
+argocd/login: ## Login to ArgoCD CLI
+	@echo "🔐 Logging into ArgoCD..."
+	@argocd login localhost:30080 --username admin --password $$(kubectl -n infra get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d) --insecure
+
+argocd/deploy-apps: ## Deploy ArgoCD applications
+	@echo "📦 Deploying ArgoCD applications..."
+	@kubectl apply -f k8s/infra/argocd/application-grud.yaml
+	@kubectl apply -f k8s/infra/argocd/application-infra.yaml
+	@echo "✅ ArgoCD applications deployed"
+
+argocd/status: ## Show ArgoCD applications status
+	@echo "📊 ArgoCD Applications Status:"
+	@kubectl get applications -n infra
+	@echo ""
+	@echo "Pods in infra namespace:"
+	@kubectl get pods -n infra
+
+argocd/sync: ## Sync all ArgoCD applications
+	@echo "🔄 Syncing ArgoCD applications..."
+	@argocd app sync grud-app
+	@argocd app sync monitoring-stack
+	@argocd app sync nats
+
+argocd/ui: ## Open ArgoCD UI
+	@echo "🌐 Opening ArgoCD UI..."
+	@open http://localhost:30080
+
+argocd/uninstall: ## Uninstall ArgoCD
+	@echo "🗑️  Uninstalling ArgoCD..."
+	@kubectl delete -f k8s/infra/argocd/application-grud.yaml 2>/dev/null || true
+	@kubectl delete -f k8s/infra/argocd/application-infra.yaml 2>/dev/null || true
+	@kubectl delete -n infra -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml 2>/dev/null || true
+	@echo "✅ ArgoCD uninstalled"
 
 # =============================================================================
 # Secret Management
@@ -521,6 +613,14 @@ help: ## Show this help
 	@echo "  make infra/deploy       - Deploy full observability stack"
 	@echo "  make infra/status       - Show infra pods status"
 	@echo "  make infra/cleanup      - Remove observability stack"
+	@echo ""
+	@echo "ArgoCD:"
+	@echo "  make argocd/install     - Install ArgoCD"
+	@echo "  make argocd/password    - Get ArgoCD admin password"
+	@echo "  make argocd/deploy-apps - Deploy ArgoCD applications"
+	@echo "  make argocd/status      - Show ArgoCD applications status"
+	@echo "  make argocd/ui          - Open ArgoCD UI"
+	@echo "  make argocd/uninstall   - Uninstall ArgoCD"
 	@echo ""
 	@echo "Secret Management:"
 	@echo "  make secrets/generate-kind - Generate secrets for Kind"
