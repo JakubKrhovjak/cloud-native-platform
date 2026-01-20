@@ -38,8 +38,8 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/jakubkrhovjak/cloud-native-platform.git  # Update with your repo URL
-    targetRevision: HEAD
+    repoURL: https://github.com/JakubKrhovjak/grud.git
+    targetRevision: argo
     path: k8s/infra
     directory:
       include: nats.yaml
