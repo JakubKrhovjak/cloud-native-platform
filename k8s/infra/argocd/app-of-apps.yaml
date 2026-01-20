@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: infra-apps
+  namespace: infra
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/JakubKrhovjak/cloud-native-platform.git
+    targetRevision: argo
+    path: k8s/infra/argocd
+    directory:
+      recurse: false
+      include: 'application-*.yaml'
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: infra
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
