@@ -1,5 +1,5 @@
 # Kind cluster configuration for grud project
-# 3 nodes with different taints:
+# 3 worker nodes with labels (no taints for dev environment):
 #   - app node: for application workloads
 #   - infra node: for infrastructure services (monitoring, logging, etc.)
 #   - db node: for database workloads
@@ -45,10 +45,6 @@ nodes:
           name: grud-app-node
           kubeletExtraArgs:
             node-labels: "node-type=app"
-          taints:
-            - key: "workload"
-              value: "app"
-              effect: "NoSchedule"
 
   # Worker node 2: Infrastructure services
   - role: worker
@@ -59,10 +55,6 @@ nodes:
           name: grud-infra-node
           kubeletExtraArgs:
             node-labels: "node-type=infra"
-          taints:
-            - key: "workload"
-              value: "infra"
-              effect: "NoSchedule"
 
   # Worker node 3: Database workloads
   - role: worker
@@ -73,7 +65,3 @@ nodes:
           name: grud-db-node
           kubeletExtraArgs:
             node-labels: "node-type=db"
-          taints:
-            - key: "workload"
-              value: "db"
-              effect: "NoSchedule"
