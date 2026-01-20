@@ -15,11 +15,64 @@ spec:
           prometheusSpec:
             serviceMonitorSelectorNilUsesHelmValues: false
             podMonitorSelectorNilUsesHelmValues: false
+            tolerations:
+              - key: workload
+                operator: Equal
+                value: infra
+                effect: NoSchedule
+            nodeSelector:
+              node-type: infra
         grafana:
           service:
             type: NodePort
             nodePort: 30300
           adminPassword: admin
+          tolerations:
+            - key: workload
+              operator: Equal
+              value: infra
+              effect: NoSchedule
+          nodeSelector:
+            node-type: infra
+        alertmanager:
+          alertmanagerSpec:
+            tolerations:
+              - key: workload
+                operator: Equal
+                value: infra
+                effect: NoSchedule
+            nodeSelector:
+              node-type: infra
+        prometheusOperator:
+          tolerations:
+            - key: workload
+              operator: Equal
+              value: infra
+              effect: NoSchedule
+          nodeSelector:
+            node-type: infra
+          admissionWebhooks:
+            patch:
+              tolerations:
+                - key: workload
+                  operator: Equal
+                  value: infra
+                  effect: NoSchedule
+              nodeSelector:
+                node-type: infra
+        kube-state-metrics:
+          tolerations:
+            - key: workload
+              operator: Equal
+              value: infra
+              effect: NoSchedule
+          nodeSelector:
+            node-type: infra
+        prometheus-node-exporter:
+          tolerations:
+            - key: workload
+              operator: Exists
+              effect: NoSchedule
   destination:
     server: https://kubernetes.default.svc
     namespace: infra
