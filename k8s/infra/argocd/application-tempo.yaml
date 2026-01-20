@@ -9,6 +9,16 @@ spec:
     repoURL: https://grafana.github.io/helm-charts
     chart: tempo
     targetRevision: 1.24.3
+    helm:
+      valuesObject:
+        tempo:
+          tolerations:
+            - key: workload
+              operator: Equal
+              value: infra
+              effect: NoSchedule
+          nodeSelector:
+            node-type: infra
   destination:
     server: https://kubernetes.default.svc
     namespace: infra

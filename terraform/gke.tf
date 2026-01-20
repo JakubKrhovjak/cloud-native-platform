@@ -94,17 +94,57 @@ resource "google_container_cluster" "primary" {
 # =============================================================================
 # Depends on: GKE cluster (above)
 # Used by: All Kubernetes workloads
+#
+# Production node pool strategy:
+#   1. System pool - kube-system components (NO TAINT)
+#   2. Infra pool - monitoring/observability (TAINT: workload=infra)
+#   3. App pool - application workloads (TAINT: workload=app)
+#   Note: No DB pool - we use Cloud SQL
 
-# Infra node pool - monitoring stack, NATS, system components
-# NO TAINT - allows kube-dns and other system pods
+# System node pool - kube-system namespace, GKE system components
+# NO TAINT - allows all system pods (kube-dns, metrics-server, etc.)
+resource "google_container_node_pool" "system" {
+  name       = "system-pool"
+  location   = var.zone
+  cluster    = google_container_cluster.primary.name
+  node_count = 2                               # Fixed count for system
+
+  node_config {
+    machine_type = var.system_machine_type     # e2-medium
+    disk_size_gb = var.disk_size_gb
+    spot         = false                       # System pool should be stable
+
+    labels = {
+      "node-type" = "system"
+    }
+
+    # No taint - system components need to schedule freely
+
+    oauth_scopes = [
+      "https://www.googleapis.com/auth/cloud-platform"
+    ]
+
+    workload_metadata_config {
+      mode = "GKE_METADATA"
+    }
+  }
+
+  management {
+    auto_repair  = true
+    auto_upgrade = true
+  }
+}
+
+# Infra node pool - monitoring stack (ArgoCD, Prometheus, Grafana, Loki, Tempo, NATS)
+# HAS TAINT - only infra pods with toleration can run here
 resource "google_container_node_pool" "infra" {
   name       = "infra-pool"
   location   = var.zone
   cluster    = google_container_cluster.primary.name
-  node_count = 3                               # Fixed count for infra
+  node_count = 2                               # Fixed count for infra
 
   node_config {
-    machine_type = var.infra_machine_type      # e2-medium
+    machine_type = var.infra_machine_type      # e2-standard-4
     disk_size_gb = var.disk_size_gb
     spot         = true                        # 60-91% cheaper
 
@@ -112,7 +152,12 @@ resource "google_container_node_pool" "infra" {
       "node-type" = "infra"
     }
 
-    # No taint - system components (kube-dns, etc.) can run here
+    # Taint - only infra pods with toleration can be scheduled here
+    taint {
+      key    = "workload"
+      value  = "infra"
+      effect = "NO_SCHEDULE"
+    }
 
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform"

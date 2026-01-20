@@ -9,6 +9,16 @@ spec:
     repoURL: https://grafana.github.io/helm-charts
     chart: alloy
     targetRevision: 1.5.2
+    helm:
+      valuesObject:
+        alloy:
+          tolerations:
+            - key: workload
+              operator: Equal
+              value: infra
+              effect: NoSchedule
+          nodeSelector:
+            node-type: infra
   destination:
     server: https://kubernetes.default.svc
     namespace: infra

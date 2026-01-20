@@ -58,6 +58,12 @@ variable "app_node_count" {
   type        = number
 }
 
+variable "system_machine_type" {
+  description = "Machine type for system nodes (kube-system components)"
+  type        = string
+  default     = "e2-medium"
+}
+
 variable "app_machine_type" {
   description = "Machine type for app nodes"
   type        = string

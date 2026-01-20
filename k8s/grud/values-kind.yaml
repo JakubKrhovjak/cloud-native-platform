@@ -31,6 +31,13 @@ studentService:
   config:
     env: kind
   useSecrets: true
+  tolerations:
+    - key: workload
+      operator: Equal
+      value: app
+      effect: NoSchedule
+  nodeSelector:
+    node-type: app
 
 projectService:
   replicaCount: 2
@@ -40,6 +47,13 @@ projectService:
   config:
     env: kind
   useSecrets: true
+  tolerations:
+    - key: workload
+      operator: Equal
+      value: app
+      effect: NoSchedule
+  nodeSelector:
+    node-type: app
 
 adminPanel:
   image:
@@ -48,6 +62,29 @@ adminPanel:
   config:
     apiUrl: "http://localhost:8080"
   replicaCount: 2
+  tolerations:
+    - key: workload
+      operator: Equal
+      value: app
+      effect: NoSchedule
+  nodeSelector:
+    node-type: app
 
-# studentDb and projectDb inherit all settings from values.yaml
-# No overrides needed for Kind
+# Database configuration with node selection
+studentDb:
+  tolerations:
+    - key: workload
+      operator: Equal
+      value: db
+      effect: NoSchedule
+  nodeSelector:
+    node-type: db
+
+projectDb:
+  tolerations:
+    - key: workload
+      operator: Equal
+      value: db
+      effect: NoSchedule
+  nodeSelector:
+    node-type: db

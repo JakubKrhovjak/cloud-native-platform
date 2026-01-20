@@ -1,7 +1,8 @@
 # Kind cluster configuration for grud project
-# 3 worker nodes with labels (no taints for dev environment):
+# Production-like node pool structure:
+#   - system node: for kube-system components (no taint - allows system pods)
+#   - infra node: for monitoring/observability (ArgoCD, Prometheus, etc.)
 #   - app node: for application workloads
-#   - infra node: for infrastructure services (monitoring, logging, etc.)
 #   - db node: for database workloads
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
@@ -27,26 +28,31 @@ nodes:
       - containerPort: 443
         hostPort: 443
         protocol: TCP
-      # Student service
+      # ArgoCD UI
       - containerPort: 30080
-        hostPort: 8080
+        hostPort: 30080
         protocol: TCP
-      # Project service
-      - containerPort: 30081
-        hostPort: 8081
+      # Admin Panel
+      - containerPort: 30082
+        hostPort: 9080
+        protocol: TCP
+      # Grafana
+      - containerPort: 30300
+        hostPort: 30300
         protocol: TCP
 
-  # Worker node 1: Application workloads
+  # Worker node 1: System components (kube-system namespace)
+  # No taint - allows all system pods to schedule here
   - role: worker
     kubeadmConfigPatches:
       - |
         kind: JoinConfiguration
         nodeRegistration:
-          name: grud-app-node
+          name: grud-system-node
           kubeletExtraArgs:
-            node-labels: "node-type=app"
+            node-labels: "node-type=system"
 
-  # Worker node 2: Infrastructure services
+  # Worker node 2: Infrastructure services (monitoring stack)
   - role: worker
     kubeadmConfigPatches:
       - |
@@ -55,8 +61,26 @@ nodes:
           name: grud-infra-node
           kubeletExtraArgs:
             node-labels: "node-type=infra"
+          taints:
+            - key: "workload"
+              value: "infra"
+              effect: "NoSchedule"
 
-  # Worker node 3: Database workloads
+  # Worker node 3: Application workloads
+  - role: worker
+    kubeadmConfigPatches:
+      - |
+        kind: JoinConfiguration
+        nodeRegistration:
+          name: grud-app-node
+          kubeletExtraArgs:
+            node-labels: "node-type=app"
+          taints:
+            - key: "workload"
+              value: "app"
+              effect: "NoSchedule"
+
+  # Worker node 4: Database workloads
   - role: worker
     kubeadmConfigPatches:
       - |
@@ -65,3 +89,7 @@ nodes:
           name: grud-db-node
           kubeletExtraArgs:
             node-labels: "node-type=db"
+          taints:
+            - key: "workload"
+              value: "db"
+              effect: "NoSchedule"
