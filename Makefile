@@ -3,7 +3,9 @@
 # =============================================================================
 # Build Configuration
 # =============================================================================
-VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+VERSION_FILE := VERSION
+CURRENT_VERSION := $(shell cat $(VERSION_FILE) 2>/dev/null || echo "0.0.0")
+VERSION ?= $(CURRENT_VERSION)
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BUILD_TIME ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 
@@ -38,6 +40,16 @@ version: ## Show version info
 	@echo "Git Commit: $(GIT_COMMIT)"
 	@echo "Build Time: $(BUILD_TIME)"
 
+version/bump: ## Bump patch version (0.0.1 -> 0.0.2)
+	@echo "📌 Current version: $(CURRENT_VERSION)"
+	@MAJOR=$$(echo $(CURRENT_VERSION) | cut -d. -f1); \
+	MINOR=$$(echo $(CURRENT_VERSION) | cut -d. -f2); \
+	PATCH=$$(echo $(CURRENT_VERSION) | cut -d. -f3); \
+	NEW_PATCH=$$((PATCH + 1)); \
+	NEW_VERSION="$$MAJOR.$$MINOR.$$NEW_PATCH"; \
+	echo $$NEW_VERSION > $(VERSION_FILE); \
+	echo "✅ Bumped to: $$NEW_VERSION"
+
 # =============================================================================
 # Test Targets
 # =============================================================================
@@ -54,18 +66,23 @@ kind/setup: ## Create Kind cluster
 	@echo "🚀 Creating Kind cluster..."
 	@./scripts/kind-setup.sh
 
-kind/build: ## Build and push images to local registry
-	@echo "📦 Building and pushing images to local registry..."
-	@echo "🔨 Building student-service..."
-	@cd services/student-service && KO_DOCKER_REPO=localhost:5001/student-service \
-		ko build --bare --insecure-registry -t latest ./cmd/student-service
-	@echo "🔨 Building project-service..."
-	@cd services/project-service && KO_DOCKER_REPO=localhost:5001/project-service \
-		ko build --bare --insecure-registry -t latest ./cmd/project-service
-	@echo "🔨 Building admin-panel..."
-	@docker build -t localhost:5001/admin-panel:latest services/admin
-	@docker push localhost:5001/admin-panel:latest
-	@echo "✅ All images built and pushed to localhost:5001"
+kind/build: version/bump ## Build and push images to local registry with auto-incremented VERSION
+	@NEW_VERSION=$$(cat $(VERSION_FILE)); \
+	echo "📦 Building and pushing images to local registry..."; \
+	echo "📌 Version: $$NEW_VERSION"; \
+	echo "🔨 Building student-service..."; \
+	cd services/student-service && KO_DOCKER_REPO=localhost:5001/student-service \
+		ko build --bare --insecure-registry -t $$NEW_VERSION -t latest ./cmd/student-service; \
+	cd ../..; \
+	echo "🔨 Building project-service..."; \
+	cd services/project-service && KO_DOCKER_REPO=localhost:5001/project-service \
+		ko build --bare --insecure-registry -t $$NEW_VERSION -t latest ./cmd/project-service; \
+	cd ../..; \
+	echo "🔨 Building admin-panel..."; \
+	docker build -t localhost:5001/admin-panel:$$NEW_VERSION -t localhost:5001/admin-panel:latest services/admin; \
+	docker push localhost:5001/admin-panel:$$NEW_VERSION; \
+	docker push localhost:5001/admin-panel:latest; \
+	echo "✅ All images built and pushed with tag: $$NEW_VERSION"
 
 kind/deploy: ## Deploy to Kind with Helm (requires images in local registry)
 	@echo "🚀 Deploying to Kind with Helm..."
@@ -74,6 +91,24 @@ kind/deploy: ## Deploy to Kind with Helm (requires images in local registry)
 		-f k8s/grud/values-kind.yaml \
 		--wait
 	@echo "✅ Deployed to Kind"
+
+kind/update-version: ## Update image tags in values-kind.yaml
+	@NEW_VERSION=$$(cat $(VERSION_FILE)); \
+	echo "📝 Updating image tags to $$NEW_VERSION in values-kind.yaml..."; \
+	sed -i.bak "s/tag: .*/tag: $$NEW_VERSION/" k8s/grud/values-kind.yaml; \
+	rm k8s/grud/values-kind.yaml.bak 2>/dev/null || true; \
+	echo "✅ Updated values-kind.yaml with version $$NEW_VERSION"
+
+kind/build-update: kind/build kind/update-version ## Build images and update values-kind.yaml
+	@echo "✅ Images built and values-kind.yaml updated"
+
+kind/build-commit: kind/build-update ## Build, update values and commit to git (triggers ArgoCD sync)
+	@NEW_VERSION=$$(cat $(VERSION_FILE)); \
+	echo "📤 Committing version $$NEW_VERSION to git..."; \
+	git add $(VERSION_FILE) k8s/grud/values-kind.yaml; \
+	git commit -m "Bump version to $$NEW_VERSION" || echo "⚠️  No changes to commit"; \
+	git push; \
+	echo "✅ Version $$NEW_VERSION committed and pushed - ArgoCD will sync automatically"
 
 kind/build-deploy: kind/build kind/deploy ## Build images and deploy to Kind
 
@@ -148,13 +183,33 @@ gke/connect: ## Connect to GKE cluster via Connect Gateway
 		--project=$(GCP_PROJECT)
 	@echo "✅ Connected to $(GKE_CLUSTER) via Connect Gateway"
 
-gke/build: ## Build and push images to Artifact Registry
-	@echo "📦 Building and pushing images to Artifact Registry (linux/amd64)..."
-	@KO_DOCKER_REPO=$(GKE_REGISTRY)/student-service ko build --bare -t latest --platform=linux/amd64 ./services/student-service/cmd/student-service
-	@KO_DOCKER_REPO=$(GKE_REGISTRY)/project-service ko build --bare -t latest --platform=linux/amd64 ./services/project-service/cmd/project-service
-	@echo "📦 Building admin-panel via Cloud Build (AMD64)..."
-	@gcloud builds submit services/admin --tag=$(GKE_REGISTRY)/admin-panel:latest --project=$(GCP_PROJECT) --quiet
-	@echo "✅ Images pushed to $(GKE_REGISTRY)"
+gke/build: version/bump ## Build and push images to Artifact Registry with auto-incremented VERSION
+	@NEW_VERSION=$$(cat $(VERSION_FILE)); \
+	echo "📦 Building and pushing images to Artifact Registry (linux/amd64)..."; \
+	echo "📌 Version: $$NEW_VERSION"; \
+	KO_DOCKER_REPO=$(GKE_REGISTRY)/student-service ko build --bare -t $$NEW_VERSION -t latest --platform=linux/amd64 ./services/student-service/cmd/student-service; \
+	KO_DOCKER_REPO=$(GKE_REGISTRY)/project-service ko build --bare -t $$NEW_VERSION -t latest --platform=linux/amd64 ./services/project-service/cmd/project-service; \
+	echo "📦 Building admin-panel via Cloud Build (AMD64)..."; \
+	gcloud builds submit services/admin --tag=$(GKE_REGISTRY)/admin-panel:$$NEW_VERSION --project=$(GCP_PROJECT) --quiet; \
+	echo "✅ Images pushed to $(GKE_REGISTRY) with tag: $$NEW_VERSION"
+
+gke/update-version: ## Update image tags in values-gke.yaml
+	@NEW_VERSION=$$(cat $(VERSION_FILE)); \
+	echo "📝 Updating image tags to $$NEW_VERSION in values-gke.yaml..."; \
+	sed -i.bak "s/tag: .*/tag: $$NEW_VERSION/" k8s/grud/values-gke.yaml; \
+	rm k8s/grud/values-gke.yaml.bak 2>/dev/null || true; \
+	echo "✅ Updated values-gke.yaml with version $$NEW_VERSION"
+
+gke/build-update: gke/build gke/update-version ## Build images and update values-gke.yaml
+	@echo "✅ Images built and values-gke.yaml updated"
+
+gke/build-commit: gke/build-update ## Build, update values and commit to git (triggers ArgoCD sync)
+	@NEW_VERSION=$$(cat $(VERSION_FILE)); \
+	echo "📤 Committing version $$NEW_VERSION to git..."; \
+	git add $(VERSION_FILE) k8s/grud/values-gke.yaml; \
+	git commit -m "Bump GKE version to $$NEW_VERSION" || echo "⚠️  No changes to commit"; \
+	git push; \
+	echo "✅ Version $$NEW_VERSION committed and pushed - ArgoCD will sync automatically"
 
 gke/deploy: gke/build  ## Deploy to GKE with Helm
 	@echo "🔗 Connecting to GKE cluster via Connect Gateway..."
@@ -586,10 +641,15 @@ help: ## Show this help
 	@echo "Build:"
 	@echo "  make build              - Build all services"
 	@echo "  make version            - Show version info"
+	@echo "  make version/bump       - Bump patch version (0.0.1 -> 0.0.2)"
 	@echo "  make test               - Run all tests"
 	@echo ""
 	@echo "Kind Cluster:"
 	@echo "  make kind/setup         - Create Kind cluster"
+	@echo "  make kind/build         - Build and push images with VERSION tag"
+	@echo "  make kind/update-version - Update values-kind.yaml with VERSION"
+	@echo "  make kind/build-update  - Build and update values-kind.yaml"
+	@echo "  make kind/build-commit  - Build, update values and commit (triggers ArgoCD)"
 	@echo "  make kind/deploy        - Deploy to Kind with Helm"
 	@echo "  make kind/status        - Show cluster status"
 	@echo "  make kind/wait          - Wait for resources to be ready"
@@ -600,6 +660,10 @@ help: ## Show this help
 	@echo "GKE Cluster:"
 	@echo "  make gke/auth           - Authenticate with GCP"
 	@echo "  make gke/connect        - Connect to GKE via Connect Gateway"
+	@echo "  make gke/build          - Build and push images with VERSION tag"
+	@echo "  make gke/update-version - Update values-gke.yaml with VERSION"
+	@echo "  make gke/build-update   - Build and update values-gke.yaml"
+	@echo "  make gke/build-commit   - Build, update values and commit (triggers ArgoCD)"
 	@echo "  make gke/deploy         - Build and deploy to GKE with Helm"
 	@echo "  make gke/full-deploy    - Full GKE deployment (terraform + helm)"
 	@echo "  make gke/status         - Show GKE status"
