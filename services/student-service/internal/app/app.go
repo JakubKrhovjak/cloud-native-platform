@@ -228,6 +228,24 @@ func (a *App) Shutdown(ctx context.Context) error {
 	return nil
 }
 
+// StartPeriodicLogging logs a message every second
+func (a *App) StartPeriodicLogging(ctx context.Context) {
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
+	a.logger.Info("starting periodic logging", "interval", "1s")
+
+	for {
+		select {
+		case <-ticker.C:
+			a.logger.Info("student service periodical log")
+		case <-ctx.Done():
+			a.logger.Info("stopping periodic logging")
+			return
+		}
+	}
+}
+
 // StartHealthChecks periodically checks dependencies and reports status
 func (a *App) StartHealthChecks(ctx context.Context) {
 	if a.metrics == nil {

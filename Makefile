@@ -107,7 +107,7 @@ kind/build-commit: kind/build-update ## Build, update values and commit to git (
 	echo "📤 Committing version $$NEW_VERSION to git..."; \
 	git add $(VERSION_FILE) k8s/grud/values-kind.yaml; \
 	git commit -m "Bump version to $$NEW_VERSION" || echo "⚠️  No changes to commit"; \
-	git push; \
+	git push origin argo; \
 	echo "✅ Version $$NEW_VERSION committed and pushed - ArgoCD will sync automatically"
 
 kind/build-deploy: kind/build kind/deploy ## Build images and deploy to Kind

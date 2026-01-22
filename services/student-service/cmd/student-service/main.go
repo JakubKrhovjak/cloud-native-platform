@@ -14,6 +14,11 @@ import (
 func main() {
 	application := app.New()
 
+	// Start periodic logging in background
+	loggingCtx, loggingCancel := context.WithCancel(context.Background())
+	defer loggingCancel()
+	go application.StartPeriodicLogging(loggingCtx)
+
 	// Start dependency health checks in background
 	healthCtx, healthCancel := context.WithCancel(context.Background())
 	defer healthCancel()
