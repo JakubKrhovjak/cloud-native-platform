@@ -100,7 +100,7 @@ spec:
       serviceAccountName: project-service
       containers:
         - name: project-service
-          image: {{ .Values.projectService.image.repository }}
+          image: {{ .Values.projectService.image.repository }}:{{ .Values.projectService.image.tag }}
           imagePullPolicy: {{ .Values.projectService.image.pullPolicy }}
           ports:
             - containerPort: 50052

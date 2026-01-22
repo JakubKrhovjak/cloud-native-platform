@@ -109,7 +109,7 @@ spec:
       serviceAccountName: student-service
       containers:
         - name: student-service
-          image: {{ .Values.studentService.image.repository }}
+          image: {{ .Values.studentService.image.repository }}:{{ .Values.studentService.image.tag }}
           imagePullPolicy: {{ .Values.studentService.image.pullPolicy }}
           ports:
             - containerPort: 8080
