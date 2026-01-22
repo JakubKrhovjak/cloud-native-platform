@@ -87,7 +87,7 @@ kind/build: version/bump ## Build and push images to local registry with auto-in
 kind/deploy: ## Deploy to Kind with Helm (requires images in local registry)
 	@echo "🚀 Deploying to Kind with Helm..."
 	@helm upgrade --install grud k8s/grud \
-		-n grud --create-namespace \
+		-n apps --create-namespace \
 		-f k8s/grud/values-kind.yaml \
 		--wait
 	@echo "✅ Deployed to Kind"
@@ -120,23 +120,23 @@ kind/status: ## Show Kind cluster status
 	@kubectl get nodes -o wide
 	@echo ""
 	@echo "Deployments:"
-	@kubectl get deployments -n grud
+	@kubectl get deployments -n apps
 	@echo ""
 	@echo "Pods:"
-	@kubectl get pods -n grud -o wide
+	@kubectl get pods -n apps -o wide
 	@echo ""
 	@echo "Services:"
-	@kubectl get services -n grud
+	@kubectl get services -n apps
 
 kind/wait: ## Wait for all resources to be ready
 	@kubectl config use-context kind-$(KIND_CLUSTER_NAME) 2>/dev/null || true
 	@echo "⏳ Waiting for databases..."
-	@kubectl wait --for=condition=Ready pod -l app=student-db -n grud --timeout=300s
-	@kubectl wait --for=condition=Ready pod -l app=project-db -n grud --timeout=300s
+	@kubectl wait --for=condition=Ready pod -l app=student-db -n apps --timeout=300s
+	@kubectl wait --for=condition=Ready pod -l app=project-db -n apps --timeout=300s
 	@echo "⏳ Waiting for services..."
-	@kubectl wait --for=condition=Available deployment/student-service -n grud --timeout=300s
-	@kubectl wait --for=condition=Available deployment/project-service -n grud --timeout=300s
-	@kubectl wait --for=condition=Available deployment/admin-panel -n grud --timeout=300s
+	@kubectl wait --for=condition=Available deployment/student-service -n apps --timeout=300s
+	@kubectl wait --for=condition=Available deployment/project-service -n apps --timeout=300s
+	@kubectl wait --for=condition=Available deployment/admin-panel -n apps --timeout=300s
 	@echo "✅ All resources ready!"
 
 kind/stop: ## Stop Kind cluster (without deleting)
@@ -217,7 +217,7 @@ gke/deploy: gke/build  ## Deploy to GKE with Helm
 	@echo "🚀 Deploying to GKE with Helm..."
 	@CLOUDSQL_IP=$$(cd $(TF_DIR) && terraform output -raw cloudsql_private_ip) && \
 	helm upgrade --install grud k8s/grud \
-		-n grud --create-namespace \
+		-n apps --create-namespace \
 		-f k8s/grud/values-gke.yaml \
 		--set studentService.image.repository=$(GKE_REGISTRY)/student-service \
 		--set projectService.image.repository=$(GKE_REGISTRY)/project-service \
@@ -226,7 +226,7 @@ gke/deploy: gke/build  ## Deploy to GKE with Helm
 		--set secrets.gcp.projectId=$(GCP_PROJECT) \
 		--set secrets.gcp.clusterLocation=$(GCP_ZONE) \
 		--wait
-	@kubectl rollout restart deployment -n grud
+	@kubectl rollout restart deployment -n apps
 	@echo "🌐 Deploying Gateway API..."
 	@kubectl apply -f k8s/gateway/
 	@echo "✅ Deployed to GKE"
@@ -238,25 +238,25 @@ gke/status: ## Show GKE cluster status
 	@kubectl get nodes -o wide
 	@echo ""
 	@echo "Deployments:"
-	@kubectl get deployments -n grud
+	@kubectl get deployments -n apps
 	@echo ""
 	@echo "Pods:"
-	@kubectl get pods -n grud -o wide
+	@kubectl get pods -n apps -o wide
 	@echo ""
 	@echo "Services:"
-	@kubectl get services -n grud
+	@kubectl get services -n apps
 
-gke/resources: ## Show resource utilization for grud namespace and nodes
+gke/resources: ## Show resource utilization for apps namespace and nodes
 	@echo "📊 Resource Utilization"
 	@echo ""
 	@echo "=== Node Resources ==="
 	@kubectl top nodes
 	@echo ""
-	@echo "=== Pod Resources (grud namespace) ==="
-	@kubectl top pods -n grud --containers
+	@echo "=== Pod Resources (apps namespace) ==="
+	@kubectl top pods -n apps --containers
 	@echo ""
 	@echo "=== Resource Requests/Limits ==="
-	@kubectl get pods -n grud -o custom-columns="\
+	@kubectl get pods -n apps -o custom-columns="\
 NAME:.metadata.name,\
 CPU_REQ:.spec.containers[*].resources.requests.cpu,\
 CPU_LIM:.spec.containers[*].resources.limits.cpu,\
@@ -264,8 +264,8 @@ MEM_REQ:.spec.containers[*].resources.requests.memory,\
 MEM_LIM:.spec.containers[*].resources.limits.memory"
 
 gke/clean: ## Clean uninstall grud helm release and all pods
-	@echo "🧹 Cleaning grud namespace..."
-	@helm uninstall grud -n grud --wait 2>/dev/null || true
+	@echo "🧹 Cleaning apps namespace..."
+	@helm uninstall grud -n apps --wait 2>/dev/null || true
 	@echo "✅ Cleanup complete"
 
 gke/prometheus: ## Port-forward Prometheus (localhost:9090)
@@ -292,18 +292,18 @@ gke/gateway: ## Deploy Gateway API resources
 	@echo "✅ Gateway deployed"
 	@echo ""
 	@echo "Check Gateway status:"
-	@echo "  kubectl get gateway -n grud"
+	@echo "  kubectl get gateway -n apps"
 	@echo "  kubectl get httproute -A"
 
 gke/gateway-status: ## Show Gateway and HTTPRoute status
 	@echo "=== Gateway ==="
-	@kubectl get gateway -n grud -o wide
+	@kubectl get gateway -n apps -o wide
 	@echo ""
 	@echo "=== HTTPRoutes ==="
 	@kubectl get httproute -A
 	@echo ""
 	@echo "=== Gateway Details ==="
-	@kubectl describe gateway grud-gateway -n grud | tail -20
+	@kubectl describe gateway grud-gateway -n apps | tail -20
 
 # =============================================================================
 # Terraform
@@ -342,8 +342,8 @@ tf/apply: ## Apply Terraform configuration
 tf/destroy: ## Destroy Terraform resources (preserves DNS, Gateway certs, IPs)
 	@echo "🗑️  Destroying Terraform resources..."
 	@echo "🧹 Cleaning up Kubernetes resources first..."
-	@echo "    - Deleting grud namespace (Gateway API, apps)..."
-	@kubectl delete namespace grud --wait=true --timeout=5m 2>/dev/null || echo "    ⚠️  grud namespace not found (already deleted)"
+	@echo "    - Deleting apps namespace (Gateway API, apps)..."
+	@kubectl delete namespace apps --wait=true --timeout=5m 2>/dev/null || echo "    ⚠️  apps namespace not found (already deleted)"
 	@echo "    - Deleting infra resources (Prometheus, Grafana, Alloy, etc.)..."
 	@kubectl delete namespace infra --wait=true --timeout=5m 2>/dev/null || echo "    ⚠️  infra namespace not found (already deleted)"
 	@echo "    - Waiting for GCP load balancers to cleanup (30s)..."
@@ -380,8 +380,8 @@ gke/ingress: ## Show Ingress status and external IP
 	@echo "=== Shared Static IP (Terraform) ==="
 	@cd $(TF_DIR) && terraform output ingress_ip 2>/dev/null || echo "Not created yet"
 	@echo ""
-	@echo "=== App Ingress (grud namespace) ==="
-	@kubectl get ingress -n grud 2>/dev/null || echo "No ingress found"
+	@echo "=== App Ingress (apps namespace) ==="
+	@kubectl get ingress -n apps 2>/dev/null || echo "No ingress found"
 	@echo ""
 	@echo "=== Grafana Ingress (infra namespace) ==="
 	@kubectl get ingress -n infra 2>/dev/null || echo "No ingress found"
@@ -432,7 +432,7 @@ helm/template-gke: ## Show rendered templates for GKE
 
 helm/uninstall: ## Uninstall Helm release
 	@echo "🗑️  Uninstalling Helm release..."
-	@helm uninstall grud -n grud || true
+	@helm uninstall grud -n apps || true
 	@echo "✅ Helm release uninstalled"
 
 # =============================================================================
@@ -616,7 +616,7 @@ secrets/generate-kind: ## Generate secrets for Kind cluster
 
 secrets/list-kind: ## List secrets in Kind cluster
 	@echo "📋 Secrets in Kind cluster:"
-	@kubectl get secrets -n grud -l app=grud,component=secrets
+	@kubectl get secrets -n apps -l app=grud,component=secrets
 
 secrets/list-gke: ## List secrets in Google Secret Manager
 	@echo "📋 Secrets in Google Secret Manager:"

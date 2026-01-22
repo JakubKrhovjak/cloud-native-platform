@@ -416,7 +416,7 @@ spec:
       name: ko
   destination:
     server: https://kubernetes.default.svc
-    namespace: grud
+    namespace: apps
   syncPolicy:
     automated:
       prune: true

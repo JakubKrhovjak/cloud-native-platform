@@ -27,7 +27,7 @@ apiVersion: networking.gke.io/v1
 kind: GCPBackendPolicy
 metadata:
   name: student-service-backend-policy
-  namespace: grud
+  namespace: apps
 spec:
   default:
     # Cloud Armor WAF policy (created in terraform/cloud-armor.tf)

@@ -34,7 +34,7 @@ apiVersion: networking.gke.io/v1
 kind: GCPGatewayPolicy
 metadata:
   name: grud-gateway-policy
-  namespace: grud
+  namespace: apps
 spec:
   default:
     # Reference to GCP SSL policy (created in terraform/ssl.tf)

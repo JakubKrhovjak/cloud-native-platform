@@ -22,12 +22,12 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: http-to-https-redirect
-  namespace: grud
+  namespace: apps
 spec:
   # Reference to parent Gateway - HTTP listener only
   parentRefs:
     - name: grud-gateway
-      namespace: grud
+      namespace: apps
       sectionName: http  # Only match HTTP listener (port 80)
   # Match all domains that need redirect
   hostnames:

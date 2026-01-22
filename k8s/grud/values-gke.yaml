@@ -1,7 +1,7 @@
 # GKE cluster values
 global:
   environment: gcp-gke
-  namespace: grud
+  namespace: apps
 
 # Ingress configuration
 # Grafana has its own LoadBalancer (not part of this ingress)

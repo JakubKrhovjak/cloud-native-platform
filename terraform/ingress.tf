@@ -9,7 +9,7 @@
 #   Manual: gcloud compute addresses create grud-ingress-ip --global
 #
 # This is used by:
-#   → GKE Ingress for grud app (namespace: grud)
+#   → GKE Ingress for grud app (namespace: apps)
 #   → GKE Ingress for Grafana (namespace: infra)
 #   → DNS (grudapp.com and grafana.grudapp.com point to this IP)
 #

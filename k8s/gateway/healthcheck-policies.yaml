@@ -32,7 +32,7 @@ apiVersion: networking.gke.io/v1
 kind: HealthCheckPolicy
 metadata:
   name: student-service-healthcheck
-  namespace: grud
+  namespace: apps
 spec:
   default:
     checkIntervalSec: 15       # Check every 15 seconds

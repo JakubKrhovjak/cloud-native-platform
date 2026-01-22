@@ -3,7 +3,7 @@
 
 global:
   environment: kind
-  namespace: grud
+  namespace: apps
 
 # Cloud SQL (disabled for Kind - using local PostgreSQL)
 cloudSql:

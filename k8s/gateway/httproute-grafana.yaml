@@ -32,7 +32,7 @@ spec:
   # Reference to parent Gateway (cross-namespace, requires ReferenceGrant)
   parentRefs:
     - name: grud-gateway
-      namespace: grud
+      namespace: apps
       sectionName: https  # Only match HTTPS listener (port 443)
   # Hostname matching
   hostnames:
