@@ -43,8 +43,8 @@ make kind/setup
 make kind/deploy
 
 # Port forward databases
-kubectl port-forward -n grud svc/student-db 5433:5432 &
-kubectl port-forward -n grud svc/project-db 5440:5432 &
+kubectl port-forward -n apps svc/student-db 5433:5432 &
+kubectl port-forward -n apps svc/project-db 5440:5432 &
 ```
 
 ### Scale Down K8s When Running Locally
@@ -53,12 +53,12 @@ When running services locally, scale down K8s deployments to avoid conflicts:
 
 ```bash
 # Scale down
-kubectl scale deployment student-service -n grud --replicas=0
-kubectl scale deployment project-service -n grud --replicas=0
+kubectl scale deployment student-service -n apps --replicas=0
+kubectl scale deployment project-service -n apps --replicas=0
 
 # Scale back up when done
-kubectl scale deployment student-service -n grud --replicas=2
-kubectl scale deployment project-service -n grud --replicas=2
+kubectl scale deployment student-service -n apps --replicas=2
+kubectl scale deployment project-service -n apps --replicas=2
 ```
 
 ## Project Structure
@@ -157,7 +157,7 @@ Fix:
 docker ps | grep postgres
 
 # Check K8s
-kubectl get pods -n grud
+kubectl get pods -n apps
 ```
 
 ### Port already in use

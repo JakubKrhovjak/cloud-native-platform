@@ -86,17 +86,17 @@ kind/build: version/bump ## Build and push images to local registry with auto-in
 
 kind/deploy: ## Deploy to Kind with Helm (requires images in local registry)
 	@echo "🚀 Deploying to Kind with Helm..."
-	@helm upgrade --install grud k8s/grud \
+	@helm upgrade --install apps k8s/apps \
 		-n apps --create-namespace \
-		-f k8s/grud/values-kind.yaml \
+		-f k8s/apps/values-kind.yaml \
 		--wait
 	@echo "✅ Deployed to Kind"
 
 kind/update-version: ## Update image tags in values-kind.yaml
 	@NEW_VERSION=$$(cat $(VERSION_FILE)); \
 	echo "📝 Updating image tags to $$NEW_VERSION in values-kind.yaml..."; \
-	sed -i.bak "s/tag: .*/tag: $$NEW_VERSION/" k8s/grud/values-kind.yaml; \
-	rm k8s/grud/values-kind.yaml.bak 2>/dev/null || true; \
+	sed -i.bak "s/tag: .*/tag: $$NEW_VERSION/" k8s/apps/values-kind.yaml; \
+	rm k8s/apps/values-kind.yaml.bak 2>/dev/null || true; \
 	echo "✅ Updated values-kind.yaml with version $$NEW_VERSION"
 
 kind/build-update: kind/build kind/update-version ## Build images and update values-kind.yaml
@@ -105,7 +105,7 @@ kind/build-update: kind/build kind/update-version ## Build images and update val
 kind/build-commit: kind/build-update ## Build, update values and commit to git (triggers ArgoCD sync)
 	@NEW_VERSION=$$(cat $(VERSION_FILE)); \
 	echo "📤 Committing version $$NEW_VERSION to git..."; \
-	git add $(VERSION_FILE) k8s/grud/values-kind.yaml; \
+	git add $(VERSION_FILE) k8s/apps/values-kind.yaml; \
 	git commit -m "Bump version to $$NEW_VERSION" || echo "⚠️  No changes to commit"; \
 	git push origin argo; \
 	echo "✅ Version $$NEW_VERSION committed and pushed - ArgoCD will sync automatically"
@@ -196,8 +196,8 @@ gke/build: version/bump ## Build and push images to Artifact Registry with auto-
 gke/update-version: ## Update image tags in values-gke.yaml
 	@NEW_VERSION=$$(cat $(VERSION_FILE)); \
 	echo "📝 Updating image tags to $$NEW_VERSION in values-gke.yaml..."; \
-	sed -i.bak "s/tag: .*/tag: $$NEW_VERSION/" k8s/grud/values-gke.yaml; \
-	rm k8s/grud/values-gke.yaml.bak 2>/dev/null || true; \
+	sed -i.bak "s/tag: .*/tag: $$NEW_VERSION/" k8s/apps/values-gke.yaml; \
+	rm k8s/apps/values-gke.yaml.bak 2>/dev/null || true; \
 	echo "✅ Updated values-gke.yaml with version $$NEW_VERSION"
 
 gke/build-update: gke/build gke/update-version ## Build images and update values-gke.yaml
@@ -206,7 +206,7 @@ gke/build-update: gke/build gke/update-version ## Build images and update values
 gke/build-commit: gke/build-update ## Build, update values and commit to git (triggers ArgoCD sync)
 	@NEW_VERSION=$$(cat $(VERSION_FILE)); \
 	echo "📤 Committing version $$NEW_VERSION to git..."; \
-	git add $(VERSION_FILE) k8s/grud/values-gke.yaml; \
+	git add $(VERSION_FILE) k8s/apps/values-gke.yaml; \
 	git commit -m "Bump GKE version to $$NEW_VERSION" || echo "⚠️  No changes to commit"; \
 	git push; \
 	echo "✅ Version $$NEW_VERSION committed and pushed - ArgoCD will sync automatically"
@@ -216,9 +216,9 @@ gke/deploy: gke/build  ## Deploy to GKE with Helm
 	@gcloud container fleet memberships get-credentials $(GKE_CLUSTER) --location=$(GCP_REGION) --project=$(GCP_PROJECT)
 	@echo "🚀 Deploying to GKE with Helm..."
 	@CLOUDSQL_IP=$$(cd $(TF_DIR) && terraform output -raw cloudsql_private_ip) && \
-	helm upgrade --install grud k8s/grud \
+	helm upgrade --install apps k8s/apps \
 		-n apps --create-namespace \
-		-f k8s/grud/values-gke.yaml \
+		-f k8s/apps/values-gke.yaml \
 		--set studentService.image.repository=$(GKE_REGISTRY)/student-service \
 		--set projectService.image.repository=$(GKE_REGISTRY)/project-service \
 		--set adminPanel.image.repository=$(GKE_REGISTRY)/admin-panel \
@@ -265,7 +265,7 @@ MEM_LIM:.spec.containers[*].resources.limits.memory"
 
 gke/clean: ## Clean uninstall grud helm release and all pods
 	@echo "🧹 Cleaning apps namespace..."
-	@helm uninstall grud -n apps --wait 2>/dev/null || true
+	@helm uninstall apps -n apps --wait 2>/dev/null || true
 	@echo "✅ Cleanup complete"
 
 gke/prometheus: ## Port-forward Prometheus (localhost:9090)
@@ -425,14 +425,14 @@ tf/validate: ## Validate Terraform configuration
 # Helm Utilities
 # =============================================================================
 helm/template-kind: ## Show rendered templates for Kind
-	@helm template grud k8s/grud -f k8s/grud/values-kind.yaml
+	@helm template apps k8s/apps -f k8s/apps/values-kind.yaml
 
 helm/template-gke: ## Show rendered templates for GKE
-	@helm template grud k8s/grud -f k8s/grud/values-gke.yaml
+	@helm template apps k8s/apps -f k8s/apps/values-gke.yaml
 
 helm/uninstall: ## Uninstall Helm release
 	@echo "🗑️  Uninstalling Helm release..."
-	@helm uninstall grud -n apps || true
+	@helm uninstall apps -n apps || true
 	@echo "✅ Helm release uninstalled"
 
 # =============================================================================

@@ -13,7 +13,7 @@
 #
 # Related resources:
 #   - Gateway: grud-gateway (k8s/gateway/gateway.yaml)
-#   - Service: student-service (k8s/grud/student-service/service.yaml)
+#   - Service: student-service (k8s/apps/student-service/service.yaml)
 #   - HealthCheck: student-service-healthcheck (healthcheck-policies.yaml)
 #   - BackendPolicy: student-service-backend-policy (gcp-backend-policy.yaml)
 #

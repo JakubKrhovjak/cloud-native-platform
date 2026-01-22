@@ -1,14 +1,14 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "grud.name" -}}
+{{- define "apps.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Create a default fully qualified app name.
 */}}
-{{- define "grud.fullname" -}}
+{{- define "apps.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -20,7 +20,7 @@ Create a default fully qualified app name.
 {{/*
 Common labels
 */}}
-{{- define "grud.labels" -}}
+{{- define "apps.labels" -}}
 helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
@@ -28,16 +28,16 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "grud.selectorLabels" -}}
+{{- define "apps.selectorLabels" -}}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
 Component labels - combines common labels with component-specific label
-Usage: {{ include "grud.componentLabels" (dict "componentName" "student-service" "root" .) }}
+Usage: {{ include "apps.componentLabels" (dict "componentName" "student-service" "root" .) }}
 */}}
-{{- define "grud.componentLabels" -}}
-{{ include "grud.labels" .root }}
-app: {{ include "grud.name" .root }}
+{{- define "apps.componentLabels" -}}
+{{ include "apps.labels" .root }}
+app: {{ include "apps.name" .root }}
 component: {{ .componentName }}
 {{- end }}

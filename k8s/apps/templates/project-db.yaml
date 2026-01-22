@@ -6,7 +6,7 @@ metadata:
   name: project-db-app
   namespace: {{ .Values.global.namespace }}
   labels:
-    {{- include "grud.componentLabels" (dict "componentName" "project-db" "root" .) | nindent 4 }}
+    {{- include "apps.componentLabels" (dict "componentName" "project-db" "root" .) | nindent 4 }}
 type: Opaque
 stringData:
   dbname: {{ .Values.projectDb.credentials.database }}
@@ -19,7 +19,7 @@ metadata:
   name: project-db
   namespace: {{ .Values.global.namespace }}
   labels:
-    {{- include "grud.componentLabels" (dict "componentName" "project-db" "root" .) | nindent 4 }}
+    {{- include "apps.componentLabels" (dict "componentName" "project-db" "root" .) | nindent 4 }}
 spec:
   clusterIP: None
   ports:
@@ -34,7 +34,7 @@ metadata:
   name: project-db
   namespace: {{ .Values.global.namespace }}
   labels:
-    {{- include "grud.componentLabels" (dict "componentName" "project-db" "root" .) | nindent 4 }}
+    {{- include "apps.componentLabels" (dict "componentName" "project-db" "root" .) | nindent 4 }}
 spec:
   serviceName: project-db
   replicas: {{ .Values.projectDb.replicaCount }}
@@ -45,7 +45,7 @@ spec:
     metadata:
       labels:
         app: project-db
-        {{- include "grud.labels" . | nindent 8 }}
+        {{- include "apps.labels" . | nindent 8 }}
         component: project-db
     spec:
       {{- if .Values.projectDb.tolerations }}

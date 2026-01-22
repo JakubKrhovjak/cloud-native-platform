@@ -37,7 +37,7 @@ This directory contains configuration for the observability and infrastructure s
 │  └────────────────────────────────────────────────┼────────────────────┘   │
 │                                                    │                        │
 │  ┌─────────────────────────────────────────────────┼────────────────────┐   │
-│  │                        grud namespace           │                    │   │
+│  │                        apps namespace           │                    │   │
 │  │                                                 │                    │   │
 │  │  ┌──────────────────┐    ┌──────────────────┐  │                    │   │
 │  │  │  student-service │────│  project-service │──┘                    │   │

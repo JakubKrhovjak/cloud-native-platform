@@ -1,14 +1,14 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: grud-app
+  name: apps
   namespace: infra
 spec:
   project: default
   source:
     repoURL: https://github.com/JakubKrhovjak/cloud-native-platform.git
     targetRevision: argo
-    path: k8s/grud
+    path: k8s/apps
     helm:
       valueFiles:
         - values-kind.yaml

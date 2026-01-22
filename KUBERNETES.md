@@ -228,7 +228,7 @@ Ko automatically:
 
 ```bash
 # Scale up
-kubectl scale deployment student-service -n grud --replicas=5
+kubectl scale deployment student-service -n apps --replicas=5
 
 # Or patch via Kustomize
 cat <<EOF > k8s/overlays/scaled/kustomization.yaml
@@ -254,11 +254,11 @@ ko resolve -f k8s/overlays/scaled/ | kubectl apply -f -
 make status
 
 # Or manually
-kubectl get all -n grud
-kubectl get clusters -n grud
+kubectl get all -n apps
+kubectl get clusters -n apps
 
 # Check pod placement on nodes
-kubectl get pods -n grud -o wide
+kubectl get pods -n apps -o wide
 ```
 
 ## Testing
@@ -293,27 +293,27 @@ make logs-db           # Database logs
 
 # Resource usage
 kubectl top nodes
-kubectl top pods -n grud
+kubectl top pods -n apps
 
 # Events
-kubectl get events -n grud --sort-by='.lastTimestamp'
+kubectl get events -n apps --sort-by='.lastTimestamp'
 
 # Describe
-kubectl describe deployment student-service -n grud
-kubectl describe cluster student-db -n grud
+kubectl describe deployment student-service -n apps
+kubectl describe cluster student-db -n apps
 ```
 
 ## Database Access
 
 ```bash
 # Connect to student database
-kubectl exec -it -n grud student-db-1 -- psql -U app university
+kubectl exec -it -n apps student-db-1 -- psql -U app university
 
 # Connect to project database
-kubectl exec -it -n grud project-db-1 -- psql -U app projects
+kubectl exec -it -n apps project-db-1 -- psql -U app projects
 
 # Port-forward for local access
-kubectl port-forward -n grud svc/student-db-rw 5432:5432
+kubectl port-forward -n apps svc/student-db-rw 5432:5432
 psql -h localhost -U app -d university
 ```
 
@@ -328,7 +328,7 @@ make status
 ### Pods Not Starting
 
 ```bash
-kubectl describe pod -n grud <pod-name>
+kubectl describe pod -n apps <pod-name>
 
 # Common issues:
 # - Node taint/toleration mismatch
@@ -353,18 +353,18 @@ ko build --local ./student-service/cmd/student-service
 
 ```bash
 # Verify databases are ready
-kubectl get clusters -n grud
+kubectl get clusters -n apps
 
 # Should show:
 # NAME         INSTANCES   READY   STATUS
 # student-db   3           3       Cluster in healthy state
 
 # Check service endpoints
-kubectl get endpoints -n grud
+kubectl get endpoints -n apps
 
 # Test DNS
-kubectl exec -n grud deployment/student-service -- \
-  nslookup student-db-rw.grud.svc.cluster.local
+kubectl exec -n apps deployment/student-service -- \
+  nslookup student-db-rw.apps.svc.cluster.local
 ```
 
 ## Cleanup
@@ -622,7 +622,7 @@ make gke/gateway
 kubectl apply -f k8s/gateway/
 
 # Check status
-kubectl get gateway -n grud
+kubectl get gateway -n apps
 kubectl get httproute -A
 kubectl get gcpbackendpolicy -A
 kubectl get healthcheckpolicy -A
@@ -632,13 +632,13 @@ kubectl get healthcheckpolicy -A
 
 ```bash
 # Check Gateway status
-kubectl describe gateway -n grud grud-gateway
+kubectl describe gateway -n apps grud-gateway
 
 # Check HTTPRoute status
-kubectl describe httproute -n grud api-route
+kubectl describe httproute -n apps api-route
 
 # Check backend health
-kubectl get svc -n grud student-service -o yaml
+kubectl get svc -n apps student-service -o yaml
 
 # Check GCP Load Balancer
 gcloud compute url-maps list

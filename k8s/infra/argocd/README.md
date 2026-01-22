@@ -29,8 +29,8 @@ ArgoCD is deployed in the `infra` namespace together with Prometheus, Grafana, L
 
 ## Applications Managed
 
-### grud-app
-- **Path**: `k8s/grud`
+### apps
+- **Path**: `k8s/apps`
 - **Type**: Helm chart
 - **Namespace**: grud
 - **Services**: student-service, project-service, admin-panel
@@ -66,24 +66,24 @@ argocd login localhost:30080 --username admin --password $ARGOCD_PASSWORD --inse
 
 ### Sync Application
 ```bash
-argocd app sync grud-app
+argocd app sync apps
 argocd app sync monitoring-stack
 ```
 
 ### View Application Status
 ```bash
 argocd app list
-argocd app get grud-app
+argocd app get apps
 ```
 
 ### Manual Sync (disable auto-sync)
 ```bash
-kubectl patch application grud-app -n infra --type json -p='[{"op": "remove", "path": "/spec/syncPolicy/automated"}]'
+kubectl patch application apps -n infra --type json -p='[{"op": "remove", "path": "/spec/syncPolicy/automated"}]'
 ```
 
 ### Enable Auto-Sync
 ```bash
-kubectl patch application grud-app -n infra --type json -p='[{"op": "add", "path": "/spec/syncPolicy/automated", "value": {"prune": true, "selfHeal": true}}]'
+kubectl patch application apps -n infra --type json -p='[{"op": "add", "path": "/spec/syncPolicy/automated", "value": {"prune": true, "selfHeal": true}}]'
 ```
 
 ## Troubleshooting
@@ -91,10 +91,10 @@ kubectl patch application grud-app -n infra --type json -p='[{"op": "add", "path
 ### Application OutOfSync
 ```bash
 # Check diff
-argocd app diff grud-app
+argocd app diff apps
 
 # Force sync
-argocd app sync grud-app --force
+argocd app sync apps --force
 ```
 
 ### Application Health Unknown

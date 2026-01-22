@@ -84,12 +84,12 @@ k8s/
 
 ```bash
 # Kind
-helm upgrade --install grud k8s/grud -n grud --create-namespace
+helm upgrade --install grud k8s/apps -n grud --create-namespace
 
 # GKE
-helm upgrade --install grud k8s/grud \
+helm upgrade --install grud k8s/apps \
   -n grud --create-namespace \
-  -f k8s/grud/values-gke.yaml \
+  -f k8s/apps/values-gke.yaml \
   --set cloudSql.privateIp=$CLOUDSQL_IP \
   --set secrets.gcp.projectId=$PROJECT_ID
 ```

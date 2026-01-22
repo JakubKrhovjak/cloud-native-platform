@@ -3,4 +3,4 @@ kind: Namespace
 metadata:
   name: {{ .Values.global.namespace }}
   labels:
-    {{- include "grud.labels" . | nindent 4 }}
+    {{- include "apps.labels" . | nindent 4 }}

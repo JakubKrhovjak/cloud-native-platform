@@ -1,4 +1,4 @@
-# Default values for grud
+# Default values for apps
 # This is a YAML-formatted file.
 
 global:
@@ -55,7 +55,7 @@ studentService:
       - "http://localhost:5173"
       - "http://localhost:3000"
   database:
-    host: student-db.grud.svc.cluster.local
+    host: student-db.apps.svc.cluster.local
     port: "5432"
     name: university
     sslMode: disable
@@ -100,7 +100,7 @@ projectService:
     natsSubject: "student-messages"
     otelEndpoint: "alloy.infra.svc.cluster.local:4317"
   database:
-    host: project-db.grud.svc.cluster.local
+    host: project-db.apps.svc.cluster.local
     port: "5432"
     name: projects
     sslMode: disable

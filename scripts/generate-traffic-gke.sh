@@ -24,24 +24,24 @@ COOKIE_FILE="/tmp/student_cookies_$(date +%s).txt"
 # Auto-detect GKE Gateway or Ingress URL
 get_ingress_url() {
   # Try Gateway API first
-  HOST=$(kubectl get gateway -n grud grud-gateway -o jsonpath='{.spec.listeners[0].hostname}' 2>/dev/null)
+  HOST=$(kubectl get gateway -n apps grud-gateway -o jsonpath='{.spec.listeners[0].hostname}' 2>/dev/null)
   if [ -n "$HOST" ] && [ "$HOST" != "*" ]; then
     echo "https://${HOST}"
     return
   fi
   # Try Gateway IP
-  IP=$(kubectl get gateway -n grud grud-gateway -o jsonpath='{.status.addresses[0].value}' 2>/dev/null)
+  IP=$(kubectl get gateway -n apps grud-gateway -o jsonpath='{.status.addresses[0].value}' 2>/dev/null)
   if [ -n "$IP" ]; then
     echo "https://grudapp.com"  # Use domain for proper cert
     return
   fi
   # Fallback to Ingress (legacy)
-  HOST=$(kubectl get ingress -n grud grud-ingress -o jsonpath='{.spec.rules[0].host}' 2>/dev/null)
+  HOST=$(kubectl get ingress -n apps grud-ingress -o jsonpath='{.spec.rules[0].host}' 2>/dev/null)
   if [ -n "$HOST" ]; then
     echo "https://${HOST}"
     return
   fi
-  IP=$(kubectl get ingress -n grud grud-ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)
+  IP=$(kubectl get ingress -n apps grud-ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)
   if [ -n "$IP" ]; then
     echo "http://${IP}"
     return
@@ -119,7 +119,7 @@ else
   echo -e "${YELLOW}  Waiting for backend to become healthy...${NC}"
   echo ""
   echo "  Check backend health:"
-  echo "  kubectl describe ingress -n grud grud-ingress | grep -A2 backends"
+  echo "  kubectl describe ingress -n apps grud-ingress | grep -A2 backends"
   echo ""
   read -p "Press Enter to continue anyway, or Ctrl+C to abort..."
 fi

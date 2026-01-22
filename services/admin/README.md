@@ -47,7 +47,7 @@ VITE_API_URL=http://localhost:8080
 ```
 
 - **Local development**: `http://localhost:8080` (student-service)
-- **Kubernetes**: `http://student-service.grud.svc.cluster.local:8080`
+- **Kubernetes**: `http://student-service.apps.svc.cluster.local:8080`
 
 ## Kubernetes Deployment
 

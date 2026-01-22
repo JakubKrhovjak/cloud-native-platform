@@ -369,9 +369,9 @@ kubectl describe externalsecret -n infra grafana-iap-secret
 ### Pods not starting
 
 ```bash
-kubectl get pods -n grud
-kubectl describe pod -n grud <pod-name>
-kubectl logs -n grud <pod-name>
+kubectl get pods -n apps
+kubectl describe pod -n apps <pod-name>
+kubectl logs -n apps <pod-name>
 ```
 
 ## Documentation

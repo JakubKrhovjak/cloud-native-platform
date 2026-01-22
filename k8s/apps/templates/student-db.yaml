@@ -6,7 +6,7 @@ metadata:
   name: student-db-app
   namespace: {{ .Values.global.namespace }}
   labels:
-    {{- include "grud.componentLabels" (dict "componentName" "student-db" "root" .) | nindent 4 }}
+    {{- include "apps.componentLabels" (dict "componentName" "student-db" "root" .) | nindent 4 }}
 type: Opaque
 stringData:
   dbname: {{ .Values.studentDb.credentials.database }}
@@ -19,7 +19,7 @@ metadata:
   name: student-db
   namespace: {{ .Values.global.namespace }}
   labels:
-    {{- include "grud.componentLabels" (dict "componentName" "student-db" "root" .) | nindent 4 }}
+    {{- include "apps.componentLabels" (dict "componentName" "student-db" "root" .) | nindent 4 }}
 spec:
   clusterIP: None
   ports:
@@ -34,7 +34,7 @@ metadata:
   name: student-db
   namespace: {{ .Values.global.namespace }}
   labels:
-    {{- include "grud.componentLabels" (dict "componentName" "student-db" "root" .) | nindent 4 }}
+    {{- include "apps.componentLabels" (dict "componentName" "student-db" "root" .) | nindent 4 }}
 spec:
   serviceName: student-db
   replicas: {{ .Values.studentDb.replicaCount }}
@@ -45,7 +45,7 @@ spec:
     metadata:
       labels:
         app: student-db
-        {{- include "grud.labels" . | nindent 8 }}
+        {{- include "apps.labels" . | nindent 8 }}
         component: student-db
     spec:
       {{- if .Values.studentDb.tolerations }}

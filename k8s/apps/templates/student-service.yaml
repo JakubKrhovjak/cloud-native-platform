@@ -6,7 +6,7 @@ metadata:
   name: student-service
   namespace: {{ .Values.global.namespace }}
   labels:
-    {{- include "grud.componentLabels" (dict "componentName" "student-service" "root" .) | nindent 4 }}
+    {{- include "apps.componentLabels" (dict "componentName" "student-service" "root" .) | nindent 4 }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -14,7 +14,7 @@ metadata:
   name: student-service-config
   namespace: {{ .Values.global.namespace }}
   labels:
-    {{- include "grud.componentLabels" (dict "componentName" "student-service" "root" .) | nindent 4 }}
+    {{- include "apps.componentLabels" (dict "componentName" "student-service" "root" .) | nindent 4 }}
 data:
   ENV: {{ required "studentService.config.env is required!" .Values.studentService.config.env | quote }}
   SERVER_PORT: {{ .Values.studentService.config.serverPort | default "8080" | quote }}
@@ -29,7 +29,7 @@ metadata:
   name: student-service-file-config
   namespace: {{ .Values.global.namespace }}
   labels:
-    {{- include "grud.componentLabels" (dict "componentName" "student-service" "root" .) | nindent 4 }}
+    {{- include "apps.componentLabels" (dict "componentName" "student-service" "root" .) | nindent 4 }}
 data:
   config.{{ .Values.studentService.config.env }}.yaml: |
     env: {{ .Values.studentService.config.env }}
@@ -62,7 +62,7 @@ metadata:
   name: student-service
   namespace: {{ .Values.global.namespace }}
   labels:
-    {{- include "grud.componentLabels" (dict "componentName" "student-service" "root" .) | nindent 4 }}
+    {{- include "apps.componentLabels" (dict "componentName" "student-service" "root" .) | nindent 4 }}
 spec:
   type: ClusterIP
   ports:
@@ -78,7 +78,7 @@ metadata:
   name: student-service
   namespace: {{ .Values.global.namespace }}
   labels:
-    {{- include "grud.componentLabels" (dict "componentName" "student-service" "root" .) | nindent 4 }}
+    {{- include "apps.componentLabels" (dict "componentName" "student-service" "root" .) | nindent 4 }}
 spec:
   replicas: {{ .Values.studentService.replicaCount }}
   selector:
@@ -88,7 +88,7 @@ spec:
     metadata:
       labels:
         app: student-service
-        {{- include "grud.labels" . | nindent 8 }}
+        {{- include "apps.labels" . | nindent 8 }}
         component: student-service
     spec:
       {{- if .Values.studentService.tolerations }}

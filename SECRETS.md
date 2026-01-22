@@ -85,7 +85,7 @@ make secrets/list-kind
 Or directly:
 
 ```bash
-kubectl get secrets -n grud -l app=grud,component=secrets
+kubectl get secrets -n apps -l app=grud,component=secrets
 ```
 
 ## GKE (Production)
@@ -139,9 +139,9 @@ make gke/deploy
 Or manually:
 
 ```bash
-helm upgrade --install grud k8s/grud \
-  -n grud --create-namespace \
-  -f k8s/grud/values-gke.yaml \
+helm upgrade --install grud k8s/apps \
+  -n apps --create-namespace \
+  -f k8s/apps/values-gke.yaml \
   --set secrets.gcp.projectId=YOUR_PROJECT_ID \
   --wait
 ```
@@ -198,7 +198,7 @@ terraform apply
 
 3. **Restart deployments** to pick up new secrets:
    ```bash
-   kubectl rollout restart deployment -n grud
+   kubectl rollout restart deployment -n apps
    ```
 
 ### Listing Secrets
@@ -226,12 +226,12 @@ secrets:
 
 databases:
   student:
-    host: student-db-rw.grud.svc.cluster.local
+    host: student-db-rw.apps.svc.cluster.local
     port: 5432
     database: university
 
   project:
-    host: project-db-rw.grud.svc.cluster.local
+    host: project-db-rw.apps.svc.cluster.local
     port: 5432
     database: projects
 ```
@@ -378,7 +378,7 @@ env:
 **Secrets not found:**
 ```bash
 # Check if secrets exist
-kubectl get secrets -n grud
+kubectl get secrets -n apps
 
 # Regenerate secrets
 make secrets/generate-kind
@@ -387,10 +387,10 @@ make secrets/generate-kind
 **Permission denied:**
 ```bash
 # Ensure namespace exists
-kubectl create namespace grud
+kubectl create namespace apps
 
 # Check RBAC permissions
-kubectl auth can-i create secrets -n grud
+kubectl auth can-i create secrets -n apps
 ```
 
 ### GKE Issues
@@ -401,10 +401,10 @@ kubectl auth can-i create secrets -n grud
 kubectl logs -n external-secrets-system deployment/external-secrets
 
 # Check ExternalSecret status
-kubectl describe externalsecret -n grud
+kubectl describe externalsecret -n apps
 
 # Check SecretStore status
-kubectl describe secretstore -n grud
+kubectl describe secretstore -n apps
 ```
 
 **Permission denied accessing GSM:**
@@ -419,7 +419,7 @@ make secrets/grant-access-gke
 **Workload Identity not working:**
 ```bash
 # Verify annotation on service account
-kubectl get serviceaccount student-service -n grud -o yaml | grep gcp-service-account
+kubectl get serviceaccount student-service -n apps -o yaml | grep gcp-service-account
 
 # Verify GCP service account binding
 gcloud iam service-accounts get-iam-policy \

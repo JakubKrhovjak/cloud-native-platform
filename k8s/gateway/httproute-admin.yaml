@@ -11,7 +11,7 @@
 #
 # Related resources:
 #   - Gateway: grud-gateway (k8s/gateway/gateway.yaml)
-#   - Service: admin-panel (k8s/grud/admin-panel/service.yaml)
+#   - Service: admin-panel (k8s/apps/admin-panel/service.yaml)
 #
 # Docs: https://gateway-api.sigs.k8s.io/api-types/httproute/
 # =============================================================================

@@ -408,10 +408,10 @@ gcloud services vpc-peerings list --network=grud-network
 kubectl logs -n external-secrets-system deployment/external-secrets
 
 # Check ExternalSecret status
-kubectl describe externalsecret -n grud
+kubectl describe externalsecret -n apps
 
 # Check SecretStore
-kubectl describe secretstore -n grud
+kubectl describe secretstore -n apps
 ```
 
 ### IAP Not Working
@@ -427,7 +427,7 @@ kubectl get secret -n infra grafana-iap-secret
 kubectl get secret -n infra grafana-iap-secret -o jsonpath='{.data}' | jq
 
 # Check Gateway and HTTPRoute status
-kubectl get gateway -n grud grud-gateway
+kubectl get gateway -n apps grud-gateway
 kubectl get httproute -n infra grafana-route
 
 # Verify secret in Secret Manager

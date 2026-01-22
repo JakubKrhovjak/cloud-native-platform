@@ -81,8 +81,8 @@ else
   echo -e "${YELLOW}⚠${NC}"
   echo -e "${YELLOW}⚠ Cannot reach health endpoint at $BASE_URL/health${NC}"
   echo -e "${YELLOW}  Proceeding anyway, but check if service is running:${NC}"
-  echo "  kubectl get svc -n grud student-service"
-  echo "  kubectl get pods -n grud | grep student"
+  echo "  kubectl get svc -n apps student-service"
+  echo "  kubectl get pods -n apps | grep student"
   echo ""
 fi
 
