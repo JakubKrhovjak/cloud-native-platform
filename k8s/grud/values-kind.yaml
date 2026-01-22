@@ -27,7 +27,7 @@ studentService:
   replicaCount: 2
   image:
     repository: localhost:5001/student-service
-    tag: 0.0.4
+    tag: 0.0.5
   config:
     env: kind
   useSecrets: true
@@ -43,7 +43,7 @@ projectService:
   replicaCount: 2
   image:
     repository: localhost:5001/project-service
-    tag: 0.0.4
+    tag: 0.0.5
   config:
     env: kind
   useSecrets: true
@@ -58,7 +58,7 @@ projectService:
 adminPanel:
   image:
     repository: localhost:5001/admin-panel
-    tag: 0.0.4
+    tag: 0.0.5
   config:
     apiUrl: "http://localhost:8080"
   replicaCount: 2
