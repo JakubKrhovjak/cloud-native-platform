@@ -16,7 +16,7 @@ ingress:
 # Cloud SQL configuration
 cloudSql:
   enabled: true
-  privateIp: "10.64.0.3"  # grud-postgres private IP
+  privateIp: "10.64.0.3"  # Set via --set cloudSql.privateIp
 
 # Secret management - use Google Secret Manager
 secrets:
