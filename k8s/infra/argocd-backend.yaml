@@ -1,0 +1,20 @@
+# =============================================================================
+# ArgoCD Service for GKE Gateway API
+# =============================================================================
+# Service for exposing ArgoCD via Gateway API.
+# Note: BackendConfig is not compatible with Gateway API.
+# For IAP with Gateway API, use GCPBackendPolicy instead.
+# =============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: argocd-gateway
+  namespace: infra
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8080
+  selector:
+    app.kubernetes.io/name: argocd-server
