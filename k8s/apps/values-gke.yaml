@@ -59,7 +59,7 @@ studentService:
     grpcEndpoint: "project-service:50052"
     natsUrl: "nats.infra.svc.cluster.local:4222"
     natsSubject: "student-messages"
-    otelEndpoint: "http://alloy.infra:4318"
+    otelEndpoint: "alloy.infra:4317"
     corsOrigins:
       - "https://grudapp.com"
       - "https://admin.grudapp.com"
@@ -103,7 +103,7 @@ projectService:
     grpcPort: "50052"
     natsUrl: "nats.infra.svc.cluster.local:4222"
     natsSubject: "student-messages"
-    otelEndpoint: "http://alloy.infra:4318"
+    otelEndpoint: "alloy.infra:4317"
   database:
     port: "5432"
     name: projects
