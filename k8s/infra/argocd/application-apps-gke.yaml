@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: apps
+  namespace: infra
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/JakubKrhovjak/cloud-native-platform.git
+    targetRevision: argo
+    path: k8s/apps
+    helm:
+      valueFiles:
+        - values-gke.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: apps
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
