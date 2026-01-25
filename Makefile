@@ -326,6 +326,7 @@ tf/apply: ## Apply Terraform configuration
 	@cd $(TF_DIR) && terraform import -var="skip_kubernetes_provider=true" google_dns_record_set.root $(GCP_PROJECT)/grudapp-zone/grudapp.com./A 2>/dev/null || true
 	@cd $(TF_DIR) && terraform import -var="skip_kubernetes_provider=true" google_dns_record_set.grafana $(GCP_PROJECT)/grudapp-zone/grafana.grudapp.com./A 2>/dev/null || true
 	@cd $(TF_DIR) && terraform import -var="skip_kubernetes_provider=true" google_dns_record_set.admin $(GCP_PROJECT)/grudapp-zone/admin.grudapp.com./A 2>/dev/null || true
+	@cd $(TF_DIR) && terraform import -var="skip_kubernetes_provider=true" google_dns_record_set.argocd $(GCP_PROJECT)/grudapp-zone/argo.grudapp.com./A 2>/dev/null || true
 	@cd $(TF_DIR) && terraform import -var="skip_kubernetes_provider=true" google_compute_managed_ssl_certificate.grud projects/$(GCP_PROJECT)/global/sslCertificates/grud-cert 2>/dev/null || true
 	@cd $(TF_DIR) && terraform import -var="skip_kubernetes_provider=true" google_certificate_manager_certificate_map.grud projects/$(GCP_PROJECT)/locations/global/certificateMaps/grud-certmap 2>/dev/null || true
 	@cd $(TF_DIR) && terraform import -var="skip_kubernetes_provider=true" google_certificate_manager_dns_authorization.grudapp projects/$(GCP_PROJECT)/locations/global/dnsAuthorizations/grudapp-dns-auth 2>/dev/null || true
@@ -360,6 +361,7 @@ tf/destroy: ## Destroy Terraform resources (preserves DNS, Gateway certs, IPs)
 	@cd $(TF_DIR) && terraform state rm google_dns_record_set.root 2>/dev/null || true
 	@cd $(TF_DIR) && terraform state rm google_dns_record_set.grafana 2>/dev/null || true
 	@cd $(TF_DIR) && terraform state rm google_dns_record_set.admin 2>/dev/null || true
+	@cd $(TF_DIR) && terraform state rm google_dns_record_set.argocd 2>/dev/null || true
 	@cd $(TF_DIR) && terraform state rm google_dns_record_set.cert_validation 2>/dev/null || true
 	@echo "    - Static IP"
 	@cd $(TF_DIR) && terraform state rm 'data.google_compute_global_address.ingress_ip' 2>/dev/null || true

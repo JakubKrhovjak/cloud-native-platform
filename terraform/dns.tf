@@ -52,6 +52,15 @@ resource "google_dns_record_set" "admin" {
   rrdatas      = [data.google_compute_global_address.ingress_ip.address]
 }
 
+# ArgoCD subdomain - shares same LB as main app
+resource "google_dns_record_set" "argocd" {
+  name         = "argo.${google_dns_managed_zone.grudapp.dns_name}"
+  managed_zone = google_dns_managed_zone.grudapp.name
+  type         = "A"
+  ttl          = 300
+  rrdatas      = [data.google_compute_global_address.ingress_ip.address]
+}
+
 # =============================================================================
 # SSL Certificate (for legacy Ingress - keeping for backwards compatibility)
 # =============================================================================
@@ -59,7 +68,7 @@ resource "google_compute_managed_ssl_certificate" "grud" {
   name = "grud-cert"
 
   managed {
-    domains = ["grudapp.com", "grafana.grudapp.com", "admin.grudapp.com"]
+    domains = ["grudapp.com", "grafana.grudapp.com", "admin.grudapp.com", "argo.grudapp.com"]
   }
 }
 

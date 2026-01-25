@@ -78,3 +78,31 @@ spec:
     group: ""
     kind: Service
     name: grafana-gateway
+---
+# -----------------------------------------------------------------------------
+# ArgoCD Health Check
+# -----------------------------------------------------------------------------
+# Backend: argocd-gateway:80 (proxies to argocd-server:8080)
+# Endpoint: GET /healthz → 200 OK
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: argocd-healthcheck
+  namespace: infra
+spec:
+  default:
+    checkIntervalSec: 15       # Check every 15 seconds
+    timeoutSec: 5              # Timeout after 5 seconds
+    healthyThreshold: 1        # 1 success = healthy
+    unhealthyThreshold: 2      # 2 failures = unhealthy
+    logConfig:
+      enabled: true            # Log to Cloud Logging
+    config:
+      type: HTTP
+      httpHealthCheck:
+        port: 8080             # ArgoCD server container port
+        requestPath: /healthz  # ArgoCD health endpoint
+  targetRef:
+    group: ""
+    kind: Service
+    name: argocd-gateway

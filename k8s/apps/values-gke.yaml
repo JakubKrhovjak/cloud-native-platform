@@ -50,14 +50,24 @@ studentService:
   enabled: true
   replicaCount: 2
   image:
+    repository: europe-west1-docker.pkg.dev/rugged-abacus-483006-r5/grud/student-service
+    tag: "0.0.6"
     pullPolicy: Always
   config:
     env: gke
+    serverPort: "8080"
+    grpcEndpoint: "project-service:50052"
+    natsUrl: "nats.infra.svc.cluster.local:4222"
+    natsSubject: "student-messages"
+    otelEndpoint: "http://alloy.infra:4318"
     corsOrigins:
       - "https://grudapp.com"
       - "https://admin.grudapp.com"
   database:
+    port: "5432"
+    name: university
     sslMode: require
+    secretName: student-db-secret  # External Secrets creates this name
   useSecrets: true
   resources:
     requests:
@@ -85,11 +95,20 @@ projectService:
   enabled: true
   replicaCount: 2
   image:
+    repository: europe-west1-docker.pkg.dev/rugged-abacus-483006-r5/grud/project-service
+    tag: "0.0.6"
     pullPolicy: Always
   config:
     env: gke
+    grpcPort: "50052"
+    natsUrl: "nats.infra.svc.cluster.local:4222"
+    natsSubject: "student-messages"
+    otelEndpoint: "http://alloy.infra:4318"
   database:
+    port: "5432"
+    name: projects
     sslMode: require
+    secretName: project-db-secret  # External Secrets creates this name
   useSecrets: true
   resources:
     requests:
@@ -117,6 +136,8 @@ adminPanel:
   enabled: true
   replicaCount: 1
   image:
+    repository: europe-west1-docker.pkg.dev/rugged-abacus-483006-r5/grud/admin-panel
+    tag: "0.0.8"
     pullPolicy: Always
   config:
     apiUrl: "https://grudapp.com"

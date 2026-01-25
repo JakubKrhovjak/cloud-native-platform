@@ -132,7 +132,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.studentService.database.secretName }}
-                  key: dbname
+                  key: database
             - name: DB_USER
               valueFrom:
                 secretKeyRef:

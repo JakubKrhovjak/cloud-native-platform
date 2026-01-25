@@ -125,7 +125,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.projectService.database.secretName }}
-                  key: dbname
+                  key: database
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
