@@ -27,7 +27,7 @@ secrets:
   # Google Secret Manager configuration
   gcp:
     projectId: "rugged-abacus-483006-r5"
-    clusterLocation: europe-west1
+    clusterLocation: europe-west1-b
     clusterName: grud-cluster
     serviceAccountName: grud-secrets-sa
 
