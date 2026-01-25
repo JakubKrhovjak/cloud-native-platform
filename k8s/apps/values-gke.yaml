@@ -16,7 +16,7 @@ ingress:
 # Cloud SQL configuration
 cloudSql:
   enabled: true
-  privateIp: ""  # Set via --set cloudSql.privateIp
+  privateIp: "10.64.0.3"
 
 # Secret management - use Google Secret Manager
 secrets:
@@ -26,7 +26,7 @@ secrets:
 
   # Google Secret Manager configuration
   gcp:
-    projectId: ""  # Set via --set or environment variable
+    projectId: "rugged-abacus-483006-r5"
     clusterLocation: europe-west1
     clusterName: grud-cluster
     serviceAccountName: grud-secrets-sa
