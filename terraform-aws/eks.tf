@@ -1,10 +1,18 @@
 # =============================================================================
-# EKS Cluster (equivalent to GKE cluster in terraform/gke.tf)
+# [3/6] EKS CLUSTER
 # =============================================================================
-# Node Pool Strategy (mirrors GKE):
-#   - system-pool: kube-system components (NO TAINT)
-#   - infra-pool: monitoring stack (TAINT: workload=infra)
-#   - app-pool: application workloads (TAINT: workload=app, autoscaling)
+# Creates the Kubernetes cluster with three node pools.
+#
+# What gets created:
+#   - EKS control plane (managed by AWS, ~$0.10/h)
+#   - system-pool: 1x t3.small ON_DEMAND — kube-system (CoreDNS, kube-proxy, etc.)
+#   - app-pool:    1x t3.small SPOT      — app workloads (taint: workload=app)
+#   - infra-pool:  1x t3.medium SPOT     — NATS (taint: workload=infra)
+#   - Cluster addons: CoreDNS, kube-proxy, VPC-CNI
+#   - IRSA enabled (IAM Roles for Service Accounts)
+#
+# Depends on: [2/6] vpc.tf (VPC, subnets)
+# Used by:    [4/6] rds.tf (node security group for DB access)
 # =============================================================================
 
 module "eks" {
@@ -19,10 +27,35 @@ module "eks" {
 
   cluster_endpoint_public_access = true
 
-  # IRSA - equivalent to GKE Workload Identity
-  enable_irsa = true
+  # Allow current IAM user to manage the cluster
+  enable_cluster_creator_admin_permissions = true
 
-  # Cluster addons
+  # GitHub Actions role - potrebuje admin pristup pro helm deploy
+  access_entries = {
+    github-actions = {
+      principal_arn = aws_iam_role.github_actions_deploy.arn
+      policy_associations = {
+        admin = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
+    }
+  }
+
+  # Name tags for Security Groups (visible in AWS Console)
+  node_security_group_name = "${var.cluster_name}-node"
+  node_security_group_tags = {
+    "Name" = "${var.cluster_name}-node"
+  }
+  cluster_security_group_name = "${var.cluster_name}-cluster"
+  cluster_security_group_tags = {
+    "Name" = "${var.cluster_name}-cluster"
+  }
+
+  enable_irsa = true
   cluster_addons = {
     coredns = {
       most_recent = true
@@ -33,64 +66,39 @@ module "eks" {
     vpc-cni = {
       most_recent = true
     }
+    amazon-cloudwatch-observability = {
+      most_recent = true
+    }
   }
 
-  # ==========================================================================
-  # Node Groups - mirrors GKE node pool strategy
-  # ==========================================================================
   eks_managed_node_groups = {
-
-    # System pool - kube-system components (NO TAINT)
-    # Equivalent to GKE system-pool (e2-medium, 2 nodes, stable)
     system-pool = {
       instance_types = [var.system_instance_type]
       capacity_type  = "ON_DEMAND"
 
-      min_size     = 2
-      max_size     = 2
-      desired_size = 2
+      min_size     = 1
+      max_size     = 1
+      desired_size = 1
 
       disk_size = var.disk_size_gb
 
       labels = {
         "node-type" = "system"
       }
-    }
 
-    # Infra pool - monitoring stack (Prometheus, Grafana, Loki, Tempo, NATS)
-    # Equivalent to GKE infra-pool (e2-standard-4, 2 nodes, spot)
-    infra-pool = {
-      instance_types = [var.infra_instance_type]
-      capacity_type  = "SPOT"
-
-      min_size     = 2
-      max_size     = 2
-      desired_size = 2
-
-      disk_size = var.disk_size_gb
-
-      labels = {
-        "node-type" = "infra"
+      iam_role_additional_policies = {
+        CloudWatchAgent = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+        SSM             = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
       }
-
-      taints = [
-        {
-          key    = "workload"
-          value  = "infra"
-          effect = "NO_SCHEDULE"
-        }
-      ]
     }
 
-    # App pool - application workloads (student-service, project-service)
-    # Equivalent to GKE app-pool (e2-medium, autoscaling 1-4, spot)
     app-pool = {
       instance_types = [var.app_instance_type]
       capacity_type  = "SPOT"
 
-      min_size     = var.app_min_size
-      max_size     = var.app_max_size
-      desired_size = var.app_min_size
+      min_size     = 1
+      max_size     = 1
+      desired_size = 1
 
       disk_size = var.disk_size_gb
 
@@ -105,6 +113,39 @@ module "eks" {
           effect = "NO_SCHEDULE"
         }
       ]
+
+      iam_role_additional_policies = {
+        CloudWatchAgent = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+        SSM             = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+      }
+    }
+
+    infra-pool = {
+      instance_types = [var.infra_instance_type]
+      capacity_type  = "SPOT"
+
+      min_size     = 1
+      max_size     = 1
+      desired_size = 1
+
+      disk_size = var.disk_size_gb
+
+      labels = {
+        "node-type" = "infra"
+      }
+
+      taints = [
+        {
+          key    = "workload"
+          value  = "infra"
+          effect = "NO_SCHEDULE"
+        }
+      ]
+
+      iam_role_additional_policies = {
+        CloudWatchAgent = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+        SSM             = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+      }
     }
   }
 

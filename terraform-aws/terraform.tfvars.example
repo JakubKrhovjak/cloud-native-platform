@@ -1,0 +1,6 @@
+# Copy to terraform.tfvars and set passwords
+# cp terraform.tfvars.example terraform.tfvars
+
+db_master_password  = "change-me-master"
+db_password_student = "change-me-student"
+db_password_project = "change-me-project"

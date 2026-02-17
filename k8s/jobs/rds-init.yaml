@@ -1,0 +1,53 @@
+# Creates databases and users on RDS after cluster is up.
+# Usage: kubectl apply -f k8s/jobs/rds-init.yaml
+#
+# Prerequisites:
+#   1. EKS cluster running (terraform apply done)
+#   2. kubectl configured (aws eks update-kubeconfig)
+#   3. Update RDS_HOST below with terraform output rds_endpoint
+#
+# To re-run: kubectl delete job rds-init -n apps && kubectl apply -f k8s/jobs/rds-init.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rds-init
+  namespace: apps
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: init
+          image: postgres:15-alpine
+          env:
+            - name: PGHOST
+              value: "grud-cluster-postgres.ctgi2qomwq5x.eu-central-1.rds.amazonaws.com"
+            - name: PGPORT
+              value: "5432"
+            - name: PGUSER
+              value: "grud_admin"
+            - name: PGPASSWORD
+              value: "grudadmin123"
+            - name: PGDATABASE
+              value: "grud"
+            - name: PGSSLMODE
+              value: "require"
+            - name: STUDENT_PASSWORD
+              value: "student1234"
+            - name: PROJECT_PASSWORD
+              value: "project1234"
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              echo "Creating users..."
+              psql -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'student_user') THEN CREATE ROLE student_user LOGIN PASSWORD '$STUDENT_PASSWORD'; END IF; END \$\$;"
+              psql -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'project_user') THEN CREATE ROLE project_user LOGIN PASSWORD '$PROJECT_PASSWORD'; END IF; END \$\$;"
+
+              echo "Creating databases..."
+              psql -tc "SELECT 1 FROM pg_database WHERE datname = 'university'" | grep -q 1 || psql -c "CREATE DATABASE university OWNER student_user"
+              psql -tc "SELECT 1 FROM pg_database WHERE datname = 'projects'" | grep -q 1 || psql -c "CREATE DATABASE projects OWNER project_user"
+
+              echo "Done! Databases and users created."

@@ -10,15 +10,16 @@ cloudSql:
   enabled: false
 
 ingress:
-  enabled: false
+  enabled: true
+  certificateArn: "arn:aws:acm:eu-central-1:570617543021:certificate/bee348df-de02-45fb-a594-c94d5a57df50"
 
 # Student Service
 studentService:
   enabled: true
   replicaCount: 1
   image:
-    repository: europe-west1-docker.pkg.dev/rugged-abacus-483006-r5/grud/student-service
-    tag: "0.0.6"
+    repository: 570617543021.dkr.ecr.eu-central-1.amazonaws.com/grud/student-service
+    tag: "0.0.7"
     pullPolicy: Always
   resources:
     limits:
@@ -29,24 +30,27 @@ studentService:
       memory: 128Mi
   hpa:
     enabled: false
-  # No nodeSelector/tolerations - schedule on any node (system-pool)
   nodeSelector: {}
-  tolerations: []
+  tolerations:
+    - key: "workload"
+      operator: "Equal"
+      value: "app"
+      effect: "NoSchedule"
   config:
     env: eks
     serverPort: "8080"
     grpcEndpoint: "project-service:50052"
-    natsUrl: ""
+    natsUrl: "nats://nats.infra.svc.cluster.local:4222"
     natsSubject: "student-messages"
-    otelEndpoint: ""
+    otelEndpoint: "http://localhost:4318"
     corsOrigins:
       - "*"
   database:
-    host: student-db.apps.svc.cluster.local
+    host: "grud-cluster-postgres.ctgi2qomwq5x.eu-central-1.rds.amazonaws.com"
     port: "5432"
     name: university
-    sslMode: disable
-    secretName: student-db-app
+    sslMode: require
+    secretName: student-db-secret
   auth:
     jwtSecret: "eks-test-jwt-secret-change-in-production"
   serviceAccount:
@@ -57,8 +61,8 @@ projectService:
   enabled: true
   replicaCount: 1
   image:
-    repository: europe-west1-docker.pkg.dev/rugged-abacus-483006-r5/grud/project-service
-    tag: "0.0.6"
+    repository: 570617543021.dkr.ecr.eu-central-1.amazonaws.com/grud/project-service
+    tag: "0.0.7"
     pullPolicy: Always
   resources:
     limits:
@@ -70,19 +74,23 @@ projectService:
   hpa:
     enabled: false
   nodeSelector: {}
-  tolerations: []
+  tolerations:
+    - key: "workload"
+      operator: "Equal"
+      value: "app"
+      effect: "NoSchedule"
   config:
     env: eks
     grpcPort: "50052"
-    natsUrl: ""
+    natsUrl: "nats://nats.infra.svc.cluster.local:4222"
     natsSubject: "student-messages"
-    otelEndpoint: ""
+    otelEndpoint: "http://localhost:4318"
   database:
-    host: project-db.apps.svc.cluster.local
+    host: "grud-cluster-postgres.ctgi2qomwq5x.eu-central-1.rds.amazonaws.com"
     port: "5432"
     name: projects
-    sslMode: disable
-    secretName: project-db-app
+    sslMode: require
+    secretName: project-db-secret
   serviceAccount:
     gcpServiceAccount: ""
 
@@ -93,8 +101,8 @@ adminPanel:
   config:
     apiUrl: "http://student-service:8080"
   image:
-    repository: europe-west1-docker.pkg.dev/rugged-abacus-483006-r5/grud/admin-panel
-    tag: "0.0.8"
+    repository: 570617543021.dkr.ecr.eu-central-1.amazonaws.com/grud/admin-panel
+    tag: "0.0.7"
     pullPolicy: Always
   resources:
     limits:
@@ -104,67 +112,29 @@ adminPanel:
       cpu: 50m
       memory: 64Mi
   nodeSelector: {}
-  tolerations: []
+  tolerations:
+    - key: "workload"
+      operator: "Equal"
+      value: "app"
+      effect: "NoSchedule"
   ingress:
     enabled: false
   service:
-    type: NodePort
+    type: ClusterIP
     port: 80
-    nodePort: 30082
 
-# Local PostgreSQL databases (like Kind)
+# In-cluster PostgreSQL disabled — using AWS RDS
 studentDb:
-  enabled: true
-  replicaCount: 1
-  image:
-    repository: postgres
-    tag: "15-alpine"
-  resources:
-    limits:
-      cpu: 250m
-      memory: 256Mi
-    requests:
-      cpu: 100m
-      memory: 128Mi
-  nodeSelector: {}
-  tolerations: []
-  storage:
-    size: 1Gi
-    storageClassName: gp2
-  credentials:
-    database: university
-    username: student_user
-    password: student_password
+  enabled: false
 
-# Project Database
 projectDb:
-  enabled: true
-  replicaCount: 1
-  image:
-    repository: postgres
-    tag: "15-alpine"
-  resources:
-    limits:
-      cpu: 250m
-      memory: 256Mi
-    requests:
-      cpu: 100m
-      memory: 128Mi
-  nodeSelector: {}
-  tolerations: []
-  storage:
-    size: 1Gi
-    storageClassName: gp2
-  credentials:
-    database: projects
-    username: project_user
-    password: project_password
+  enabled: false
 
 # Secrets - simple Kubernetes secrets for testing
 secrets:
-  createKubernetesSecrets: false
+  createKubernetesSecrets: true
   useExternalSecrets: false
-  jwtSecret: ""
+  jwtSecret: "eks-test-jwt-secret-change-in-production"
   gcp:
     projectId: ""
     clusterLocation: ""
@@ -175,14 +145,14 @@ secrets:
 
 databases:
   student:
-    username: ""
-    password: ""
+    username: "student_user"
+    password: "student1234"
     database: "university"
-    host: ""
+    host: "grud-cluster-postgres.ctgi2qomwq5x.eu-central-1.rds.amazonaws.com"
     port: 5432
   project:
-    username: ""
-    password: ""
+    username: "project_user"
+    password: "project1234"
     database: "projects"
-    host: ""
+    host: "grud-cluster-postgres.ctgi2qomwq5x.eu-central-1.rds.amazonaws.com"
     port: 5432

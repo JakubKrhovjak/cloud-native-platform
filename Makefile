@@ -1,4 +1,4 @@
-.PHONY: build build-student build-project version test kind/setup kind/deploy kind/status kind/wait kind/stop kind/start kind/cleanup gke/auth gke/connect gke/deploy gke/status gke/full-deploy gke/ingress gke/resources gke/clean gke/prometheus gke/grafana tf/init tf/plan tf/apply tf/destroy tf/output tf/fmt tf/validate helm/template-kind helm/template-gke helm/uninstall infra/setup infra/deploy infra/deploy-gke infra/deploy-prometheus infra/deploy-prometheus-gke infra/deploy-alloy infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts infra/status infra/cleanup secrets/generate-kind secrets/list-kind secrets/list-gke secrets/view-gke help
+.PHONY: build build-student build-project version test kind/setup kind/deploy kind/status kind/wait kind/stop kind/start kind/cleanup gke/auth gke/connect gke/deploy gke/status gke/full-deploy gke/ingress gke/resources gke/clean gke/prometheus gke/grafana tf/init tf/plan tf/apply tf/destroy tf/output tf/fmt tf/validate tf-aws/init tf-aws/plan tf-aws/apply tf-aws/destroy tf-aws/output helm/template-kind helm/template-gke helm/uninstall infra/setup infra/deploy infra/deploy-gke infra/deploy-prometheus infra/deploy-prometheus-gke infra/deploy-alloy infra/deploy-nats infra/deploy-loki infra/deploy-tempo infra/deploy-alerts infra/status infra/cleanup secrets/generate-kind secrets/list-kind secrets/list-gke secrets/view-gke help
 
 # =============================================================================
 # Build Configuration
@@ -181,7 +181,7 @@ gke/connect: ## Connect to GKE cluster via Connect Gateway
 	@gcloud container fleet memberships get-credentials $(GKE_CLUSTER) \
 		--location=$(GCP_REGION) \
 		--project=$(GCP_PROJECT)
-	@echo "✅ Connected to $(GKE_CLUSTER) via Connect Gateway"
+	@echo "✅ Connected to $(GKE_CLUSTER) via Connect Ga teway"
 
 gke/build: version/bump ## Build and push images to Artifact Registry with auto-incremented VERSION
 	@NEW_VERSION=$$(cat $(VERSION_FILE)); \
@@ -306,7 +306,159 @@ gke/gateway-status: ## Show Gateway and HTTPRoute status
 	@kubectl describe gateway grud-gateway -n apps | tail -20
 
 # =============================================================================
-# Terraform
+# EKS Cluster (AWS)
+# =============================================================================
+AWS_REGION := eu-central-1
+AWS_ACCOUNT_ID := 570617543021
+EKS_CLUSTER := grud-cluster
+EKS_REGISTRY := $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com
+
+eks/infra: ## Create full EKS infrastructure (Terraform + kubeconfig + RDS init + NATS)
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "1/5 Terraform init..."
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@cd $(TF_AWS_DIR) && terraform init
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "2/5 Terraform apply (VPC + EKS + RDS)..."
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@cd $(TF_AWS_DIR) && terraform apply -var="skip_kubernetes_provider=true"
+	@cd $(TF_AWS_DIR) && terraform apply
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "3/5 Configuring kubectl..."
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@aws eks update-kubeconfig --region $(AWS_REGION) --name $(EKS_CLUSTER)
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "4/5 Initializing RDS databases..."
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@kubectl create namespace apps --dry-run=client -o yaml | kubectl apply -f -
+	@kubectl delete job rds-init -n apps --ignore-not-found
+	@kubectl apply -f k8s/jobs/rds-init.yaml
+	@kubectl wait --for=condition=complete job/rds-init -n apps --timeout=120s
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "5/5 Deploying NATS..."
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@kubectl create namespace infra --dry-run=client -o yaml | kubectl apply -f -
+	@kubectl apply -f k8s/infra/nats.yaml
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "EKS infrastructure ready!"
+	@echo "Next: make eks/deploy"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+eks/ecr-setup: ## Create ECR repositories
+	@echo "📦 Creating ECR repositories..."
+	@aws ecr create-repository --repository-name grud/student-service --region $(AWS_REGION) 2>/dev/null || echo "  ⚠️  grud/student-service already exists"
+	@aws ecr create-repository --repository-name grud/project-service --region $(AWS_REGION) 2>/dev/null || echo "  ⚠️  grud/project-service already exists"
+	@aws ecr create-repository --repository-name grud/admin-panel --region $(AWS_REGION) 2>/dev/null || echo "  ⚠️  grud/admin-panel already exists"
+	@echo "✅ ECR repositories ready"
+
+eks/ecr-login: ## Login to ECR
+	@echo "🔐 Logging into ECR..."
+	@aws ecr get-login-password --region $(AWS_REGION) | docker login --username AWS --password-stdin $(EKS_REGISTRY)
+	@echo "✅ ECR login successful"
+
+eks/build: version/bump eks/ecr-login ## Build and push images to ECR
+	@NEW_VERSION=$$(cat $(VERSION_FILE)); \
+	echo "📦 Building and pushing images to ECR (linux/amd64)..."; \
+	echo "📌 Version: $$NEW_VERSION"; \
+	echo "🔨 Building student-service..."; \
+	KO_DOCKER_REPO=$(EKS_REGISTRY)/grud/student-service ko build --bare -t $$NEW_VERSION -t latest --platform=linux/amd64 ./services/student-service/cmd/student-service; \
+	echo "🔨 Building project-service..."; \
+	KO_DOCKER_REPO=$(EKS_REGISTRY)/grud/project-service ko build --bare -t $$NEW_VERSION -t latest --platform=linux/amd64 ./services/project-service/cmd/project-service; \
+	echo "🔨 Building admin-panel..."; \
+	docker build --platform=linux/amd64 -t $(EKS_REGISTRY)/grud/admin-panel:$$NEW_VERSION -t $(EKS_REGISTRY)/grud/admin-panel:latest services/admin; \
+	docker push $(EKS_REGISTRY)/grud/admin-panel:$$NEW_VERSION; \
+	docker push $(EKS_REGISTRY)/grud/admin-panel:latest; \
+	echo "✅ Images pushed to ECR with tag: $$NEW_VERSION"
+
+eks/update-version: ## Update image tags in values-eks.yaml (only ECR images, not postgres)
+	@NEW_VERSION=$$(cat $(VERSION_FILE)); \
+	echo "📝 Updating image tags to $$NEW_VERSION in values-eks.yaml..."; \
+	sed -i.bak '/ecr\..*amazonaws\.com/{n;s/tag: .*/tag: "'"$$NEW_VERSION"'"/;}' k8s/apps/values-eks.yaml; \
+	rm k8s/apps/values-eks.yaml.bak 2>/dev/null || true; \
+	echo "✅ Updated values-eks.yaml with version $$NEW_VERSION"
+
+eks/deploy: ## Deploy to EKS with Helm
+	@echo "🚀 Deploying to EKS with Helm..."
+	@helm upgrade --install apps k8s/apps \
+		-n apps --create-namespace \
+		-f k8s/apps/values-eks.yaml \
+		--wait
+	@echo "✅ Deployed to EKS"
+
+eks/build-deploy: eks/ecr-setup eks/build eks/update-version eks/deploy ## Full EKS build and deploy
+
+eks/status: ## Show EKS cluster status
+	@echo "📋 EKS Cluster Status"
+	@echo ""
+	@echo "Nodes:"
+	@kubectl get nodes -o wide
+	@echo ""
+	@echo "Deployments:"
+	@kubectl get deployments -n apps
+	@echo ""
+	@echo "Pods:"
+	@kubectl get pods -n apps -o wide
+	@echo ""
+	@echo "Services:"
+	@kubectl get services -n apps
+
+eks/ingress: ## Show EKS Ingress status and ALB DNS
+	@echo "=== Ingress ==="
+	@kubectl get ingress -n apps
+	@echo ""
+	@echo "=== ALB DNS ==="
+	@kubectl get ingress -n apps -o jsonpath='{.items[*].status.loadBalancer.ingress[*].hostname}'
+	@echo ""
+
+eks/clean: ## Clean uninstall from EKS
+	@echo "🧹 Cleaning apps namespace..."
+	@helm uninstall apps -n apps --wait 2>/dev/null || true
+	@echo "✅ Cleanup complete"
+
+eks/delete: tf-aws/destroy ## Delete EKS cluster via Terraform (stops all costs!)
+
+# =============================================================================
+# Terraform AWS (EKS + RDS)
+# =============================================================================
+TF_AWS_DIR := terraform-aws
+
+tf-aws/init: ## Initialize Terraform AWS
+	@echo "Initializing Terraform AWS..."
+	@cd $(TF_AWS_DIR) && terraform init
+	@echo "Terraform AWS initialized"
+
+tf-aws/plan: ## Plan Terraform AWS changes
+	@echo "Planning Terraform AWS changes..."
+	@cd $(TF_AWS_DIR) && terraform plan -var="skip_kubernetes_provider=true"
+
+tf-aws/apply: ## Apply Terraform AWS (EKS + RDS)
+	@echo "Stage 1: Bootstrap (VPC, EKS, RDS) - skip k8s providers..."
+	@cd $(TF_AWS_DIR) && terraform apply -var="skip_kubernetes_provider=true"
+	@echo "Stage 2: Full apply with k8s providers..."
+	@cd $(TF_AWS_DIR) && terraform apply
+	@echo "Terraform AWS applied"
+
+tf-aws/destroy: ## Destroy all AWS resources (ACM cert + DNS preserved - not managed by TF)
+	@echo "Destroying Terraform AWS resources..."
+	@cd $(TF_AWS_DIR) && terraform destroy
+	@echo "Terraform AWS destroyed"
+
+tf-aws/output: ## Show Terraform AWS outputs
+	@cd $(TF_AWS_DIR) && terraform output
+
+eks/db-tunnel: ## Port-forward to RDS via SSM (requires: brew install --cask session-manager-plugin)
+	@INSTANCE_ID=$$(aws ec2 describe-instances --region eu-central-1 \
+		--filters "Name=tag:eks:cluster-name,Values=grud-cluster" "Name=instance-state-name,Values=running" \
+		--query 'Reservations[0].Instances[0].InstanceId' --output text) && \
+	echo "Connecting to RDS via SSM (instance: $$INSTANCE_ID)..." && \
+	echo "Then connect: psql -h localhost -p 5432 -U student_user -d university" && \
+	aws ssm start-session --region eu-central-1 --target $$INSTANCE_ID \
+		--document-name AWS-StartPortForwardingSessionToRemoteHost \
+		--parameters '{"host":["grud-cluster-postgres.ctgi2qomwq5x.eu-central-1.rds.amazonaws.com"],"portNumber":["5432"],"localPortNumber":["5432"]}'
+
+# =============================================================================
+# Terraform GCP (GKE)
 # =============================================================================
 TF_DIR := terraform
 

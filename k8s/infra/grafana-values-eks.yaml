@@ -1,0 +1,20 @@
+grafana.ini:
+  server:
+    root_url: "https://aws.grudapp.com/grafana"
+    serve_from_sub_path: true
+  auth:
+    disable_login_form: true
+  auth.anonymous:
+    enabled: true
+    org_role: Admin
+
+nodeSelector:
+  node-type: infra
+
+tolerations:
+  - key: workload
+    operator: Equal
+    value: infra
+    effect: NoSchedule
+
+adminPassword: admin
