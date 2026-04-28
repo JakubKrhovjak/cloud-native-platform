@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.cloudnative.logagent</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/REPLACE_WITH_VENV_PATH/bin/python</string>
+        <string>-m</string>
+        <string>log_agent</string>
+        <string>check</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>ANTHROPIC_API_KEY</key>
+        <string>REPLACE_WITH_API_KEY_OR_USE_PASSTHROUGH</string>
+        <key>KUBECONFIG</key>
+        <string>/Users/REPLACE_USER/.kube/config</string>
+        <key>LOG_AGENT_CONFIG</key>
+        <string>/Users/REPLACE_USER/GolandProjects/cloud-native-platform/tools/log-agent/config.yaml</string>
+        <key>LOG_AGENT_STATE_DIR</key>
+        <string>/Users/REPLACE_USER/GolandProjects/cloud-native-platform/tools/log-agent/state</string>
+    </dict>
+    <key>WorkingDirectory</key>
+    <string>/Users/REPLACE_USER/GolandProjects/cloud-native-platform/tools/log-agent</string>
+    <key>StartInterval</key>
+    <integer>900</integer>
+    <key>StandardOutPath</key>
+    <string>/Users/REPLACE_USER/Library/Logs/log-agent.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/REPLACE_USER/Library/Logs/log-agent.log</string>
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>

@@ -1,0 +1,30 @@
+[project]
+name = "log-agent"
+version = "0.1.0"
+description = "Anthropic-SDK agent that monitors Kubernetes logs in local Kind cluster"
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=0.40.0",
+    "kubernetes>=29.0.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-mock>=3.12",
+]
+
+[project.scripts]
+log-agent = "log_agent.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["log_agent*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v"

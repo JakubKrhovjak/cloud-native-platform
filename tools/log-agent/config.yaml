@@ -1,0 +1,11 @@
+namespaces: [apps, infra]
+model: claude-sonnet-4-6
+periodic:
+  lookback_seconds: 900
+  max_iterations: 25
+alerts:
+  dedup_ttl_seconds: 21600
+  prefilter_pattern: "ERROR|panic|OOM|FATAL|HTTP 5\\d{2}"
+limits:
+  max_log_lines: 2000
+  max_session_input_tokens: 200000
