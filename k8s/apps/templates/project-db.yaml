@@ -10,6 +10,8 @@ metadata:
 type: Opaque
 stringData:
   dbname: {{ .Values.projectDb.credentials.database }}
+  # Alias consumed by project-service env vars (DB_NAME -> key "database").
+  database: {{ .Values.projectDb.credentials.database }}
   username: {{ .Values.projectDb.credentials.username }}
   password: {{ .Values.projectDb.credentials.password }}
 ---

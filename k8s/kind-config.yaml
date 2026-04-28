@@ -7,11 +7,15 @@
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 name: grud-cluster
-# Enable local registry
+# Enable local registry via the modern hosts.toml mechanism.
+# We point containerd at /etc/containerd/certs.d and the setup script
+# drops a hosts.toml entry mapping localhost:5001 -> kind-registry:5000.
+# (Inline `mirrors` is rejected by containerd >= 2.x which ships in newer
+# kindest/node images: "mirrors cannot be set when config_path is provided".)
 containerdConfigPatches:
   - |-
-    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:5001"]
-      endpoint = ["http://kind-registry:5000"]
+    [plugins."io.containerd.grpc.v1.cri".registry]
+      config_path = "/etc/containerd/certs.d"
 nodes:
   # Control plane node
   - role: control-plane

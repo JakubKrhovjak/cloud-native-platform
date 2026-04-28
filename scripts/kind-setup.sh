@@ -72,6 +72,19 @@ else
     echo -e "${GREEN}✅ Registry already connected${NC}"
 fi
 
+# Add a mirror entry for localhost:5001 -> kind-registry:5000 on every node.
+# Newer kindest/node images run containerd >= 2.x which requires the
+# hosts.toml mechanism; the legacy inline `mirrors` block is rejected.
+echo -e "${BLUE}🔧 Wiring local registry into containerd on every node...${NC}"
+REGISTRY_DIR="/etc/containerd/certs.d/localhost:5001"
+for node in $(kind get nodes --name grud-cluster); do
+    docker exec "$node" mkdir -p "$REGISTRY_DIR"
+    cat <<EOF | docker exec -i "$node" tee "$REGISTRY_DIR/hosts.toml" >/dev/null
+[host."http://kind-registry:5000"]
+EOF
+done
+echo -e "${GREEN}✅ Registry mirror configured on all nodes${NC}"
+
 # Document the local registry
 echo -e "${BLUE}📝 Configuring local registry...${NC}"
 cat <<EOF | kubectl apply -f -

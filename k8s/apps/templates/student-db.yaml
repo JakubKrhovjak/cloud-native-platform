@@ -10,6 +10,8 @@ metadata:
 type: Opaque
 stringData:
   dbname: {{ .Values.studentDb.credentials.database }}
+  # Alias consumed by student-service env vars (DB_NAME -> key "database").
+  database: {{ .Values.studentDb.credentials.database }}
   username: {{ .Values.studentDb.credentials.username }}
   password: {{ .Values.studentDb.credentials.password }}
 ---
